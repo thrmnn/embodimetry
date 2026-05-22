@@ -186,7 +186,7 @@ bootstrap-simulated MDE, is [`docs/MDE_TABLE.md`](MDE_TABLE.md).
 ### How are two policies compared on the same env?
 
 By the **paired** success-rate delta. Episodes are paired by
-`(seed_idx, episode_idx)` — same env reset, same scenario — and a paired
+`(seed, episode_index)` — same env reset, same scenario — and a paired
 bootstrap or paired Wilcoxon / McNemar test is computed over those
 pairs. Pairing tightens the interval on the delta relative to treating
 the cells as independent. A "significantly better" claim always carries

@@ -351,7 +351,7 @@ of the resampled means. `rng` (a `numpy.random.Generator`) is required.
 Paired percentile-bootstrap of the success-rate delta `mean(a) −
 mean(b)`. `a` and `b` are 1-D bool arrays of equal shape, paired by
 index — `a[i]` and `b[i]` must come from the same
-`(seed_idx, episode_idx)`. Each resample draws shared indices into both
+`(seed, episode_index)`. Each resample draws shared indices into both
 arrays. Use this for cross-cell comparisons only when the seeding
 contract was identical and `n_episodes_per_seed` matches.
 

@@ -66,8 +66,8 @@ See `docs/DESIGN.md` § Architecture sketch for the full `results.parquet`
 schema and `manifest.json` field list. Headlines:
 
 - **Granularity**: one row per episode (5 seeds × ≤50 episodes per cell).
-- **Join key**: `sweep_timestamp` joins parquet rows to `manifest.json`.
-- **Reproducibility key**: `(policy_revision, sweep_timestamp, seed_idx, episode_idx)`.
+- **Join key**: `timestamp_utc` joins parquet rows to `manifest.json`.
+- **Reproducibility key**: `(policy, env, seed, episode_index)`.
 
 ## Reproducibility & seeding contract
 
