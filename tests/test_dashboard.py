@@ -1008,20 +1008,19 @@ def test_per_tab_intro_thresholds_match_calibrate_py() -> None:
     assert f"{VERY_HIGH_VRAM_THRESHOLD_MB:.0f}" in intro
 
 
-def test_per_tab_intro_all_four_tabs_render() -> None:
-    """Each of the four data tabs has a non-empty intro markdown block.
+def test_per_tab_intro_rebuilt_tabs_render() -> None:
+    """The rebuilt dashboard's intro-bearing tabs render non-empty blocks.
 
-    Plus an unknown tab key returns the empty string (not an
-    exception) -- callers should treat that as a wiring bug, not a
-    runtime error.
+    After the 7->3 rebuild the dashboard only renders the per-tab intro
+    for Pre-flight (``calibration``) and Rollouts (``rollouts``); the
+    progress / events prose now lives inline on the Status screen. An
+    unknown tab key still returns the empty string (a wiring bug, not a
+    runtime error).
     """
-    for tab in ("progress", "calibration", "rollouts", "events"):
+    for tab in ("calibration", "rollouts"):
         rendered = per_tab_intro_markdown(tab)
         assert len(rendered) > 100, f"intro for tab={tab!r} is suspiciously short"
-        # All four start with the "What this tab shows" framing.
         assert "What" in rendered and "tab" in rendered
-        # All four name a "Good shape" expectation (the operator-facing
-        # "is it healthy?" answer).
         assert "Good shape" in rendered or "good" in rendered.lower()
 
     assert per_tab_intro_markdown("unknown-tab") == ""
@@ -2093,3 +2092,143 @@ def test_format_bytes_gb_renders_and_handles_none() -> None:
     assert format_bytes_gb(None) == STAT_PLACEHOLDER
     assert format_bytes_gb(8 * 1024**3) == "8.0 GB"
     assert format_bytes_gb(0) == "0.0 GB"
+
+
+# --------------------------------------------------------------------- #
+# Status landing screen (rebuilt dashboard, 7 tabs -> 3)                 #
+# --------------------------------------------------------------------- #
+#
+# The Status tab is the default landing screen and must pass the
+# 5-second test: the instant it loads, a plain-English health line says
+# whether the sweep needs the operator. The tests below pin the three
+# health-banner states and the auto-load-newest-run behaviour that
+# replaced the old (buggy) run-selector dropdown.
+
+
+def test_status_health_message_is_plain_english_green_when_progressing() -> None:
+    """A clean in-flight sweep -> green banner with the 5-second-test line.
+
+    The message must lead with plain English ("Sweep healthy"), name the
+    cells-done count, state 0 failed, and reassure ("nothing needs you")
+    so the operator can close the laptop on a glance.
+    """
+    manifest = _manifest(
+        [
+            _manifest_entry(
+                policy="act",
+                env="aloha_transfer_cube",
+                seed=0,
+                status="completed",
+                started_utc="2026-05-12T03:00:00+00:00",
+                finished_utc="2026-05-12T03:10:00+00:00",
+                exit_code=0,
+            ),
+            _manifest_entry(
+                policy="diffusion_policy",
+                env="pusht",
+                seed=0,
+                status="pending",
+                started_utc="2026-05-12T03:10:00+00:00",
+            ),
+        ]
+    )
+    now = dt.datetime(2026, 5, 12, 3, 12, 0, tzinfo=dt.UTC)
+    kpis = compute_mission_kpis(manifest, now_utc=now)
+
+    assert kpis.health == HEALTH_GREEN
+    msg = kpis.health_message
+    assert "Sweep healthy" in msg
+    assert "0 failed" in msg
+    assert "nothing needs you" in msg
+    # Plain count, not a bare stats grid.
+    assert f"{kpis.cells_done}/{kpis.denom}" in msg
+
+
+def test_status_health_message_says_needs_you_on_failure() -> None:
+    """Any failed cell -> red banner whose sentence says it needs the operator."""
+    manifest = _manifest(
+        [
+            _manifest_entry(
+                policy="random",
+                env="pusht",
+                seed=0,
+                status="failed",
+                started_utc="2026-05-12T03:00:00+00:00",
+                finished_utc="2026-05-12T03:01:00+00:00",
+                exit_code=4,
+            ),
+        ]
+    )
+    kpis = compute_mission_kpis(manifest)
+    assert kpis.health == HEALTH_RED
+    assert "needs you" in kpis.health_message.lower()
+    assert "1 failed" in kpis.health_message
+
+
+def test_status_empty_run_is_graceful_amber_no_crash() -> None:
+    """No sweep on disk -> amber banner, plain hint, never a crash.
+
+    This is the cold-start state: the dashboard opened before any sweep
+    exists. The banner must still render a sentence (amber), not blank.
+    """
+    kpis = compute_mission_kpis({})
+    assert kpis.health == HEALTH_AMBER
+    assert "No sweep running" in kpis.health_message
+    assert kpis.state == "IDLE"
+
+
+def test_status_auto_loads_newest_run_no_selector(tmp_path: Path) -> None:
+    """The Status grid auto-loads the newest run -- no manual selection.
+
+    The old Sweep-progress tab rendered empty mid-sweep because its
+    run-selector dropdown did not auto-select the live run. The rebuilt
+    Status screen calls ``discover_sweep_runs`` and takes ``runs[0]``
+    (newest by ``started_utc``) on every paint, so the grid populates
+    on first paint with no operator action. This pins that contract.
+    """
+    older_dir = tmp_path / "sweep-old"
+    older_dir.mkdir()
+    older = _manifest(
+        [
+            _manifest_entry(
+                policy="act",
+                env="pusht",
+                seed=0,
+                status="completed",
+                started_utc="2026-05-10T00:00:00+00:00",
+                finished_utc="2026-05-10T00:10:00+00:00",
+                exit_code=0,
+            )
+        ],
+        finished="2026-05-10T00:10:00+00:00",
+    )
+    older["started_utc"] = "2026-05-10T00:00:00+00:00"
+    (older_dir / "sweep_manifest.json").write_text(json.dumps(older))
+
+    newer_dir = tmp_path / "sweep-new"
+    newer_dir.mkdir()
+    newer = _manifest(
+        [
+            _manifest_entry(
+                policy="diffusion_policy",
+                env="pusht",
+                seed=0,
+                status="pending",
+                started_utc="2026-05-12T03:10:00+00:00",
+            )
+        ]
+    )
+    newer["started_utc"] = "2026-05-12T03:00:00+00:00"
+    (newer_dir / "sweep_manifest.json").write_text(json.dumps(newer))
+
+    runs = discover_sweep_runs(tmp_path)
+    # runs[0] -- the path the Status screen auto-loads -- is the newest.
+    assert runs[0].name == "sweep-new"
+    grid = build_progress_table(load_manifest(runs[0].manifest_path))
+    assert not grid.empty
+    assert grid.iloc[0]["policy"] == "diffusion_policy"
+
+
+def test_status_auto_load_empty_results_dir_returns_no_runs(tmp_path: Path) -> None:
+    """An empty results dir -> no runs -> Status renders its empty state."""
+    assert discover_sweep_runs(tmp_path) == []

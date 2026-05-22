@@ -2892,7 +2892,7 @@ def compute_mission_kpis(
             eta_label=STAT_PLACEHOLDER,
             state=SWEEP_STATE_IDLE,
             health=HEALTH_AMBER,
-            health_message="no sweep manifest on disk -- start one with `make sweep`",
+            health_message=("No sweep running — no manifest on disk. Start one with `make sweep`."),
         )
 
     status_counts = table["status"].value_counts().to_dict()
@@ -2917,24 +2917,31 @@ def compute_mission_kpis(
     else:
         state = SWEEP_STATE_RUNNING if not all_done else SWEEP_STATE_DONE
 
+    eta_label = _format_duration(_sweep_eta_seconds(manifest, now))
+    eta_phrase = f"ETA ~{eta_label}" if eta_label != STAT_PLACEHOLDER else "ETA unknown"
+
     if throttled:
         health = HEALTH_RED
         health_message = (
-            "sweep FROZEN by the RAM watchdog -- cgroup is throttled; "
-            "free host memory or raise the cap"
+            f"Sweep needs you — FROZEN by the RAM watchdog. "
+            f"{cells_done}/{denom} cells done. Free host memory or raise the cgroup cap."
         )
     elif cells_failed > 0:
         health = HEALTH_RED
         health_message = (
-            f"{cells_failed} failed cell(s) -- triage the failed rows on the Sweep-progress tab"
+            f"Sweep needs you — {cells_done}/{denom} cells done · "
+            f"{cells_failed} failed. Triage the failed rows in the cell grid below."
         )
     elif all_done:
         health = HEALTH_GREEN
-        health_message = f"sweep healthy -- all {cells_done}/{denom} cells complete"
+        health_message = (
+            f"Sweep complete — all {cells_done}/{denom} cells done · 0 failed · nothing needs you."
+        )
     else:
         health = HEALTH_GREEN
         health_message = (
-            f"sweep healthy -- {cells_done}/{denom} cells done, {cells_running} running"
+            f"Sweep healthy — {cells_done}/{denom} cells done · "
+            f"0 failed · {eta_phrase} · nothing needs you."
         )
 
     return MissionKPIs(
@@ -2946,7 +2953,7 @@ def compute_mission_kpis(
         percent_done=percent,
         running_label=_running_cell_label(manifest),
         elapsed_label=_format_duration(_sweep_elapsed_seconds(manifest, now)),
-        eta_label=_format_duration(_sweep_eta_seconds(manifest, now)),
+        eta_label=eta_label,
         state=state,
         health=health,
         health_message=health_message,
