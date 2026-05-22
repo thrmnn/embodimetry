@@ -21,6 +21,7 @@ from lerobot_bench.envs import EnvSpec
 from lerobot_bench.eval import (
     CellResult,
     EpisodeResult,
+    _buffer_name_to_feature_key,
     _gym_obs_to_batch,
     _LerobotPolicyAdapter,
     _NoOpPolicy,
@@ -1597,3 +1598,40 @@ def test_to_rows_dtypes_compatible_with_parquet_roundtrip(tmp_path: Any, env_spe
     roundtripped = pd.read_parquet(path)
     assert tuple(roundtripped.columns) == RESULT_SCHEMA
     assert len(roundtripped) == 2
+
+
+# --------------------------------------------------------------------- #
+# Legacy-normalization recovery: buffer name -> feature key mapping      #
+# --------------------------------------------------------------------- #
+
+
+def test_buffer_name_maps_multidot_key_against_config() -> None:
+    """A two-dot camera key must survive the buffer-name round trip.
+
+    Regression for the act x aloha 0%-success bug: the legacy
+    safetensors buffer ``buffer_observation_images_top`` flattens every
+    dot to an underscore. Reversing only the FIRST underscore yields
+    ``observation.images_top`` -- which never matches the policy
+    config's ``observation.images.top``, so lerobot's
+    NormalizerProcessorStep silently skips it and feeds raw pixels to
+    the model. Disambiguating against the declared feature keys fixes
+    it.
+    """
+    known = ("observation.images.top", "observation.state", "action")
+    assert _buffer_name_to_feature_key("observation_images_top", known) == "observation.images.top"
+    assert _buffer_name_to_feature_key("observation_state", known) == "observation.state"
+    assert _buffer_name_to_feature_key("action", known) == "action"
+
+
+def test_buffer_name_legacy_fallback_for_single_dot_key() -> None:
+    """With no config keys, single-dot keys still recover (diffusion_pusht)."""
+    assert _buffer_name_to_feature_key("observation_image", ()) == "observation.image"
+    assert _buffer_name_to_feature_key("observation_state", ()) == "observation.state"
+    assert _buffer_name_to_feature_key("action", ()) == "action"
+
+
+def test_buffer_name_falls_back_when_no_known_key_matches() -> None:
+    """An unmatched buffer name degrades to the legacy single-underscore reversal."""
+    known = ("observation.state", "action")
+    # No known key flattens to 'observation_images_top'; fall back.
+    assert _buffer_name_to_feature_key("observation_images_top", known) == "observation.images_top"
