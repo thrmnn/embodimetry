@@ -519,14 +519,46 @@ def _libero_obs_to_batch(obs: dict[str, Any]) -> dict[str, Any]:
     return batch
 
 
+def _buffer_name_to_feature_key(feature_buf: str, known_keys: Sequence[str]) -> str:
+    """Map a legacy safetensors buffer name back to a canonical feature key.
+
+    The legacy buffer format flattens every dot in a feature key to an
+    underscore: ``observation.images.top`` is stored as
+    ``buffer_observation_images_top``. Naively reversing only the first
+    underscore (``observation.images_top``) is WRONG for any key with
+    more than one dot — and Aloha/Libero camera keys
+    (``observation.images.<view>``) always have two. A feature key
+    recovered under the wrong name never reaches lerobot's
+    ``NormalizerProcessorStep`` (it silently skips unknown keys, see
+    ``normalize_processor.py`` ``key not in self._tensor_stats``), so
+    the input is fed to the model un-normalized — garbage features,
+    near-zero success.
+
+    The buffer name itself is lossy (underscore vs dot is ambiguous),
+    so we disambiguate against the policy config's declared feature
+    keys: a buffer matches the unique known key whose dots-as-
+    underscores form equals ``feature_buf``. If no known key is given
+    or none matches, fall back to the legacy single-underscore reversal
+    (correct for single-dot keys such as ``observation.image`` on
+    ``lerobot/diffusion_pusht``).
+    """
+    matches = [k for k in known_keys if k.replace(".", "_") == feature_buf]
+    if len(matches) == 1:
+        return matches[0]
+    return feature_buf.replace("_", ".", 1)
+
+
 def _recover_dataset_stats_from_safetensors(
-    repo_id: str, revision: str
+    repo_id: str,
+    revision: str,
+    feature_keys: Sequence[str] = (),
 ) -> dict[str, dict[str, NDArray[np.float32]]]:
     """Reconstruct ``dataset_stats`` from legacy safetensors normalize buffers.
 
-    Pre-0.5.x lerobot checkpoints (e.g. ``lerobot/diffusion_pusht``)
-    pre-date the processor-pipeline split: their normalization stats
-    live as buffers inside ``model.safetensors`` rather than as
+    Pre-0.5.x lerobot checkpoints (e.g. ``lerobot/diffusion_pusht``,
+    ``lerobot/act_aloha_sim_transfer_cube_human``) pre-date the
+    processor-pipeline split: their normalization stats live as buffers
+    inside ``model.safetensors`` rather than as
     ``policy_preprocessor.json`` on the Hub. lerobot 0.5.1 silently
     drops these buffers when loading the model (only a WARNING is
     emitted) so the policy's outputs would be in normalized action
@@ -540,14 +572,15 @@ def _recover_dataset_stats_from_safetensors(
     ships proper processors), returns an empty dict — caller should
     fall back to loading the processors directly.
 
+    ``feature_keys`` is the set of canonical feature keys the policy
+    config declares (``cfg.input_features`` + ``cfg.output_features``).
+    It is used to disambiguate multi-dot buffer names — see
+    :func:`_buffer_name_to_feature_key`. Passing it empty preserves the
+    legacy single-underscore reversal.
+
     Lazy-imports ``huggingface_hub`` and ``safetensors``; both are
     transitive deps of ``lerobot==0.5.1`` so they are always available
     when this function is called from the pretrained branch.
-
-    The original buffer-name format converts the dot in feature keys
-    to an underscore (``observation.image`` becomes
-    ``buffer_observation_image``); we reverse the first underscore back
-    to a dot to recover the canonical key.
     """
     from huggingface_hub import hf_hub_download
     from safetensors.torch import load_file
@@ -562,11 +595,11 @@ def _recover_dataset_stats_from_safetensors(
             if not tensor_key.startswith(prefix):
                 continue
             rest = tensor_key[len(prefix) :]
-            # rest looks like 'observation_image.mean' or 'action.max'.
+            # rest looks like 'observation_images_top.mean' or 'action.max'.
             feature_buf, _, stat_name = rest.rpartition(".")
             if not feature_buf or not stat_name:
                 continue
-            feature_key = feature_buf.replace("_", ".", 1)
+            feature_key = _buffer_name_to_feature_key(feature_buf, feature_keys)
             stats.setdefault(feature_key, {})[stat_name] = tensor.cpu().numpy().astype(np.float32)
             break
     return stats
@@ -675,13 +708,29 @@ def _load_pretrained_policy(
             repo_id,
             revision,
         )
-        dataset_stats = _recover_dataset_stats_from_safetensors(repo_id, revision)
+        feature_keys = (*cfg.input_features.keys(), *cfg.output_features.keys())
+        dataset_stats = _recover_dataset_stats_from_safetensors(
+            repo_id, revision, feature_keys=feature_keys
+        )
         if not dataset_stats:
             raise RuntimeError(
                 f"could not recover normalization stats for '{repo_id}'@{revision}: "
                 "no policy_preprocessor.json on the Hub AND no normalize_inputs/targets "
                 "buffers in model.safetensors. Pretrained policy will not work without "
                 "valid normalization."
+            ) from None
+        # A recovered key that is not a declared feature key means the buffer
+        # name -> feature key mapping failed: the stats would silently never
+        # reach NormalizerProcessorStep and the input would be fed raw to the
+        # model. Fail loud rather than ship a 0%-success cell.
+        unmapped = sorted(set(dataset_stats) - set(feature_keys))
+        if unmapped:
+            raise RuntimeError(
+                f"recovered normalization stats for '{repo_id}'@{revision} contain "
+                f"feature keys not declared by the policy config: {unmapped}. "
+                f"Config declares: {sorted(feature_keys)}. The legacy safetensors "
+                "buffer name could not be mapped to a canonical feature key, so "
+                "normalization would be silently skipped for these inputs."
             ) from None
         preprocessor, postprocessor = _lerobot_factory.make_pre_post_processors(
             cfg, dataset_stats=dataset_stats
