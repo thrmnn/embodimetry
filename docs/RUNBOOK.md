@@ -62,7 +62,7 @@ pkill -f run_sweep.py
 python -c "
 import pandas as pd
 df = pd.read_parquet('results/sweep-YYYYMMDD/results.parquet')
-print(df.groupby(['policy_name','env_name','seed_idx']).size())
+print(df.groupby(['policy','env','seed']).size())
 "
 
 # 3. Restart — same command. Already-complete cells are skipped:
@@ -71,11 +71,11 @@ make sweep-full SWEEP_NAME=YYYYMMDD
 
 If the restart picks up a stale cell (because the parquet write was
 truncated on SIGKILL), delete the partial cell's rows by `(policy, env,
-seed_idx)` and rerun:
+seed)` and rerun:
 
 ```python
 df = pd.read_parquet(path)
-df = df[~((df.policy_name=='X') & (df.env_name=='Y') & (df.seed_idx==Z))]
+df = df[~((df.policy=='X') & (df.env=='Y') & (df.seed==Z))]
 df.to_parquet(path, index=False)
 ```
 
@@ -125,7 +125,7 @@ CI runs the same boot test on every push to `space/**` via
 
 ```bash
 # Pulls the manifest from the published dataset, picks one
-# (policy, env, seed_idx, episode_idx), reruns, compares success.
+# (policy, env, seed, episode_index), reruns, compares success.
 python scripts/verify_repro.py \
   --dataset thrmnn/lerobot-bench-results-v1 \
   --sweep YYYYMMDD \

@@ -114,10 +114,10 @@ The run wrote two artifacts under `results/` (gitignored):
 the same schema every leaderboard number traces back to. Read it:
 
 ```bash
-python -c "import pandas as pd; df = pd.read_parquet('results/results.parquet'); print(df[['policy_name','env_name','seed_idx','episode_index','success','n_steps']])"
+python -c "import pandas as pd; df = pd.read_parquet('results/results.parquet'); print(df[['policy','env','seed','episode_index','success','n_steps']])"
 ```
 
-Each row carries the `(policy, env, seed, episode)` identity, the binary
+Each row carries the `(policy, env, seed, episode_index)` identity, the binary
 `success` outcome, the step count, and timing fields. The leaderboard
 success rate for a `(policy, env)` pair is the pooled outcome of its seed
 cells — see `docs/REPRODUCE.md` § The contract.
