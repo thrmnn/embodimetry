@@ -736,6 +736,8 @@ def _load_pretrained_policy(
             cfg, dataset_stats=dataset_stats
         )
 
+    postprocessor = _patch_postprocessor_for_policy(cfg, postprocessor)
+
     model = policy_cls.from_pretrained(repo_id, revision=revision, config=cfg)
     model = model.to(device).eval()
 
@@ -745,6 +747,76 @@ def _load_pretrained_policy(
         postprocessor=postprocessor,
         action_shape=action_shape,
         device=device,
+    )
+
+
+def _patch_postprocessor_for_policy(cfg: Any, postprocessor: Any) -> Any:
+    """Append policy-specific postprocessor steps the Hub JSON omits.
+
+    Some lerobot policies on the Hub ship a ``policy_postprocessor.json``
+    that does NOT contain every step the policy's dedicated factory
+    (``make_<policy>_libero_pre_post_processors``) would have built.
+    Loading via the generic
+    :func:`lerobot.policies.factory.make_pre_post_processors` reads
+    exactly what's on the Hub and stops there, so the missing step is
+    silently absent and the policy's action lands in the env in the
+    wrong representation.
+
+    Concrete case for v1 (``lerobot/xvla-libero``): the Hub
+    postprocessor is ``[UnnormalizerProcessorStep, DeviceProcessorStep]``
+    but XVLA emits a 20-dim action whose first 10 dims are
+    ``[eef(3), rot6d(6), gripper(1)]``. LIBERO needs
+    ``[eef(3), axis_angle(3), gripper(1)] = 7``. Without
+    :class:`XVLARotation6DToAxisAngleProcessorStep` the adapter sees a
+    20-dim vector and (per the multi-embodiment padding convention)
+    truncates to 7 -- which keeps the eef dims but feeds raw rot6d
+    components in place of axis-angle, so the arm wanders and the
+    episode times out. That is the v1 ``xvla_libero`` 0/875 cell.
+
+    Symmetric Wall-X / future-VLA cases can be added by adding the
+    corresponding ``elif`` branch -- keep this dispatcher tight (single
+    responsibility = closing Hub-JSON gaps) rather than rebuilding the
+    pipeline from scratch via the dedicated factory, because doing so
+    would also rebuild the preprocessor which our
+    :func:`_libero_obs_to_batch` already pre-translates against the
+    Hub-JSON's expected shapes.
+    """
+    if getattr(cfg, "type", None) != "xvla":
+        return postprocessor
+
+    from lerobot.policies.xvla.processor_xvla import XVLARotation6DToAxisAngleProcessorStep
+    from lerobot.processor import DeviceProcessorStep, PolicyProcessorPipeline
+    from lerobot.processor.converters import (
+        policy_action_to_transition,
+        transition_to_policy_action,
+    )
+
+    existing_steps = list(postprocessor.steps)
+    if any(isinstance(s, XVLARotation6DToAxisAngleProcessorStep) for s in existing_steps):
+        return postprocessor
+
+    # Insert the rotation conversion BEFORE the trailing DeviceProcessorStep
+    # (move-to-cpu) when present; otherwise append at the end. The conversion
+    # itself is device-agnostic but it is tidier to keep the device hop last.
+    new_steps: list[Any] = []
+    inserted = False
+    for step in existing_steps:
+        if not inserted and isinstance(step, DeviceProcessorStep):
+            new_steps.append(XVLARotation6DToAxisAngleProcessorStep())
+            inserted = True
+        new_steps.append(step)
+    if not inserted:
+        new_steps.append(XVLARotation6DToAxisAngleProcessorStep())
+
+    logger.info(
+        "patched xvla postprocessor: inserted XVLARotation6DToAxisAngleProcessorStep "
+        "to convert 6D rotation -> axis-angle for LIBERO env consumption"
+    )
+    return PolicyProcessorPipeline(
+        steps=new_steps,
+        name=postprocessor.name,
+        to_transition=policy_action_to_transition,
+        to_output=transition_to_policy_action,
     )
 
 
