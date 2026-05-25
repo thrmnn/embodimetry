@@ -25,6 +25,7 @@ from lerobot_bench.eval import (
     _gym_obs_to_batch,
     _LerobotPolicyAdapter,
     _NoOpPolicy,
+    _patch_postprocessor_for_policy,
     _RandomPolicy,
     load_env,
     load_policy,
@@ -1635,3 +1636,152 @@ def test_buffer_name_falls_back_when_no_known_key_matches() -> None:
     known = ("observation.state", "action")
     # No known key flattens to 'observation_images_top'; fall back.
     assert _buffer_name_to_feature_key("observation_images_top", known) == "observation.images_top"
+
+
+# --------------------------------------------------------------------- #
+# XVLA postprocessor patching: rotation 6D -> axis-angle                 #
+#                                                                       #
+# Regression for the v1 xvla_libero 0/875-success cell. The Hub's       #
+# `lerobot/xvla-libero` ships a `policy_postprocessor.json` that omits  #
+# `XVLARotation6DToAxisAngleProcessorStep`, so the policy's 20-dim      #
+# `[eef(3), rot6d(6), gripper(1), padding(10)]` action lands in the     #
+# LIBERO env with the rot6d components in place of axis-angle. The      #
+# loader patches the postprocessor to insert the missing step.          #
+# --------------------------------------------------------------------- #
+
+
+class _StubCfg:
+    """Minimal config stand-in: only ``type`` is read by the patcher."""
+
+    def __init__(self, policy_type: str) -> None:
+        self.type = policy_type
+
+
+def _build_hub_shaped_xvla_postprocessor():
+    """Reconstruct the postprocessor pipeline the Hub JSON loads for xvla-libero.
+
+    Matches the actual ``policy_postprocessor.json`` on
+    ``lerobot/xvla-libero``@``12e8783...``: ``[UnnormalizerProcessorStep
+    (ACTION=20, IDENTITY), DeviceProcessorStep(device='cpu')]``. Built
+    against the live lerobot 0.5.1 classes so the structural assertion
+    catches any upstream signature drift.
+    """
+    pytest.importorskip("torch")
+    pytest.importorskip("lerobot")
+    from lerobot.configs.types import FeatureType, NormalizationMode, PolicyFeature
+    from lerobot.processor import (
+        DeviceProcessorStep,
+        PolicyProcessorPipeline,
+        UnnormalizerProcessorStep,
+    )
+    from lerobot.processor.converters import (
+        policy_action_to_transition,
+        transition_to_policy_action,
+    )
+
+    unnorm = UnnormalizerProcessorStep(
+        features={"action": PolicyFeature(type=FeatureType.ACTION, shape=(20,))},
+        norm_map={
+            FeatureType.VISUAL: NormalizationMode.MEAN_STD,
+            FeatureType.STATE: NormalizationMode.IDENTITY,
+            FeatureType.ACTION: NormalizationMode.IDENTITY,
+        },
+    )
+    return PolicyProcessorPipeline(
+        steps=[unnorm, DeviceProcessorStep(device="cpu")],
+        name="policy_postprocessor",
+        to_transition=policy_action_to_transition,
+        to_output=transition_to_policy_action,
+    )
+
+
+def test_patch_postprocessor_inserts_rotation_step_for_xvla() -> None:
+    """xvla cfg + Hub-shaped postprocessor -> rotation step inserted.
+
+    The XVLA Hub repo ships a postprocessor of
+    ``[Unnormalizer, DeviceProcessor]`` only. The patcher must inject
+    :class:`XVLARotation6DToAxisAngleProcessorStep` before the trailing
+    device hop so the LIBERO env receives ``[eef(3), axis_angle(3),
+    gripper(1)] = 7`` rather than the raw 20-dim padded action.
+    """
+    pytest.importorskip("torch")
+    pytest.importorskip("lerobot")
+    from lerobot.policies.xvla.processor_xvla import XVLARotation6DToAxisAngleProcessorStep
+    from lerobot.processor import DeviceProcessorStep, UnnormalizerProcessorStep
+
+    pipeline = _build_hub_shaped_xvla_postprocessor()
+    cfg = _StubCfg(policy_type="xvla")
+
+    patched = _patch_postprocessor_for_policy(cfg, pipeline)
+
+    step_types = [type(s) for s in patched.steps]
+    assert step_types == [
+        UnnormalizerProcessorStep,
+        XVLARotation6DToAxisAngleProcessorStep,
+        DeviceProcessorStep,
+    ], f"unexpected pipeline shape: {step_types}"
+
+
+def test_patch_postprocessor_is_idempotent_for_xvla() -> None:
+    """Calling the patcher twice must not stack two rotation steps."""
+    pytest.importorskip("torch")
+    pytest.importorskip("lerobot")
+    from lerobot.policies.xvla.processor_xvla import XVLARotation6DToAxisAngleProcessorStep
+
+    cfg = _StubCfg(policy_type="xvla")
+    once = _patch_postprocessor_for_policy(cfg, _build_hub_shaped_xvla_postprocessor())
+    twice = _patch_postprocessor_for_policy(cfg, once)
+
+    rotation_steps = [
+        s for s in twice.steps if isinstance(s, XVLARotation6DToAxisAngleProcessorStep)
+    ]
+    assert len(rotation_steps) == 1
+
+
+def test_patch_postprocessor_is_noop_for_non_xvla_policies() -> None:
+    """Diffusion/ACT/SmolVLA postprocessors must pass through unchanged."""
+    pytest.importorskip("torch")
+    pytest.importorskip("lerobot")
+
+    pipeline = _build_hub_shaped_xvla_postprocessor()
+    for ptype in ("diffusion", "act", "smolvla", "pi0", "pi0_fast"):
+        cfg = _StubCfg(policy_type=ptype)
+        out = _patch_postprocessor_for_policy(cfg, pipeline)
+        assert out is pipeline, f"{ptype} postprocessor was unexpectedly rebuilt"
+
+
+def test_patched_xvla_postprocessor_emits_seven_dim_action() -> None:
+    """End-to-end shape smoke: 20-dim model action -> 7-dim env action.
+
+    Confirms the patched pipeline produces what LIBERO's 7-dim
+    ``[eef(3), axis_angle(3), gripper(1)]`` action space expects, with
+    the gripper coerced to {-1, +1} by the rotation step's trailing
+    binarization. Uses a deterministic identity-rotation rot6d block
+    ``[1,0,0, 0,1,0]`` so the axis-angle output is the zero rotation.
+    """
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("lerobot")
+
+    cfg = _StubCfg(policy_type="xvla")
+    pipeline = _patch_postprocessor_for_policy(cfg, _build_hub_shaped_xvla_postprocessor())
+
+    # Build a batched 20-dim action: eef=[0.1,0.2,0.3], rot6d=identity-cols,
+    # gripper=0.8 (>0.5 -> +1), 10 trailing padding zeros.
+    action = torch.zeros(1, 20, dtype=torch.float32)
+    action[0, :3] = torch.tensor([0.1, 0.2, 0.3])
+    action[0, 3:9] = torch.tensor([1.0, 0.0, 0.0, 0.0, 1.0, 0.0])  # identity rotation in 6D
+    action[0, 9] = 0.8
+
+    out = pipeline(action)
+    if hasattr(out, "detach"):
+        out = out.detach().cpu().numpy()
+    out = np.asarray(out)
+
+    # Pipeline returns shape (B, 7) for batched input.
+    assert out.shape[-1] == 7, f"expected 7-dim env action, got {out.shape}"
+    flat = out.reshape(-1)
+    np.testing.assert_allclose(flat[:3], [0.1, 0.2, 0.3], atol=1e-5)
+    # Identity rotation -> axis-angle zero vector.
+    np.testing.assert_allclose(flat[3:6], [0.0, 0.0, 0.0], atol=1e-5)
+    # Gripper binarized to +1.
+    assert float(flat[6]) == 1.0
