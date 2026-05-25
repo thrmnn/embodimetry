@@ -97,6 +97,22 @@ V1_RUNNABLE_CELLS = _dashboard_helpers.V1_RUNNABLE_CELLS
 V1_SEEDS_PER_CELL = _dashboard_helpers.V1_SEEDS_PER_CELL
 V1_TOTAL_SEED_ENTRIES = _dashboard_helpers.V1_TOTAL_SEED_ENTRIES
 
+# Mission Control: KPI strip, live leaderboard, anomaly review, throttle.
+build_live_leaderboard = _dashboard_helpers.build_live_leaderboard
+compute_mission_kpis = _dashboard_helpers.compute_mission_kpis
+format_bytes_gb = _dashboard_helpers.format_bytes_gb
+HEALTH_AMBER = _dashboard_helpers.HEALTH_AMBER
+HEALTH_GREEN = _dashboard_helpers.HEALTH_GREEN
+HEALTH_RED = _dashboard_helpers.HEALTH_RED
+leaderboard_dataframe = _dashboard_helpers.leaderboard_dataframe
+LEADERBOARD_COLUMNS = _dashboard_helpers.LEADERBOARD_COLUMNS
+read_system_memory = _dashboard_helpers.read_system_memory
+read_throttle_state = _dashboard_helpers.read_throttle_state
+run_anomaly_review = _dashboard_helpers.run_anomaly_review
+SWEEP_STATE_DONE = _dashboard_helpers.SWEEP_STATE_DONE
+SWEEP_STATE_RUNNING = _dashboard_helpers.SWEEP_STATE_RUNNING
+SWEEP_STATE_THROTTLED = _dashboard_helpers.SWEEP_STATE_THROTTLED
+
 # Scientific-context panels (Policies + Envs tabs, representative rollout).
 build_env_card_markdown = _dashboard_helpers.build_env_card_markdown
 build_policy_card_markdown = _dashboard_helpers.build_policy_card_markdown
@@ -992,20 +1008,19 @@ def test_per_tab_intro_thresholds_match_calibrate_py() -> None:
     assert f"{VERY_HIGH_VRAM_THRESHOLD_MB:.0f}" in intro
 
 
-def test_per_tab_intro_all_four_tabs_render() -> None:
-    """Each of the four data tabs has a non-empty intro markdown block.
+def test_per_tab_intro_rebuilt_tabs_render() -> None:
+    """The rebuilt dashboard's intro-bearing tabs render non-empty blocks.
 
-    Plus an unknown tab key returns the empty string (not an
-    exception) -- callers should treat that as a wiring bug, not a
-    runtime error.
+    After the 7->3 rebuild the dashboard only renders the per-tab intro
+    for Pre-flight (``calibration``) and Rollouts (``rollouts``); the
+    progress / events prose now lives inline on the Status screen. An
+    unknown tab key still returns the empty string (a wiring bug, not a
+    runtime error).
     """
-    for tab in ("progress", "calibration", "rollouts", "events"):
+    for tab in ("calibration", "rollouts"):
         rendered = per_tab_intro_markdown(tab)
         assert len(rendered) > 100, f"intro for tab={tab!r} is suspiciously short"
-        # All four start with the "What this tab shows" framing.
         assert "What" in rendered and "tab" in rendered
-        # All four name a "Good shape" expectation (the operator-facing
-        # "is it healthy?" answer).
         assert "Good shape" in rendered or "good" in rendered.lower()
 
     assert per_tab_intro_markdown("unknown-tab") == ""
@@ -1760,3 +1775,460 @@ def test_select_representative_episode_falls_back_with_no_parquet_rows() -> None
         )
         == 2
     )
+
+
+# --------------------------------------------------------------------- #
+# Mission Control: KPI strip, live leaderboard, anomalies, throttle      #
+# --------------------------------------------------------------------- #
+
+
+def test_compute_mission_kpis_from_synthetic_manifest() -> None:
+    """KPI roll-up from a manifest: one done cell, one running, one failed.
+
+    Three (policy, env) cells (one seed each for brevity): a completed
+    cell, a running cell (started but pending), and a failed cell. The
+    KPI strip must count 1 done / 1 failed / 1 running and -- because a
+    failure is present -- raise the red health banner.
+    """
+    manifest = _manifest(
+        [
+            _manifest_entry(
+                policy="act",
+                env="aloha_transfer_cube",
+                seed=0,
+                status="completed",
+                started_utc="2026-05-12T03:00:00+00:00",
+                finished_utc="2026-05-12T03:10:00+00:00",
+                exit_code=0,
+            ),
+            _manifest_entry(
+                policy="diffusion_policy",
+                env="pusht",
+                seed=0,
+                status="pending",
+                started_utc="2026-05-12T03:10:00+00:00",
+            ),
+            _manifest_entry(
+                policy="random",
+                env="pusht",
+                seed=0,
+                status="failed",
+                started_utc="2026-05-12T03:00:00+00:00",
+                finished_utc="2026-05-12T03:01:00+00:00",
+                exit_code=4,
+            ),
+        ]
+    )
+    now = dt.datetime(2026, 5, 12, 3, 12, 0, tzinfo=dt.UTC)
+    kpis = compute_mission_kpis(manifest, now_utc=now)
+
+    assert kpis.cells_done == 1
+    assert kpis.cells_failed == 1
+    assert kpis.cells_running == 1
+    assert kpis.cells_total == 3
+    # A failure present -> red banner, regardless of done/running counts.
+    assert kpis.health == HEALTH_RED
+    assert "fail" in kpis.health_message.lower()
+    # The running label names the most-recently-started pending seed.
+    assert "diffusion_policy" in kpis.running_label
+    # Elapsed is measured from the manifest started_utc (3:00 -> 3:12).
+    assert "12m" in kpis.elapsed_label
+
+
+def test_compute_mission_kpis_empty_manifest_is_idle_amber() -> None:
+    """No manifest on disk -> IDLE state, amber banner, never a crash."""
+    kpis = compute_mission_kpis({})
+    assert kpis.cells_total == 0
+    assert kpis.state == "IDLE"
+    assert kpis.health == HEALTH_AMBER
+    assert kpis.denom == V1_RUNNABLE_CELLS
+
+
+def test_compute_mission_kpis_throttled_forces_red() -> None:
+    """A frozen cgroup forces the THROTTLED state + red banner.
+
+    Even a clean all-done manifest: if ``throttled=True`` the operator
+    must see red, because a frozen sweep is not making progress.
+    """
+    manifest = _manifest(
+        [
+            _manifest_entry(
+                policy="act",
+                env="aloha_transfer_cube",
+                seed=0,
+                status="completed",
+                started_utc="2026-05-12T03:00:00+00:00",
+                finished_utc="2026-05-12T03:10:00+00:00",
+                exit_code=0,
+            )
+        ]
+    )
+    kpis = compute_mission_kpis(manifest, throttled=True)
+    assert kpis.state == SWEEP_STATE_THROTTLED
+    assert kpis.health == HEALTH_RED
+    assert "FROZEN" in kpis.health_message or "froze" in kpis.health_message.lower()
+
+
+def test_build_live_leaderboard_aggregates_per_policy_best_first() -> None:
+    """Live leaderboard pools episodes per policy and sorts best-first.
+
+    Two policies: ``act`` 30/50 across one env, ``random`` 5/50 across
+    one env. The leaderboard must sort ``act`` first (higher rate),
+    carry a Wilson CI bracketing each rate, and count cells done.
+    """
+    rows = _cell_rows(
+        policy="act",
+        env="aloha_transfer_cube",
+        per_seed_successes=[2, 4, 6, 8, 10],
+        n_episodes_per_seed=10,
+    ) + _cell_rows(
+        policy="random",
+        env="pusht",
+        per_seed_successes=[1, 1, 1, 1, 1],
+        n_episodes_per_seed=10,
+    )
+    df = _results_frame(rows)
+    board = build_live_leaderboard(df)
+    assert [r.policy for r in board] == ["act", "random"]
+
+    act = board[0]
+    assert act.n_episodes == 50
+    assert act.success_rate == pytest.approx(0.6)
+    assert act.wilson_lo < act.success_rate < act.wilson_hi
+    assert act.n_cells == 1
+
+    # The dataframe projection carries the canonical columns.
+    table = leaderboard_dataframe(board)
+    assert list(table.columns) == list(LEADERBOARD_COLUMNS)
+    assert len(table) == 2
+    # Empty input -> canonical empty frame, no crash.
+    empty = leaderboard_dataframe(build_live_leaderboard(None))
+    assert list(empty.columns) == list(LEADERBOARD_COLUMNS)
+    assert len(empty) == 0
+
+
+def _review_frame(rows: list[dict[str, Any]]) -> pd.DataFrame:
+    """Per-episode frame with the full schema the anomaly review needs."""
+    return pd.DataFrame(
+        rows,
+        columns=[
+            "policy",
+            "env",
+            "seed",
+            "episode_index",
+            "success",
+            "n_steps",
+            "wallclock_s",
+        ],
+    )
+
+
+def _review_rows(
+    *,
+    policy: str,
+    env: str,
+    n_seeds: int,
+    n_episodes: int,
+    success: bool,
+    n_steps: int = 100,
+) -> list[dict[str, Any]]:
+    """Synthesise per-episode review rows with a fixed per-cell outcome."""
+    rows: list[dict[str, Any]] = []
+    for seed in range(n_seeds):
+        for ep in range(n_episodes):
+            rows.append(
+                {
+                    "policy": policy,
+                    "env": env,
+                    "seed": seed,
+                    "episode_index": ep,
+                    "success": success,
+                    "n_steps": n_steps,
+                    "wallclock_s": 60.0,
+                }
+            )
+    return rows
+
+
+def test_run_anomaly_review_clean_state(tmp_path: Path) -> None:
+    """A healthy cell yields ok=True with no flagged lines."""
+    clear_results_cache()
+    # act x aloha_transfer_cube: a mix of outcomes so no degenerate /
+    # never-succeeds / seed-disagreement flag fires.
+    rows: list[dict[str, Any]] = []
+    for seed in range(5):
+        for ep in range(50):
+            rows.append(
+                {
+                    "policy": "act",
+                    "env": "aloha_transfer_cube",
+                    "seed": seed,
+                    "episode_index": ep,
+                    # ~50% success, varied step counts -> healthy.
+                    "success": ep % 2 == 0,
+                    "n_steps": 100 + ep,
+                    "wallclock_s": 60.0,
+                }
+            )
+    parquet = tmp_path / "results.parquet"
+    _review_frame(rows).to_parquet(parquet)
+
+    report = run_anomaly_review(parquet)
+    assert report.ok is True
+    assert report.n_cells_flagged == 0
+    assert report.lines == []
+    assert report.error == ""
+
+
+def test_run_anomaly_review_flags_baseline_above_floor(tmp_path: Path) -> None:
+    """A no_op baseline scoring 100% trips the BASELINE-ABOVE-FLOOR check."""
+    clear_results_cache()
+    rows = _review_rows(
+        policy="no_op",
+        env="aloha_transfer_cube",
+        n_seeds=5,
+        n_episodes=50,
+        success=True,
+    )
+    parquet = tmp_path / "results.parquet"
+    _review_frame(rows).to_parquet(parquet)
+
+    report = run_anomaly_review(parquet)
+    assert report.ok is False
+    assert report.n_cells_flagged >= 1
+    assert any("BASELINE-ABOVE-FLOOR" in line for line in report.lines)
+    # Each flagged line names the cell.
+    assert any("no_op" in line for line in report.lines)
+
+
+def test_run_anomaly_review_missing_parquet_degrades(tmp_path: Path) -> None:
+    """No parquet on disk -> ok=True with a neutral error note, no crash."""
+    clear_results_cache()
+    report = run_anomaly_review(None)
+    assert report.ok is True
+    assert report.n_cells_reviewed == 0
+    assert report.error  # a neutral "no results yet" note
+
+    report2 = run_anomaly_review(tmp_path / "never-existed.parquet")
+    assert report2.n_cells_reviewed == 0
+    assert report2.error
+
+
+def test_read_throttle_state_sweep_absent_degrades_gracefully(
+    tmp_path: Path,
+) -> None:
+    """When no run_sweep.py PID is found, every field is None / not-running.
+
+    Points the helper at an empty synthetic /proc with no matching
+    process -- the Mission Control panel then renders "—" rather than
+    crashing the 5 s tick.
+    """
+    fake_proc = tmp_path / "proc"
+    fake_proc.mkdir()
+    # A bystander process whose cmdline does not match run_sweep.py.
+    pid_dir = fake_proc / "999"
+    pid_dir.mkdir()
+    (pid_dir / "cmdline").write_bytes(b"python\x00-m\x00http.server\x00")
+
+    state = read_throttle_state(proc_root=fake_proc)
+    assert state.running is False
+    assert state.pid is None
+    assert state.frozen is None
+    assert state.memory_current is None
+    assert state.memory_max is None
+    assert state.state_label == "not running"
+
+
+def test_read_throttle_state_resolves_frozen_cgroup(tmp_path: Path) -> None:
+    """A synthetic /proc + cgroup layout resolves the freeze + memory state.
+
+    Builds a fake ``run_sweep.py`` process whose cgroup files report a
+    frozen state and a memory cap, then asserts the helper reads them.
+    """
+    fake_proc = tmp_path / "proc"
+    fake_proc.mkdir()
+    pid_dir = fake_proc / "4242"
+    pid_dir.mkdir()
+    (pid_dir / "cmdline").write_bytes(
+        b"python\x00scripts/run_sweep.py\x00--config\x00sweep_full.yaml\x00"
+    )
+    # cgroup v2 line: hierarchy 0, empty controller, path.
+    (pid_dir / "cgroup").write_text("0::/sweep.scope\n")
+
+    # The helper resolves the cgroup dir under /sys/fs/cgroup; we can't
+    # write there in a test, so we only assert the PID + running parts
+    # resolve and the unreadable cgroup files degrade to None.
+    state = read_throttle_state(proc_root=fake_proc)
+    assert state.running is True
+    assert state.pid == 4242
+    # /sys/fs/cgroup/sweep.scope does not exist -> freeze/memory are None.
+    assert state.frozen is None
+    assert state.memory_current is None
+    assert state.state_label == "RUNNING"
+
+
+def test_read_system_memory_parses_meminfo(tmp_path: Path) -> None:
+    """read_system_memory parses a synthetic /proc/meminfo; bad file -> None."""
+    meminfo = tmp_path / "meminfo"
+    meminfo.write_text(
+        "MemTotal:       32000000 kB\n"
+        "MemFree:         8000000 kB\n"
+        "MemAvailable:   20000000 kB\n"
+        "Buffers:          200000 kB\n"
+    )
+    mem = read_system_memory(meminfo_path=meminfo)
+    assert mem is not None
+    assert mem.total_bytes == 32000000 * 1024
+    assert mem.available_bytes == 20000000 * 1024
+    assert mem.used_bytes == (32000000 - 20000000) * 1024
+    assert mem.percent_used == pytest.approx(12000000 / 32000000 * 100.0)
+
+    # Missing file -> None, never raises.
+    assert read_system_memory(meminfo_path=tmp_path / "nope") is None
+
+
+def test_format_bytes_gb_renders_and_handles_none() -> None:
+    """format_bytes_gb renders GB; None -> the stat placeholder."""
+    assert format_bytes_gb(None) == STAT_PLACEHOLDER
+    assert format_bytes_gb(8 * 1024**3) == "8.0 GB"
+    assert format_bytes_gb(0) == "0.0 GB"
+
+
+# --------------------------------------------------------------------- #
+# Status landing screen (rebuilt dashboard, 7 tabs -> 3)                 #
+# --------------------------------------------------------------------- #
+#
+# The Status tab is the default landing screen and must pass the
+# 5-second test: the instant it loads, a plain-English health line says
+# whether the sweep needs the operator. The tests below pin the three
+# health-banner states and the auto-load-newest-run behaviour that
+# replaced the old (buggy) run-selector dropdown.
+
+
+def test_status_health_message_is_plain_english_green_when_progressing() -> None:
+    """A clean in-flight sweep -> green banner with the 5-second-test line.
+
+    The message must lead with plain English ("Sweep healthy"), name the
+    cells-done count, state 0 failed, and reassure ("nothing needs you")
+    so the operator can close the laptop on a glance.
+    """
+    manifest = _manifest(
+        [
+            _manifest_entry(
+                policy="act",
+                env="aloha_transfer_cube",
+                seed=0,
+                status="completed",
+                started_utc="2026-05-12T03:00:00+00:00",
+                finished_utc="2026-05-12T03:10:00+00:00",
+                exit_code=0,
+            ),
+            _manifest_entry(
+                policy="diffusion_policy",
+                env="pusht",
+                seed=0,
+                status="pending",
+                started_utc="2026-05-12T03:10:00+00:00",
+            ),
+        ]
+    )
+    now = dt.datetime(2026, 5, 12, 3, 12, 0, tzinfo=dt.UTC)
+    kpis = compute_mission_kpis(manifest, now_utc=now)
+
+    assert kpis.health == HEALTH_GREEN
+    msg = kpis.health_message
+    assert "Sweep healthy" in msg
+    assert "0 failed" in msg
+    assert "nothing needs you" in msg
+    # Plain count, not a bare stats grid.
+    assert f"{kpis.cells_done}/{kpis.denom}" in msg
+
+
+def test_status_health_message_says_needs_you_on_failure() -> None:
+    """Any failed cell -> red banner whose sentence says it needs the operator."""
+    manifest = _manifest(
+        [
+            _manifest_entry(
+                policy="random",
+                env="pusht",
+                seed=0,
+                status="failed",
+                started_utc="2026-05-12T03:00:00+00:00",
+                finished_utc="2026-05-12T03:01:00+00:00",
+                exit_code=4,
+            ),
+        ]
+    )
+    kpis = compute_mission_kpis(manifest)
+    assert kpis.health == HEALTH_RED
+    assert "needs you" in kpis.health_message.lower()
+    assert "1 failed" in kpis.health_message
+
+
+def test_status_empty_run_is_graceful_amber_no_crash() -> None:
+    """No sweep on disk -> amber banner, plain hint, never a crash.
+
+    This is the cold-start state: the dashboard opened before any sweep
+    exists. The banner must still render a sentence (amber), not blank.
+    """
+    kpis = compute_mission_kpis({})
+    assert kpis.health == HEALTH_AMBER
+    assert "No sweep running" in kpis.health_message
+    assert kpis.state == "IDLE"
+
+
+def test_status_auto_loads_newest_run_no_selector(tmp_path: Path) -> None:
+    """The Status grid auto-loads the newest run -- no manual selection.
+
+    The old Sweep-progress tab rendered empty mid-sweep because its
+    run-selector dropdown did not auto-select the live run. The rebuilt
+    Status screen calls ``discover_sweep_runs`` and takes ``runs[0]``
+    (newest by ``started_utc``) on every paint, so the grid populates
+    on first paint with no operator action. This pins that contract.
+    """
+    older_dir = tmp_path / "sweep-old"
+    older_dir.mkdir()
+    older = _manifest(
+        [
+            _manifest_entry(
+                policy="act",
+                env="pusht",
+                seed=0,
+                status="completed",
+                started_utc="2026-05-10T00:00:00+00:00",
+                finished_utc="2026-05-10T00:10:00+00:00",
+                exit_code=0,
+            )
+        ],
+        finished="2026-05-10T00:10:00+00:00",
+    )
+    older["started_utc"] = "2026-05-10T00:00:00+00:00"
+    (older_dir / "sweep_manifest.json").write_text(json.dumps(older))
+
+    newer_dir = tmp_path / "sweep-new"
+    newer_dir.mkdir()
+    newer = _manifest(
+        [
+            _manifest_entry(
+                policy="diffusion_policy",
+                env="pusht",
+                seed=0,
+                status="pending",
+                started_utc="2026-05-12T03:10:00+00:00",
+            )
+        ]
+    )
+    newer["started_utc"] = "2026-05-12T03:00:00+00:00"
+    (newer_dir / "sweep_manifest.json").write_text(json.dumps(newer))
+
+    runs = discover_sweep_runs(tmp_path)
+    # runs[0] -- the path the Status screen auto-loads -- is the newest.
+    assert runs[0].name == "sweep-new"
+    grid = build_progress_table(load_manifest(runs[0].manifest_path))
+    assert not grid.empty
+    assert grid.iloc[0]["policy"] == "diffusion_policy"
+
+
+def test_status_auto_load_empty_results_dir_returns_no_runs(tmp_path: Path) -> None:
+    """An empty results dir -> no runs -> Status renders its empty state."""
+    assert discover_sweep_runs(tmp_path) == []
