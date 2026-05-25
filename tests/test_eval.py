@@ -1815,6 +1815,10 @@ def _build_hub_shaped_xvla_preprocessor():
     """
     pytest.importorskip("torch")
     pytest.importorskip("lerobot")
+    # TokenizerProcessorStep wraps a HuggingFace tokenizer; instantiating it
+    # requires transformers, which lives in lerobot's optional
+    # transformers-dep extra and is not installed in the fast CI [dev] env.
+    pytest.importorskip("transformers")
     from lerobot.configs.types import FeatureType, NormalizationMode, PolicyFeature
     from lerobot.policies.xvla.processor_xvla import XVLAAddDomainIdProcessorStep
     from lerobot.processor import (
