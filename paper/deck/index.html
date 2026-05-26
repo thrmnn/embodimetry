@@ -1093,12 +1093,12 @@ pre.code .v{color:var(--ink);}
         <div class="stat-mega fail" style="font-size:200px;">0.252</div>
       </div>
     </div>
-    <div class="body-lg" style="margin-top:32px;font-size:26px;">
-      <span class="warm">⚠ Different scopes.</span> The two scalars measure different things — <span class="ink">a single LIBERO_10 task</span> vs <span class="ink">the 10-task suite average</span>.<br>
-      Our number is statistically tight (Wilson 95% CI <span class="mono ink">[.202, .309]</span>, MDE <span class="mono">12.3 pp</span>), but until v1.1 runs all 10 tasks it is <em>not</em> a paper-replication gap — it is a single-task probe.
+    <div class="body-lg" style="margin-top:32px;font-size:24px;">
+      <span class="warm">⚠ Two compounding caveats.</span> The 0.252 is (a) a <em>single task</em> vs the paper's <em>10-task average</em> (audit PR #84), and (b) <em>truncated at 520 steps</em> while the canonical LIBERO protocol allows 600 — and <span class="ink">74.8% of our episodes hit the cap</span> (audit PR #89).<br>
+      The number is statistically tight (Wilson 95% CI <span class="mono ink">[.202, .309]</span>, MDE <span class="mono">12.3 pp</span>) but is a <em>lower bound</em> on this checkpoint's true single-task success rate. <em>Not</em> a paper-replication gap until v1.1 fixes both.
     </div>
   </div>
-  <div class="foot"><span>N=250 · 5 seeds × 50 ep · audit PR #84 confirmed scope mismatch</span><span class="src">paper §4 · see slides 07–08</span></div>
+  <div class="foot"><span>N=250 · 5 seeds × 50 ep · audits #84 (scope) + #89 (step cap) both confirmed</span><span class="src">paper §4 · see slide 08</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1177,6 +1177,14 @@ pre.code .v{color:var(--ink);}
         <span class="lab">inference settings — TWO CONFIRMED MISMATCHES (PR #86)</span>
         <h5>ACT: Hub ships <span class="mono">temporal_ensemble_coeff=None, n_action_steps=100</span>; Zhao 2023 Table I used <span class="mono">coeff=0.01, n_action_steps=1</span> — overlapping-chunk weighted averaging is OFF in our v1.</h5>
         <p>This plausibly explains ACT's 0.016 on Aloha (slide 11). For SmolVLA the analogous <span class="mono">Action Steps</span> (Table 13) inheritance is also unpinned. Full table + cited probes in <span class="mono">docs/INFERENCE_AUDIT.md</span>; a 1-seed × 50-ep ACT probe with paper settings is the next obvious test.</p>
+      </div>
+    </div>
+    <div class="audit warn">
+      <div class="glyph">!</div>
+      <div class="body-block">
+        <span class="lab">success-criterion + step-cap parity — CONFIRMED MISMATCH (PR #89)</span>
+        <h5>LIBERO max-steps {280, 280, 300, 520} vs canonical 600 — bench <em>under-counts</em>. PushT + Aloha success rules also non-canonical.</h5>
+        <p>74.8% of <span class="mono">smolvla × libero_10</span> episodes hit our 520-step cap; the 0.252 headline is a <em>lower bound</em>. Aloha bench accepts <span class="mono">reward ∈ {1,2,3,4}</span> vs ACT paper's <span class="mono">reward == 4</span>. v1.1 will adopt canonical caps + criteria.</p>
       </div>
     </div>
     <div class="audit warn">
