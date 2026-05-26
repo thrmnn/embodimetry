@@ -4,7 +4,7 @@ Runs on the **free CPU tier** at ``huggingface.co/spaces/thrmnn/lerobot-bench``.
 No policy inference, no GPU. Five tabs:
 
 1. **Leaderboard** — pre-aggregated success-rate table with Wilson CIs,
-   read from ``thrmnn/lerobot-bench-results-v1/results.parquet`` on Hub.
+   read from ``thrmnn/lerobot-bench-v1/results.parquet`` on Hub.
    Includes a v1 status badge, a methodology accordion, and a
    below-table success-rate band legend.
 2. **Paired comparisons** — for any two policies, the per-env Δsuccess

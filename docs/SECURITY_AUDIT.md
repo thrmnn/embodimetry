@@ -155,7 +155,7 @@ applied in this PR; the rest are recommendations.
   — no shell-injection surface. All YAML loading uses `yaml.safe_load` /
   `yaml.safe_dump`; no `yaml.load` without a safe loader.
 * **Network / untrusted input.** The HF Space reads only the project's own hardcoded
-  dataset (`HUB_DATASET_REPO = "thrmnn/lerobot-bench-results-v1"`); the parquet source
+  dataset (`HUB_DATASET_REPO = "thrmnn/lerobot-bench-v1"`); the parquet source
   is a constant, not user-controllable — no SSRF. The Space does no policy inference,
   loads no checkpoints, and renders results data as Gradio dataframes/markdown (not raw
   HTML), so a poisoned dataset cannot trigger XSS through an `gr.HTML` escape hatch.
