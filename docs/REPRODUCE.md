@@ -58,7 +58,7 @@ You need the same environment the published sweep used:
    locally, pull the published dataset:
 
    ```bash
-   huggingface-cli download thrmnn/lerobot-bench-results-v1 \
+   huggingface-cli download thrmnn/lerobot-bench-v1 \
        --repo-type dataset --local-dir results/sweep-full
    ```
 

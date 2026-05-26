@@ -11,14 +11,10 @@
 [![Code style: ruff](https://img.shields.io/badge/code_style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![CI](https://github.com/thrmnn/lerobot-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/thrmnn/lerobot-bench/actions/workflows/ci.yml)
 [![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-lerobot--bench-yellow)](https://huggingface.co/spaces/thrmnn/lerobot-bench)
-<!-- TODO: badge + link target should become huggingface.co/datasets/thrmnn/lerobot-bench-v1 once the v1.0.0 sweep parquet is uploaded. -->
-[![HF Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-results--v1-yellow)](https://huggingface.co/datasets/thrmnn/lerobot-bench-results-v1)
+<!-- TODO: dataset not yet uploaded — link 404s until v1.0.0 parquet is pushed; see task #100. -->
+[![HF Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-v1-yellow)](https://huggingface.co/datasets/thrmnn/lerobot-bench-v1)
 
-**Quick links:** [Get started](docs/GETTING_STARTED.md) · [Live leaderboard](https://huggingface.co/spaces/thrmnn/lerobot-bench) · [Dataset](https://huggingface.co/datasets/thrmnn/lerobot-bench-results-v1) · [Paper](paper/main.tex) · [Contributing](CONTRIBUTING.md) · [Reproduce](docs/REPRODUCE.md)
-
-<!-- TODO: dataset upload target = huggingface.co/datasets/thrmnn/lerobot-bench-v1
-     Space leaderboard link above will resolve once that dataset is pushed
-     and the Space picks up the new repo. -->
+**Quick links:** [Get started](docs/GETTING_STARTED.md) · [Live leaderboard](https://huggingface.co/spaces/thrmnn/lerobot-bench) · [Dataset](https://huggingface.co/datasets/thrmnn/lerobot-bench-v1) · [Paper](paper/main.tex) · [Contributing](CONTRIBUTING.md) · [Reproduce](docs/REPRODUCE.md)
 <!-- Hero image: the public HF Space leaderboard. Captured by the maintainer once the Space is live; see docs/assets/README.md. The repo renders fine while this file is absent. -->
 <picture>
   <img src="docs/assets/leaderboard.png" alt="lerobot-bench leaderboard: success rate with 95% confidence intervals for 6 pretrained LeRobot policies across 6 simulated manipulation environments" width="820">
@@ -39,7 +35,7 @@
 
 Three artifacts, all open:
 
-1. **Public leaderboard** — Hugging Face Space + Hub dataset `thrmnn/lerobot-bench-v1` (v1.0.0, 107 cells, 0 failures). Every per-episode outcome, every rollout MP4, queryable by `(policy, env, seed, episode)`. <!-- TODO: upload sweep results to huggingface.co/datasets/thrmnn/lerobot-bench-v1 -->
+1. **Public leaderboard** — Hugging Face Space + Hub dataset `thrmnn/lerobot-bench-v1` (v1.0.0, 107 cells, 0 failures). Every per-episode outcome, every rollout MP4, queryable by `(policy, env, seed, episode)`.
 
 2. **4-page arxiv writeup** — `paper/main.tex`. Methodology, related work, results, limitations. Every figure regenerated from `notebooks/01-write-finding.ipynb`.
 3. **Upstream-ready eval pipeline** — `src/lerobot_bench/eval.py` extracted as `lerobot.eval.multi_seed` in a follow-up PR to `huggingface/lerobot`.
@@ -194,4 +190,4 @@ MIT. See [LICENSE](LICENSE).
 ## Citation
 
 The arxiv writeup pre-print lands alongside the v1.0.0 dataset upload. Citation guidance will appear here at that point. Until then, please link to this repo.
-<!-- TODO: replace with BibTeX once arxiv ID is assigned and huggingface.co/datasets/thrmnn/lerobot-bench-v1 is live. -->
+<!-- TODO: replace with BibTeX once arxiv ID is assigned and the dataset at huggingface.co/datasets/thrmnn/lerobot-bench-v1 is live. -->

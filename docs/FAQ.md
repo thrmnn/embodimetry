@@ -286,6 +286,6 @@ a valid bit-for-bit reproduction of a GPU-measured cell. See
 `results/` is gitignored. A local run writes `results/results.parquet`
 (one row per episode) and `results/videos/*.mp4`. The published sweep's
 artifacts live on the HF Hub dataset
-[`thrmnn/lerobot-bench-results-v1`](https://huggingface.co/datasets/thrmnn/lerobot-bench-results-v1);
+[`thrmnn/lerobot-bench-v1`](https://huggingface.co/datasets/thrmnn/lerobot-bench-v1);
 pull them with `huggingface-cli download`. See
 [`docs/REPRODUCE.md`](REPRODUCE.md) § Prerequisites.

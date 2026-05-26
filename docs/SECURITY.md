@@ -18,7 +18,7 @@ When `1.0` ships, this table will track the current minor series.
 ## Surface
 
 - **Public artifacts:** this GitHub repo, a Hugging Face Hub dataset
-  (`thrmnn/lerobot-bench-results-v1`, read-only public), and a Hugging Face
+  (`thrmnn/lerobot-bench-v1`, read-only public), and a Hugging Face
   Space (read-only public Gradio app). The Space reads only the published
   dataset; it runs no policy inference and loads no model checkpoints.
 - **Local secrets:** an HF Hub token (write scope, used only for
