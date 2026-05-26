@@ -293,21 +293,21 @@ pre.code .v{color:var(--ink);}
 .ecard p .ink{color:var(--ink);font-weight:500;}
 
 /* methodology audit list */
-.audit-list{display:flex;flex-direction:column;gap:14px;flex:1;align-content:start;min-height:0;}
+.audit-list{display:flex;flex-direction:column;gap:10px;flex:1;align-content:start;min-height:0;overflow:hidden;}
 .audit{
-  display:flex;gap:18px;align-items:flex-start;
-  padding:18px 22px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  display:flex;gap:14px;align-items:flex-start;
+  padding:14px 18px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
 }
 .audit .glyph{
-  flex:0 0 32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:18px;font-weight:600;
+  flex:0 0 28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px;
 }
 .audit.ok .glyph{background:rgba(52,211,153,.15);color:var(--ok);border:1px solid rgba(52,211,153,.3);}
 .audit.warn .glyph{background:rgba(251,191,36,.15);color:var(--warm);border:1px solid rgba(251,191,36,.3);}
-.audit .body-block{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
-.audit .lab{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mute);}
-.audit h5{font-family:var(--sans);font-size:19px;color:var(--ink);font-weight:600;line-height:1.25;}
-.audit p{font-family:var(--sans);font-size:15px;color:var(--dim);line-height:1.5;}
+.audit .body-block{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.audit .lab{font-family:var(--mono);font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--mute);}
+.audit h5{font-family:var(--sans);font-size:16px;color:var(--ink);font-weight:600;line-height:1.22;}
+.audit p{font-family:var(--sans);font-size:13px;color:var(--dim);line-height:1.45;}
 
 /* scatter */
 .scatter-wrap{display:flex;flex:1;align-items:center;justify-content:center;margin-top:20px;min-height:0;}
@@ -1159,52 +1159,39 @@ pre.code .v{color:var(--ink);}
     <div class="num">08<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
-    <span class="eyebrow warm">what we have NOT yet ruled out · honest list</span>
-    <h2 class="h-2">Four open questions on the SmolVLA gap.</h2>
+    <span class="eyebrow warm">v1.0.1 audit verdict · honest list</span>
+    <h2 class="h-2">Three confirmed mismatches — and what they do to the headline.</h2>
   </div>
-  <div class="audit-list" style="margin-top:24px;">
+  <div class="audit-list" style="margin-top:20px;">
     <div class="audit warn">
       <div class="glyph">!</div>
       <div class="body-block">
-        <span class="lab">task coverage — CONFIRMED MISMATCH (2026-05-26 audit · PR #84)</span>
-        <h5>SmolVLA paper §4.1: <span class="mono">10 tasks × 10 trials per task = 100-episode suite averages.</span> We ran <span class="mono">task_id = 0 × 5 seeds × 50 ep = 250 single-task episodes.</span></h5>
-        <p>The two scalars measure <em>different quantities</em>. Until v1.1 runs all 10 tasks per suite, the headline "0.71 → 0.252" should be restated as <em>"single-task on the hardest LIBERO_10 task"</em> — not as a paper-replication number. <span class="ink">See <span class="mono">docs/CLAIM_AUDIT_SMOLVLA.md</span> for the full per-cell verdict.</span></p>
+        <span class="lab">PR #84 · task coverage — scope mismatch</span>
+        <h5>SmolVLA paper §4.1: <span class="mono">10 tasks × 10 trials per task = 100-ep suite averages.</span> We ran <span class="mono">task 0 × 5 seeds × 50 ep = 250 single-task episodes.</span></h5>
+        <p>The two scalars measure <em>different quantities</em>. The "0.71 → 0.252" headline is a <em>single-task probe</em>, not a paper-replication number — until v1.1 runs all 10 tasks. Full verdict: <span class="mono">docs/CLAIM_AUDIT_SMOLVLA.md</span>.</p>
       </div>
     </div>
     <div class="audit warn">
       <div class="glyph">!</div>
       <div class="body-block">
-        <span class="lab">inference settings — TWO CONFIRMED MISMATCHES (PR #86)</span>
-        <h5>ACT: Hub ships <span class="mono">temporal_ensemble_coeff=None, n_action_steps=100</span>; Zhao 2023 Table I used <span class="mono">coeff=0.01, n_action_steps=1</span> — overlapping-chunk weighted averaging is OFF in our v1.</h5>
-        <p>This plausibly explains ACT's 0.016 on Aloha (slide 11). For SmolVLA the analogous <span class="mono">Action Steps</span> (Table 13) inheritance is also unpinned. Full table + cited probes in <span class="mono">docs/INFERENCE_AUDIT.md</span>; a 1-seed × 50-ep ACT probe with paper settings is the next obvious test.</p>
+        <span class="lab">PR #86 · inference settings — ACT temporal ensembling</span>
+        <h5>Hub ships <span class="mono">temporal_ensemble_coeff=None, n_action_steps=100</span>; Zhao 2023 Table I used <span class="mono">coeff=0.01, n=1</span>.</h5>
+        <p>Overlapping-chunk weighted averaging is OFF in our v1 → plausibly explains ACT's 0.016 on Aloha (slide 11). Probe queued. SmolVLA's <span class="mono">Action Steps</span> inheritance is also unpinned (paper Table 13).</p>
       </div>
     </div>
     <div class="audit warn">
       <div class="glyph">!</div>
       <div class="body-block">
-        <span class="lab">success-criterion + step-cap parity — CONFIRMED MISMATCH (PR #89)</span>
-        <h5>LIBERO max-steps {280, 280, 300, 520} vs canonical 600 — bench <em>under-counts</em>. PushT + Aloha success rules also non-canonical.</h5>
-        <p>74.8% of <span class="mono">smolvla × libero_10</span> episodes hit our 520-step cap; the 0.252 headline is a <em>lower bound</em>. Aloha bench accepts <span class="mono">reward ∈ {1,2,3,4}</span> vs ACT paper's <span class="mono">reward == 4</span>. v1.1 will adopt canonical caps + criteria.</p>
-      </div>
-    </div>
-    <div class="audit warn">
-      <div class="glyph">!</div>
-      <div class="body-block">
-        <span class="lab">external replication</span>
-        <h5>Only one lab (this one) measured these numbers.</h5>
-        <p>The whole point of the benchmark is to invite a second look. If you replicate and disagree, <span class="mono">open an issue with your parquet rows</span> — we'll merge them in.</p>
-      </div>
-    </div>
-    <div class="audit warn">
-      <div class="glyph">!</div>
-      <div class="body-block">
-        <span class="lab">hardware variance</span>
-        <h5>One laptop GPU. CUDA non-determinism could subtly shift behaviour.</h5>
-        <p>Determinism is exact <em>on our machine</em>; cross-machine reproduction is untested for v1. v1.1 adds a calibrated MDE band per cell to bound this.</p>
+        <span class="lab">PR #89 · success criterion + step cap — under-count</span>
+        <h5>LIBERO <span class="mono">max_steps={280, 280, 300, 520}</span> vs canonical <span class="mono">600</span>. PushT + Aloha success rules also non-canonical.</h5>
+        <p>74.8% of <span class="mono">smolvla × libero_10</span> episodes hit our 520-step cap → the 0.252 is a <em>lower bound</em>. Aloha accepts <span class="mono">reward ∈ {1..4}</span> vs ACT paper's <span class="mono">reward == 4</span>. v1.1 adopts canonical (PR #90 lands selectable rules).</p>
       </div>
     </div>
   </div>
-  <div class="foot"><span>each item is a v1.1 ticket — see slide 21</span><span class="src">docs/LIMITATIONS.md</span></div>
+  <div class="body" style="margin-top:14px;font-size:14px;color:var(--mute);">
+    <span class="warm">Net for the headline:</span> smolvla × libero_10 sits under <em>two compounding caveats</em> (scope + truncation); ACT × aloha sits under <em>one</em> (temporal ensembling) pending a probe. External replication + cross-hardware variance: see slide 18 limitations.
+  </div>
+  <div class="foot"><span>3 of 6 §1 audits closed · §§1.4–1.6 holding for probes</span><span class="src">docs/PIPELINE_ROADMAP.md</span></div>
 </section>
 
 <!-- ===================================================================== -->
