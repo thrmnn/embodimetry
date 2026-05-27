@@ -1,8 +1,10 @@
 # v1.0.1 audit probe results
 
-> **Status: scaffold — numbers fill in once `scripts/probes/` complete.**
+> **Status: Probe 1 (ACT temporal-ensembling) — RESOLVED.** The Hub-default inference settings were hiding nearly all of ACT's competence on `aloha_transfer_cube`: pooled rate jumps from **0.016** → **0.764** at paper settings (+74.8 pp, Wilson CIs disjoint by an order of magnitude). The v1.0.0 act-aloha cell is an inference-config artifact, not an architecture failure.
 >
-> Last update: 2026-05-27 _(probes in flight; this doc lands as a PR with placeholder rows; a follow-up PR replaces `TBD` with the empirical numbers + Wilson CIs once both probes finish)_.
+> **Probe 2 (SmolVLA × libero_10 cap=600) — running** (task #122). Numbers fill on completion.
+>
+> Last update: 2026-05-27 14:05 UTC.
 
 ## What this doc is
 
@@ -16,31 +18,34 @@ The v1.0.1 methodology audit (PRs #84, #86, #89) identified three places where t
 
 The PR #84 scope mismatch can only be resolved by a 10-task sweep (deferred to v1.1) — there is no single setting to flip. The other two are runnable now on the v1 GPU and produce a parquet under `results/probes/<probe>/`.
 
-## Probe 1 — ACT × Aloha temporal-ensembling (task #121)
+## Probe 1 — ACT × Aloha temporal-ensembling (task #121) ✅ RESOLVED
 
 **Source paper:** Zhao et al., _Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware_ (RSS 2023). Table I shows ACT with overlapping action-chunk weighted averaging at `k=0.01` (`temporal_ensemble_coeff` in lerobot terms) and `n_action_steps=1`.
 
-**v1 sweep value:** **0.016** [0.005, 0.046] pooled across 5 seeds × 50 ep on `aloha_transfer_cube`.
+**v1 sweep value:** **0.016** [0.006, 0.040] pooled across 5 seeds × 50 ep on `aloha_transfer_cube` (Hub default `temporal_ensemble_coeff=None`, `n_action_steps=100`).
 
-**v1.0.2 probe value:** TBD _(see `results/probes/act-aloha-temporal-ensemble/summary.json` once `probe_act_temporal_ensemble.py` completes)._
+**v1.0.2 probe value:** **0.764** [0.708, 0.812] pooled at paper inference settings (`coeff=0.01`, `n_action_steps=1`). Source: `results/probes/act-aloha-temporal-ensemble/summary.json`.
 
 | Seed | v1.0.0 default | v1.0.2 probe (paper settings) | Δ |
 |---|---|---|---|
-| 0 | TBD | TBD | TBD |
-| 1 | TBD | TBD | TBD |
-| 2 | TBD | TBD | TBD |
-| 3 | TBD | TBD | TBD |
-| 4 | TBD | TBD | TBD |
-| **pooled** | **0.016** | **TBD** | **TBD** |
-| **Wilson 95% CI** | [0.005, 0.046] | TBD | — |
+| 0 | 0.02 | **0.92** | +0.90 |
+| 1 | 0.04 | **0.80** | +0.76 |
+| 2 | 0.00 | **0.76** | +0.76 |
+| 3 | 0.02 | **0.66** | +0.64 |
+| 4 | 0.00 | **0.68** | +0.68 |
+| **pooled** | **0.016** | **0.764** | **+0.748** |
+| **Wilson 95% CI** | [0.006, 0.040] | **[0.708, 0.812]** | — |
+| **across-seed stdev** | 0.018 | 0.104 | — |
 
-**Probe methodology.** `scripts/probes/probe_act_temporal_ensemble.py` monkey-patches `lerobot.configs.policies.PreTrainedConfig.from_pretrained` to set `cfg.temporal_ensemble_coeff = 0.01` and `cfg.n_action_steps = 1` on ACT configs only, before the policy is instantiated. The rest of the pipeline — observation preprocessing, action postprocessing, render path — is identical to the v1 sweep. Seeds (0-4) and N=50/seed match the v1 contract for direct comparability. See `scripts/probes/probe_act_temporal_ensemble.py` docstring for the override mechanism.
+**Verdict: outcome (2) from the scaffold — Hub default was hiding ACT's competence.** The two Wilson 95% CIs are disjoint by an order of magnitude (probe lower bound 0.708 vs. v1 upper bound 0.040). At the v1 inference setting (`n_action_steps=100`, no temporal ensembling) the policy effectively re-queries every 100 steps and rolls a stale action-chunk to the env for the intervening steps; the paper setting (`n_action_steps=1`, `coeff=0.01`) re-queries every step and exponentially smooths overlapping predictions. This is a documented quirk of the ACT inference pipeline that the lerobot Hub checkpoint inherited the wrong default for.
 
-**Reading the result.** Three possible outcomes, with what each implies for the v1.0.2 framing:
+**v1.0.2 framing implication.** The "act × aloha = 0.016" headline in the v1.0.0 release is best read as a Hub-default inference artifact, not an architecture limitation. The README + MODEL_CARDS should lead with:
 
-1. **Probe ≈ v1 (within ±5pp).** The architecture itself does not reach the paper's number on `aloha_transfer_cube` from the Hub checkpoint at any inference setting we tried. v1.0.2 framing: keep the 0.016, drop the "Hub-default inference settings" caveat, flag a deeper investigation as v1.1 work.
-2. **Probe materially higher (e.g. > 0.15).** The Hub default was hiding most of the architecture's competence on this env. v1.0.2 framing: lead with "ACT × aloha at paper inference settings: probe_value", report v1 default as "v1.0.0 default inference: 0.016", and remove the "act fails on aloha" framing from the live leaderboard surface.
-3. **Probe between (5pp < Δ < 15pp).** Partial recovery. v1.0.2 framing: report both numbers side-by-side; do not pick one as "the" number for ACT on aloha.
+> ACT × `aloha_transfer_cube` measures **0.764** [0.708, 0.812] at paper inference settings (`temporal_ensemble_coeff=0.01`, `n_action_steps=1`) — the v1.0.0 sweep reading of **0.016** was the Hub default `temporal_ensemble_coeff=None`, `n_action_steps=100` and does not reflect the architecture's competence on this env.
+
+**Probe methodology.** `scripts/probes/probe_act_temporal_ensemble.py` monkey-patches `lerobot.configs.policies.PreTrainedConfig.from_pretrained` to set `cfg.temporal_ensemble_coeff = 0.01` and `cfg.n_action_steps = 1` on ACT configs only, before the policy is instantiated. The rest of the pipeline — observation preprocessing, action postprocessing, render path — is identical to the v1 sweep. Seeds (0-4) and N=50/seed match the v1 contract for direct comparability.
+
+**Probe wall-clock.** ~50 minutes on 1× RTX 4060 (vs. ~12 minutes for the same cell at `n_action_steps=100`; the 4× wall-clock cost is the price of inference-every-step, which is exactly what the paper protocol requires).
 
 ## Probe 2 — SmolVLA × LIBERO-10 canonical step cap (task #122)
 
