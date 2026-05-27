@@ -369,7 +369,7 @@ def reproduce(
         print(
             f"ERROR: reference parquet not found: {reference}\n"
             "  Fetch the published results first, e.g.:\n"
-            "    huggingface-cli download thrmnn/lerobot-bench-results-v1 "
+            "    huggingface-cli download thrmnn/lerobot-bench-v1 "
             "--repo-type dataset --local-dir results/sweep-full",
             file=sys.stderr,
         )

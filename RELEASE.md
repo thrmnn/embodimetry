@@ -138,7 +138,7 @@ One real, defensible number — not a notebook full of placeholders.
       `scripts/publish_results.py` runs pre-flight gates (schema match,
       manifest parse, every `video_sha256` row has its MP4), stages into
       `_publish_staging/`, writes `_provenance.json`, and uploads to
-      `thrmnn/lerobot-bench-results-v1`. Exit `0` = clean; exit `2` = some
+      `thrmnn/lerobot-bench-v1`. Exit `0` = clean; exit `2` = some
       videos skipped on the size cap (inspect `_provenance.json#skipped_videos`
       and decide if acceptable); exit `3/4/5` = pre-flight / auth / upload
       failure — fix and re-run (the uploader is idempotent).
@@ -166,7 +166,7 @@ One real, defensible number — not a notebook full of placeholders.
 - [ ] **One published cell verified end-to-end.** Pull the dataset back and
       reproduce a cell to prove the published parquet is sound:
       ```bash
-      huggingface-cli download thrmnn/lerobot-bench-results-v1 \
+      huggingface-cli download thrmnn/lerobot-bench-v1 \
           --repo-type dataset --local-dir results/sweep-full
       make reproduce CELL=act/aloha_transfer_cube/0
       ```
