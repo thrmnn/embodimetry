@@ -930,9 +930,10 @@ pre.code .v{color:var(--ink);}
     <tr><td class="policy">smolvla · libero_object <span style="color:var(--warm);">⚠</span></td><td class="paper">0.96 <span style="color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured bad">0.528 <span style="color:var(--mute);font-size:12px;">(task 0)</span></td><td class="delta">−43.2 pp*</td></tr>
     <tr><td class="policy">smolvla · libero_spatial <span style="color:var(--warm);">⚠</span></td><td class="paper">0.90 <span style="color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured warn">0.776 <span style="color:var(--mute);font-size:12px;">(task 0)</span></td><td class="delta">−12.4 pp*</td></tr>
     <tr><td class="policy">smolvla · libero_goal <span style="color:var(--warm);">⚠</span></td><td class="paper">0.92 <span style="color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured ok">0.928 <span style="color:var(--mute);font-size:12px;">(task 0)</span></td><td class="delta">+0.8 pp*</td></tr>
+    <tr><td class="policy">act · aloha_transfer_cube <span style="color:var(--warm);">⚠</span></td><td class="paper">0.50 <span style="color:var(--mute);font-size:12px;">(human teleop)</span></td><td class="measured bad">0.016 <span style="color:var(--mute);font-size:12px;">(Hub default)</span><br><span style="color:var(--accent);font-weight:600;">→ 0.764</span> <span style="color:var(--mute);font-size:12px;">(paper settings**)</span></td><td class="delta">−48 pp<br><span style="color:var(--accent);">+26 pp**</span></td></tr>
     <tr><td class="policy">diffusion_policy · pusht</td><td class="paper">0.83</td><td class="measured ok">0.816</td><td class="delta">−1.4 pp</td></tr>
   </table>
-  <div class="foot"><span>* smolvla scope mismatch — paper averages 10 tasks/suite (PR #84) · v1.1 closes this</span><span class="src">results.parquet · CAVEATS slide 08</span></div>
+  <div class="foot"><span>* smolvla scope · ** act default vs paper inference (temporal_ensemble_coeff=0.01, n_action_steps=1) — v1.0.2 probe</span><span class="src">results.parquet · PROBE_RESULTS_V1.0.1.md</span></div>
 </section>
 
 <!-- ===================================================================== -->
