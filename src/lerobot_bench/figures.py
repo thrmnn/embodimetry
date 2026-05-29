@@ -444,6 +444,35 @@ def act_probe_bar(
 # Figure 3 — paper-vs-measured replication scatter                      #
 # --------------------------------------------------------------------- #
 
+# ACT × aloha_transfer_cube at PAPER inference settings. This point is
+# NOT in results/sweep-full/results.parquet (the v1 sweep ran the Hub
+# default n_action_steps=100, which yields the 0.016 cell). The 0.764
+# value comes from the dedicated temporal-ensemble probe documented in
+# docs/PROBE_RESULTS_V1.0.1.md § "Probe 1" (RESOLVED): pooled 0.764
+# [0.708, 0.812] at temporal_ensemble_coeff=0.01, n_action_steps=1, vs.
+# paper 0.50 (Zhao et al. 2023). It is overlaid as an explicitly-labeled
+# annotation so the scatter tells the post-audit story rather than the
+# Hub-default-artifact story alone.
+_ACT_PAPER_SETTINGS_POINT: dict[str, Any] = {
+    "policy": "act",
+    "env": "aloha_transfer_cube",
+    "paper": 0.50,
+    "measured": 0.764,
+    "lo": 0.708,
+    "hi": 0.812,
+    "n": 250,
+}
+
+# Envs whose smolvla cells are single-task (task_id=0) scope, NOT 10-task
+# suite averages — so the paper-vs-measured gap must not be read as
+# apples-to-apples. The paper numbers in policies.yaml are 10-task suite
+# averages; the v1 sweep ran task 0 only (docs/PROBE_RESULTS_V1.0.1.md
+# § "Probe 2": "single-task vs. paper's 10-task average" caveat, deferred
+# to v1.1).
+_SMOLVLA_SINGLE_TASK_ENVS: frozenset[str] = frozenset(
+    {"libero_spatial", "libero_object", "libero_goal", "libero_10"}
+)
+
 
 def _collect_replication_rows(df: pd.DataFrame, registry: PolicyRegistry) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -492,6 +521,18 @@ def replication_scatter(
     those are within the noise floor of the bench and "agree with paper"
     is the right reading. Cells outside the band are colored by policy.
 
+    Two post-audit overlays (see docs/PROBE_RESULTS_V1.0.1.md):
+
+    - The ACT × aloha_transfer_cube parquet cell is the Hub-default
+      (n_action_steps=100) reading of 0.016; it is labeled "(Hub default)".
+      A second hollow point at the PAPER inference settings (measured
+      0.764 vs. paper 0.50) is overlaid from ``_ACT_PAPER_SETTINGS_POINT``
+      and labeled "(paper settings)" so the figure does not read as an
+      architecture failure.
+    - smolvla × libero_* cells are annotated "(single-task)" because the
+      v1 sweep ran task_id=0 only, while the paper numbers are 10-task
+      suite averages — the gap is not apples-to-apples.
+
     xvla rows are filtered upstream (deferred from leaderboard, PR #82).
     See ``configs/policies.yaml`` comments for per-cell citations (Zhao
     2023, Chi 2023 / Hub card, Shukor 2025, etc.).
@@ -506,16 +547,19 @@ def replication_scatter(
     ax.plot([0, 1], [0, 1], linestyle="--", color=s["palette"]["muted"], linewidth=s["line_width"])
 
     color_map = _policy_color_map(style)
-    for row in rows:
+    label_fontsize = max(5, s["font_size"] - 4)
+
+    def _plot_point(row: dict[str, Any], *, label: str, hollow: bool) -> None:
         paper = float(row["paper"])
         measured = float(row["measured"])
         err = [
             [max(0.0, measured - float(row["lo"]))],
             [max(0.0, float(row["hi"]) - measured)],
         ]
+        inside_mde = bool(row.get("inside_mde", abs(measured - paper) < MDE_BAND))
         color = (
             s["palette"]["muted"]
-            if row["inside_mde"]
+            if inside_mde
             else color_map.get(str(row["policy"]), s["palette"]["muted"])
         )
         ax.errorbar(
@@ -525,13 +569,14 @@ def replication_scatter(
             fmt="o",
             color=color,
             ecolor=color,
+            markerfacecolor=("none" if hollow else color),
+            markeredgecolor=color,
             capsize=3,
             markersize=5,
             elinewidth=s["line_width"],
         )
-        label_fontsize = max(5, s["font_size"] - 4)
         ax.annotate(
-            f"{row['policy']}/{row['env']}",
+            label,
             xy=(paper, measured),
             xytext=(4, 4),
             textcoords="offset points",
@@ -540,17 +585,48 @@ def replication_scatter(
             alpha=0.75,
         )
 
+    for row in rows:
+        policy = str(row["policy"])
+        env = str(row["env"])
+        label = f"{policy}/{env}"
+        # The parquet ACT cell is the Hub default (n_action_steps=100);
+        # flag it so the overlaid paper-settings point reads as the fix.
+        if policy == "act" and env == "aloha_transfer_cube":
+            label = f"{label} (Hub default)"
+        elif policy == "smolvla_libero" and env in _SMOLVLA_SINGLE_TASK_ENVS:
+            label = f"{label} (single-task)"
+        _plot_point(row, label=label, hollow=False)
+
+    # Overlay the ACT paper-settings probe point (0.764 vs 0.50) iff the
+    # Hub-default ACT cell is present, so the figure tells the post-audit
+    # story. Hollow marker distinguishes it from the parquet cells.
+    has_act_cell = any(
+        str(r["policy"]) == "act" and str(r["env"]) == "aloha_transfer_cube" for r in rows
+    )
+    if has_act_cell:
+        _plot_point(_ACT_PAPER_SETTINGS_POINT, label="act/aloha (paper settings)", hollow=True)
+
     ax.set_xlim(-0.02, 1.05)
     ax.set_ylim(-0.02, 1.05)
     ax.set_xlabel("paper-reported success")
     ax.set_ylabel("measured success (N=250 per cell)")
-    ax.set_title("Paper-reported vs measured - N=250 each - grey = inside MDE band")
+    # Two-line title + generous pad; combined with the top-margin reserve
+    # in subplots_adjust below this keeps the title from clipping at the
+    # tight paper figsize (3.5x2.5in) where a one-line title overran the
+    # saved bbox. tight_layout(rect=...) reserves the headroom.
+    ax.set_title(
+        "Paper-reported vs measured (N=250 each)\n"
+        "grey = inside MDE band; hollow = ACT paper settings",
+        pad=8,
+    )
     ax.grid(True, linestyle=":", alpha=0.25)
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
 
     _apply_bg(fig, s)
-    fig.tight_layout()
+    # rect reserves the top 6% for the two-line title so bbox_inches=tight
+    # in _save_all does not crop it (the prior one-line title clipped).
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.94))
     return _save_all(fig, "replication_scatter", style, out_dir)
 
 
