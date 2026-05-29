@@ -134,6 +134,16 @@ A leaderboard pair flagged inconclusive is rendered in neutral grey and
 
 ### A worked comparison
 
+> ⚠ **Illustrative example — numbers below are pedagogical, not real v1
+> cells.** Constructed to land squarely in the "barely-significant Wilcoxon
+> *p*, gap inside MDE band" interpretation regime. The real v1 numbers for
+> `smolvla_libero × libero_spatial` are 0.776 [0.720, 0.823]; `xvla_libero`
+> is deferred from v1 (see [`docs/DEFERRED_POLICIES.md`](../DEFERRED_POLICIES.md)).
+> Both real cells would *not* land in the inconclusive regime — they were
+> chosen here as a teaching foil. Run
+> `python examples/compare_two_policies.py --help` to substitute any two
+> real cells.
+
 Two LIBERO VLAs on `libero_spatial`, N=250 each, run through
 `examples/compare_two_policies.py`:
 
