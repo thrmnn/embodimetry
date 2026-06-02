@@ -253,7 +253,7 @@ def test_filter_episodes_no_match_is_empty(synthetic_parquet: Path) -> None:
 
 def test_format_video_url_canonical() -> None:
     url = format_video_url("diffusion_policy", "pusht", 0, 7)
-    expected = f"{HUB_RAW_PREFIX}/videos/diffusion_policy/pusht/seed0/episode7.mp4"
+    expected = f"{HUB_RAW_PREFIX}/videos/diffusion_policy__pusht__seed0__ep007.mp4"
     assert url == expected
     # Sanity: anchored at the published dataset.
     assert HUB_DATASET_REPO in url
