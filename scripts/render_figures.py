@@ -81,7 +81,7 @@ def _load_results(path: Path, figure: str) -> pd.DataFrame:
     if not path.exists():
         raise SystemExit(
             f"results parquet not found: {path}\n"
-            "  (act_probe_bar / act_norm_ablation_2x2 / failure_taxonomy can render "
+            "  (act_probe_bar / act_norm_ablation_2x2 can render "
             "without it; the other figures cannot.)"
         )
     return pd.read_parquet(path)

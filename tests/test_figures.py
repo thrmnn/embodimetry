@@ -30,7 +30,6 @@ from lerobot_bench.figures import (  # noqa: E402
     act_norm_ablation_2x2,
     act_probe_bar,
     apply_style,
-    failure_taxonomy,
     forest_plot,
     replication_scatter,
 )
@@ -163,41 +162,6 @@ def test_act_norm_ablation_2x2_uses_canonical_cells() -> None:
     assert cells[(1, 1)]["ci"] == (0.712, 0.816)
 
 
-def test_failure_taxonomy_produces_file_per_format(tmp_path: Path) -> None:
-    for style in STYLES:
-        paths = failure_taxonomy(style=style, out_dir=tmp_path)
-        assert len(paths) == len(STYLES[style]["formats"])
-        for p in paths:
-            assert p.exists()
-            assert p.stat().st_size > 0
-            assert p.parent == tmp_path / style
-            assert p.stem == "failure_taxonomy"
-
-
-def test_failure_taxonomy_falls_back_to_documented_counts(tmp_path: Path) -> None:
-    counts = fig_mod._load_failure_counts(tmp_path / "missing-labels.json")
-    # All six canonical modes are always keyed (zero-filled), in doc order.
-    assert set(counts) == set(fig_mod._FAILURE_MODES)
-    assert counts == fig_mod._FAILURE_TAXONOMY_COUNTS
-
-
-def test_failure_taxonomy_reads_labels_json_list(tmp_path: Path) -> None:
-    labels = [
-        {"mode": "drift"},
-        {"mode": "drift"},
-        {"mode": "timeout"},
-        {"mode": "not_a_mode"},  # ignored
-    ]
-    labels_path = tmp_path / "labels.json"
-    labels_path.write_text(json.dumps(labels))
-    counts = fig_mod._load_failure_counts(labels_path)
-    assert counts["drift"] == 2
-    assert counts["timeout"] == 1
-    assert counts["wrong_object"] == 0
-    paths = failure_taxonomy(style="web", out_dir=tmp_path, labels_path=labels_path)
-    assert all(p.exists() and p.stat().st_size > 0 for p in paths)
-
-
 def test_replication_scatter_filters_xvla(tmp_path: Path) -> None:
     df = _synthetic_df()
     assert (df["policy"] == "xvla_libero").any()
@@ -256,7 +220,6 @@ def test_cli_renders_all_9_with_defaults(tmp_path: Path) -> None:
         "forest_plot",
         "act_probe_bar",
         "act_norm_ablation",
-        "failure_taxonomy",
         "replication_scatter",
     )
     expected: list[Path] = []
@@ -267,5 +230,5 @@ def test_cli_renders_all_9_with_defaults(tmp_path: Path) -> None:
     for p in expected:
         assert p.exists(), f"missing: {p}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
         assert p.stat().st_size > 0
-    # 5 figs x (paper(2) + deck(1) + web(1)) = 20 files
+    # 4 figs x (paper(2) + deck(1) + web(1)) = 16 files
     assert len(expected) == len(fig_names) * 4

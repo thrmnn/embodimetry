@@ -465,20 +465,7 @@ hand-label 5--10 failed rollouts per cell into six modes
 timeout, wrong object, premature release, drift), taking the first that
 fits chronologically and stratifying one draw per seed; the
 \texttt{libero\_object} cluster localises to wrong-object on a fixed
-object subset, consistent with the structural cap above
-(Figure~\ref{fig:failure-taxonomy}).
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.78\linewidth]{figures/paper/failure_taxonomy.pdf}
-\caption{Failure taxonomy: hand-labeled failed rollouts assigned to the six
-canonical modes (first-fit in chronological order, one draw per seed). Counts
-are sourced from the labeled rows in
-\texttt{docs/FAILURE\_TAXONOMY.md}; v1 is single-labeler and a per-rollout
-\texttt{failure\_mode} column is a pending schema bump. wrong-object is
-highlighted as the mode the \texttt{libero\_object} cluster localises to.}
-\label{fig:failure-taxonomy}
-\end{figure}
+object subset, consistent with the structural cap above.
 
 % ---------------------------------------------------------------- %
 % Discussion                                                       %

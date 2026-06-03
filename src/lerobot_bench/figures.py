@@ -555,134 +555,6 @@ def act_norm_ablation_2x2(*, style: Style, out_dir: Path) -> list[Path]:
 
 
 # --------------------------------------------------------------------- #
-# Figure 5 — failure taxonomy bar chart                                 #
-# --------------------------------------------------------------------- #
-
-# Canonical six failure modes (docs/FAILURE_TAXONOMY.md § "The six modes",
-# in the doc's documented order). The chart's category axis is keyed on
-# these exact strings (the labels the CSV template / labels.json use).
-_FAILURE_MODES: tuple[str, ...] = (
-    "trajectory_overshoot",
-    "gripper_slip",
-    "timeout",
-    "wrong_object",
-    "premature_release",
-    "drift",
-)
-_FAILURE_MODE_LABELS: dict[str, str] = {
-    "trajectory_overshoot": "trajectory overshoot",
-    "gripper_slip": "gripper slip",
-    "timeout": "timeout",
-    "wrong_object": "wrong object",
-    "premature_release": "premature release",
-    "drift": "drift",
-}
-
-# Documented per-mode counts from docs/FAILURE_TAXONOMY.md § "CSV template"
-# (the hand-labeled example rows). These are the only counts that exist as
-# structured data in the repo; a real per-rollout labels.json is a pending
-# schema bump (FAQ.md, MONITORING.md). The figure caption sources them
-# explicitly as the FAILURE_TAXONOMY.md template rows — NOT fabricated.
-# Counts (one labeled rollout per CSV row):
-#   trajectory_overshoot 1, gripper_slip 1, timeout 1,
-#   premature_release 1, drift 1, wrong_object 0.
-_FAILURE_TAXONOMY_COUNTS: dict[str, int] = {
-    "trajectory_overshoot": 1,
-    "gripper_slip": 1,
-    "timeout": 1,
-    "wrong_object": 0,
-    "premature_release": 1,
-    "drift": 1,
-}
-
-
-def _load_failure_counts(labels_path: Path | None) -> dict[str, int]:
-    """Load per-mode failure counts from a labels file, else the doc counts.
-
-    Accepts a ``labels.json`` (a list of ``{"mode": <str>, ...}`` records,
-    or a ``{"<mode>": <count>}`` mapping). When absent or unparseable, falls
-    back to ``_FAILURE_TAXONOMY_COUNTS`` (the documented CSV-template rows
-    in ``docs/FAILURE_TAXONOMY.md``). All six canonical modes are always
-    present in the returned dict (zero-filled) so the chart axis is stable.
-    """
-    counts = dict.fromkeys(_FAILURE_MODES, 0)
-    if labels_path is None or not labels_path.exists():
-        return dict(_FAILURE_TAXONOMY_COUNTS)
-    try:
-        with labels_path.open("r", encoding="utf-8") as fh:
-            payload = json.load(fh)
-    except (OSError, json.JSONDecodeError):
-        return dict(_FAILURE_TAXONOMY_COUNTS)
-    if isinstance(payload, dict):
-        for mode, n in payload.items():
-            if mode in counts and isinstance(n, (int, float)):
-                counts[mode] = int(n)
-    elif isinstance(payload, list):
-        for rec in payload:
-            mode = rec.get("mode") if isinstance(rec, dict) else None
-            if mode in counts:
-                counts[mode] += 1
-    return counts
-
-
-def failure_taxonomy(*, style: Style, out_dir: Path, labels_path: Path | None = None) -> list[Path]:
-    """Horizontal bar chart of failure counts by mode (task #135).
-
-    One horizontal bar per canonical failure mode
-    (``docs/FAILURE_TAXONOMY.md`` § "The six modes"), ordered as in the
-    doc. Bar length is the count of hand-labeled failed rollouts assigned
-    to that mode under the first-fit / one-draw-per-seed protocol.
-
-    Source: counts are read from a ``labels.json`` when present, else the
-    documented CSV-template rows in ``docs/FAILURE_TAXONOMY.md`` § "CSV
-    template" (``_FAILURE_TAXONOMY_COUNTS``). A per-rollout
-    ``failure_mode`` column / ``labels.json`` is a pending schema bump
-    (``docs/MONITORING.md``, ``docs/FAQ.md``); v1 is single-labeler. The
-    caption states the source so no number is presented as more than the
-    template documents.
-    """
-    counts = _load_failure_counts(labels_path)
-    s = apply_style(style)
-    fig, ax = plt.subplots(figsize=s["figsize"])
-
-    modes = list(_FAILURE_MODES)
-    values = np.array([counts[m] for m in modes], dtype=float)
-    labels = [_FAILURE_MODE_LABELS[m] for m in modes]
-    y = np.arange(len(modes))
-    # Highlight wrong_object: the paper's one concrete labeled finding is
-    # the libero_object cluster localising to wrong-object (main.tex L467).
-    colors = [s["palette"]["warm"] if m == "wrong_object" else s["palette"]["ok"] for m in modes]
-    ax.barh(y, values, color=colors, edgecolor=s["fg"], linewidth=s["line_width"], height=0.66)
-
-    total = float(values.sum())
-    for yi, v in zip(y, values, strict=True):
-        share = (v / total * 100.0) if total > 0 else 0.0
-        ax.text(
-            v + max(0.04, 0.02 * max(values.max(), 1.0)),
-            yi,
-            f"{int(v)} ({share:.0f}%)",
-            va="center",
-            ha="left",
-            fontsize=max(6, s["font_size"] - 2),
-            color=s["fg"],
-        )
-
-    ax.set_yticks(y)
-    ax.set_yticklabels(labels, fontsize=max(6, s["font_size"] - 1))
-    ax.invert_yaxis()
-    ax.set_xlabel("labeled failed rollouts")
-    ax.set_xlim(0, max(values.max() * 1.35, 1.4))
-    ax.set_title("Failure taxonomy (hand-labeled, first-fit)", fontsize=s["font_size"], pad=4)
-    ax.grid(True, axis="x", linestyle="--", alpha=0.25)
-    for spine in ("top", "right"):
-        ax.spines[spine].set_visible(False)
-
-    _apply_bg(fig, s)
-    fig.tight_layout()
-    return _save_all(fig, "failure_taxonomy", style, out_dir)
-
-
-# --------------------------------------------------------------------- #
 # Figure 3 — paper-vs-measured replication scatter                      #
 # --------------------------------------------------------------------- #
 
@@ -884,15 +756,12 @@ FIGURES: dict[str, Any] = {
     "forest_plot": forest_plot,
     "act_probe_bar": act_probe_bar,
     "act_norm_ablation_2x2": act_norm_ablation_2x2,
-    "failure_taxonomy": failure_taxonomy,
     "replication_scatter": replication_scatter,
 }
 
 # Figures that render without the results parquet (no ``df`` argument).
 # The render driver and CLI key off this set to pass the right kwargs.
-PARQUET_FREE_FIGURES: frozenset[str] = frozenset(
-    {"act_probe_bar", "act_norm_ablation_2x2", "failure_taxonomy"}
-)
+PARQUET_FREE_FIGURES: frozenset[str] = frozenset({"act_probe_bar", "act_norm_ablation_2x2"})
 
 
 def _as_style(name: str) -> Style:
