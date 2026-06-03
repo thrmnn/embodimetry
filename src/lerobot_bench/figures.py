@@ -441,6 +441,248 @@ def act_probe_bar(
 
 
 # --------------------------------------------------------------------- #
+# Figure 4 — ACT normalization 2x2 ablation heatmap                     #
+# --------------------------------------------------------------------- #
+
+# Canonical published cells for the ACT x aloha_transfer_cube controlled
+# 2x2 ablation (paper Table tab:act-ablation, paper/main.tex L354-377).
+# Rows = normalization {Buggy (v1.0.0), Fixed (PR #51)}; columns =
+# inference {Hub-default (coeff=None, n_steps=100), Paper (coeff=0.01,
+# n_steps=1)}. Each cell is N=250 (5 seeds x 50 episodes). Wilson 95%
+# CIs are the doc-published values. HARDCODED — these are stable canonical
+# numbers and are NOT read from parquet (see PROBE_RESULTS / paper).
+_ACT_NORM_ABLATION: dict[tuple[int, int], dict[str, Any]] = {
+    # (row, col): row 0 = buggy, row 1 = fixed; col 0 = hub, col 1 = paper.
+    (0, 0): {"rate": 0.016, "ci": (0.006, 0.040)},  # buggy + hub
+    (0, 1): {"rate": 0.016, "ci": (0.006, 0.040)},  # buggy + paper
+    (1, 0): {"rate": 0.812, "ci": (0.759, 0.856)},  # fixed + hub
+    (1, 1): {"rate": 0.768, "ci": (0.712, 0.816)},  # fixed + paper
+}
+_ACT_NORM_ROW_LABELS: tuple[str, str] = ("Buggy\n(v1.0.0)", "Fixed\n(PR #51)")
+_ACT_NORM_COL_LABELS: tuple[str, str] = (
+    "Hub-default\ncoeff=None, n_steps=100",
+    "Paper\ncoeff=0.01, n_steps=1",
+)
+
+
+def act_norm_ablation_2x2(*, style: Style, out_dir: Path) -> list[Path]:
+    """ACT x aloha_transfer_cube controlled 2x2 normalization ablation.
+
+    A 2x2 heatmap crossing normalization {Buggy (v1.0.0), Fixed (PR #51)}
+    against inference settings {Hub-default (coeff=None, n_steps=100),
+    Paper (coeff=0.01, n_steps=1)}. Cells are colored by success rate on a
+    red (0) -> green (1) ramp and annotated with the pooled rate and its
+    Wilson 95% CI. The figure makes the headline finding visual:
+    normalization is the load-bearing variable (rows differ by ~0.8), while
+    the inference setting / temporal ensembling is a wash (columns agree
+    within overlapping CIs).
+
+    This supersedes ``act_probe_bar`` conceptually but does not replace it;
+    both ship. Source: canonical published cells (paper
+    Table~\\ref{tab:act-ablation}, ``scripts/probes/probe_act_normalization_ablation.py``),
+    HARDCODED here as ``_ACT_NORM_ABLATION``. N=250/cell (5 seeds x 50 ep).
+    """
+    s = apply_style(style)
+    # Square-ish heatmap: widen the paper default slightly so the two
+    # column headers (each two lines) don't collide.
+    base_w, base_h = s["figsize"]
+    fig, ax = plt.subplots(figsize=(base_w, base_h))
+
+    grid = np.array(
+        [[_ACT_NORM_ABLATION[(r, c)]["rate"] for c in (0, 1)] for r in (0, 1)],
+        dtype=float,
+    )
+    # RdYlGn: red at 0 -> green at 1. vmin/vmax pinned to [0, 1] so the
+    # color encodes absolute success rate, not the data's own range.
+    im = ax.imshow(grid, cmap="RdYlGn", vmin=0.0, vmax=1.0, aspect="auto")
+
+    ann_fs = max(6, s["font_size"] - 1)
+    ci_fs = max(5, s["font_size"] - 3)
+    for r in (0, 1):
+        for c in (0, 1):
+            cell = _ACT_NORM_ABLATION[(r, c)]
+            rate = cell["rate"]
+            lo, hi = cell["ci"]
+            # Black text on light/green cells, white on dark-red cells, so
+            # annotations stay legible across the whole ramp.
+            txt_color = "#111111" if rate > 0.30 else "#ffffff"
+            ax.text(
+                c,
+                r - 0.10,
+                f"{rate * 100:.1f}%",
+                ha="center",
+                va="center",
+                fontsize=ann_fs,
+                fontweight="bold",
+                color=txt_color,
+            )
+            ax.text(
+                c,
+                r + 0.14,
+                f"[{lo * 100:.1f}, {hi * 100:.1f}]",
+                ha="center",
+                va="center",
+                fontsize=ci_fs,
+                color=txt_color,
+            )
+
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(_ACT_NORM_COL_LABELS, fontsize=max(6, s["font_size"] - 2))
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(_ACT_NORM_ROW_LABELS, fontsize=max(6, s["font_size"] - 2))
+    ax.set_xlabel("inference settings", fontsize=max(6, s["font_size"] - 1))
+    ax.set_ylabel("normalization", fontsize=max(6, s["font_size"] - 1))
+    ax.tick_params(length=0)
+    ax.set_xticks(np.arange(-0.5, 2, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, 2, 1), minor=True)
+    ax.grid(which="minor", color=s["bg"] if s["bg"] != "transparent" else "white", linewidth=2)
+    ax.tick_params(which="minor", length=0)
+
+    ax.set_title(
+        "ACT x aloha: normalization is load-bearing; inference is a wash",
+        fontsize=s["font_size"],
+        pad=6,
+    )
+    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("success rate", fontsize=max(6, s["font_size"] - 2))
+    cbar.ax.tick_params(labelsize=max(5, s["font_size"] - 3), length=0)
+
+    _apply_bg(fig, s)
+    # Reserve headroom for the title and a left strip for the row labels +
+    # y-label so bbox_inches="tight" in _save_all doesn't crop them.
+    fig.tight_layout(rect=(0.02, 0.0, 1.0, 0.96))
+    return _save_all(fig, "act_norm_ablation", style, out_dir)
+
+
+# --------------------------------------------------------------------- #
+# Figure 5 — failure taxonomy bar chart                                 #
+# --------------------------------------------------------------------- #
+
+# Canonical six failure modes (docs/FAILURE_TAXONOMY.md § "The six modes",
+# in the doc's documented order). The chart's category axis is keyed on
+# these exact strings (the labels the CSV template / labels.json use).
+_FAILURE_MODES: tuple[str, ...] = (
+    "trajectory_overshoot",
+    "gripper_slip",
+    "timeout",
+    "wrong_object",
+    "premature_release",
+    "drift",
+)
+_FAILURE_MODE_LABELS: dict[str, str] = {
+    "trajectory_overshoot": "trajectory overshoot",
+    "gripper_slip": "gripper slip",
+    "timeout": "timeout",
+    "wrong_object": "wrong object",
+    "premature_release": "premature release",
+    "drift": "drift",
+}
+
+# Documented per-mode counts from docs/FAILURE_TAXONOMY.md § "CSV template"
+# (the hand-labeled example rows). These are the only counts that exist as
+# structured data in the repo; a real per-rollout labels.json is a pending
+# schema bump (FAQ.md, MONITORING.md). The figure caption sources them
+# explicitly as the FAILURE_TAXONOMY.md template rows — NOT fabricated.
+# Counts (one labeled rollout per CSV row):
+#   trajectory_overshoot 1, gripper_slip 1, timeout 1,
+#   premature_release 1, drift 1, wrong_object 0.
+_FAILURE_TAXONOMY_COUNTS: dict[str, int] = {
+    "trajectory_overshoot": 1,
+    "gripper_slip": 1,
+    "timeout": 1,
+    "wrong_object": 0,
+    "premature_release": 1,
+    "drift": 1,
+}
+
+
+def _load_failure_counts(labels_path: Path | None) -> dict[str, int]:
+    """Load per-mode failure counts from a labels file, else the doc counts.
+
+    Accepts a ``labels.json`` (a list of ``{"mode": <str>, ...}`` records,
+    or a ``{"<mode>": <count>}`` mapping). When absent or unparseable, falls
+    back to ``_FAILURE_TAXONOMY_COUNTS`` (the documented CSV-template rows
+    in ``docs/FAILURE_TAXONOMY.md``). All six canonical modes are always
+    present in the returned dict (zero-filled) so the chart axis is stable.
+    """
+    counts = dict.fromkeys(_FAILURE_MODES, 0)
+    if labels_path is None or not labels_path.exists():
+        return dict(_FAILURE_TAXONOMY_COUNTS)
+    try:
+        with labels_path.open("r", encoding="utf-8") as fh:
+            payload = json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return dict(_FAILURE_TAXONOMY_COUNTS)
+    if isinstance(payload, dict):
+        for mode, n in payload.items():
+            if mode in counts and isinstance(n, (int, float)):
+                counts[mode] = int(n)
+    elif isinstance(payload, list):
+        for rec in payload:
+            mode = rec.get("mode") if isinstance(rec, dict) else None
+            if mode in counts:
+                counts[mode] += 1
+    return counts
+
+
+def failure_taxonomy(*, style: Style, out_dir: Path, labels_path: Path | None = None) -> list[Path]:
+    """Horizontal bar chart of failure counts by mode (task #135).
+
+    One horizontal bar per canonical failure mode
+    (``docs/FAILURE_TAXONOMY.md`` § "The six modes"), ordered as in the
+    doc. Bar length is the count of hand-labeled failed rollouts assigned
+    to that mode under the first-fit / one-draw-per-seed protocol.
+
+    Source: counts are read from a ``labels.json`` when present, else the
+    documented CSV-template rows in ``docs/FAILURE_TAXONOMY.md`` § "CSV
+    template" (``_FAILURE_TAXONOMY_COUNTS``). A per-rollout
+    ``failure_mode`` column / ``labels.json`` is a pending schema bump
+    (``docs/MONITORING.md``, ``docs/FAQ.md``); v1 is single-labeler. The
+    caption states the source so no number is presented as more than the
+    template documents.
+    """
+    counts = _load_failure_counts(labels_path)
+    s = apply_style(style)
+    fig, ax = plt.subplots(figsize=s["figsize"])
+
+    modes = list(_FAILURE_MODES)
+    values = np.array([counts[m] for m in modes], dtype=float)
+    labels = [_FAILURE_MODE_LABELS[m] for m in modes]
+    y = np.arange(len(modes))
+    # Highlight wrong_object: the paper's one concrete labeled finding is
+    # the libero_object cluster localising to wrong-object (main.tex L467).
+    colors = [s["palette"]["warm"] if m == "wrong_object" else s["palette"]["ok"] for m in modes]
+    ax.barh(y, values, color=colors, edgecolor=s["fg"], linewidth=s["line_width"], height=0.66)
+
+    total = float(values.sum())
+    for yi, v in zip(y, values, strict=True):
+        share = (v / total * 100.0) if total > 0 else 0.0
+        ax.text(
+            v + max(0.04, 0.02 * max(values.max(), 1.0)),
+            yi,
+            f"{int(v)} ({share:.0f}%)",
+            va="center",
+            ha="left",
+            fontsize=max(6, s["font_size"] - 2),
+            color=s["fg"],
+        )
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=max(6, s["font_size"] - 1))
+    ax.invert_yaxis()
+    ax.set_xlabel("labeled failed rollouts")
+    ax.set_xlim(0, max(values.max() * 1.35, 1.4))
+    ax.set_title("Failure taxonomy (hand-labeled, first-fit)", fontsize=s["font_size"], pad=4)
+    ax.grid(True, axis="x", linestyle="--", alpha=0.25)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+
+    _apply_bg(fig, s)
+    fig.tight_layout()
+    return _save_all(fig, "failure_taxonomy", style, out_dir)
+
+
+# --------------------------------------------------------------------- #
 # Figure 3 — paper-vs-measured replication scatter                      #
 # --------------------------------------------------------------------- #
 
@@ -641,8 +883,16 @@ def replication_scatter(
 FIGURES: dict[str, Any] = {
     "forest_plot": forest_plot,
     "act_probe_bar": act_probe_bar,
+    "act_norm_ablation_2x2": act_norm_ablation_2x2,
+    "failure_taxonomy": failure_taxonomy,
     "replication_scatter": replication_scatter,
 }
+
+# Figures that render without the results parquet (no ``df`` argument).
+# The render driver and CLI key off this set to pass the right kwargs.
+PARQUET_FREE_FIGURES: frozenset[str] = frozenset(
+    {"act_probe_bar", "act_norm_ablation_2x2", "failure_taxonomy"}
+)
 
 
 def _as_style(name: str) -> Style:
