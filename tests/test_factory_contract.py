@@ -231,5 +231,5 @@ def test_mapping_multi_suite_rejected():
 def test_mapping_multi_task_rejected():
     spec = _factory_spec("stub_factory")
     bad = {"a": {"t1": _StubVecEnv(_StubEnv()), "t2": _StubVecEnv(_StubEnv())}}
-    with pytest.raises(RuntimeError, match="expected suite .* to have 1 task"):
+    with pytest.raises(RuntimeError, match=r"expected suite .* to have 1 task"):
         bench_eval._materialize_factory_result(bad, spec=spec)
