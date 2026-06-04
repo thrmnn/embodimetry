@@ -680,7 +680,7 @@ def load_policy(
     if not spec.is_runnable():
         raise RuntimeError(
             f"policy '{spec.name}' is not runnable -- missing revision_sha. "
-            "Lock SHAs at Day 0a per docs/NEXT_STEPS.md, then update "
+            "Lock checkpoint SHAs per docs/REPRODUCE.md, then update "
             "configs/policies.yaml."
         )
 

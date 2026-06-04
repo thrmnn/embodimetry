@@ -55,7 +55,7 @@ DEFAULT_POLICIES_YAML = Path("configs/policies.yaml")
 DEFAULT_ENVS_YAML = Path("configs/envs.yaml")
 
 # Auto-downscope thresholds. Tuned for an 8 GB RTX 4060 (single laptop
-# GPU) and the 8-day overnight budget in docs/CEO-PLAN.md. The rule
+# GPU) and an overnight wall-clock budget for the full matrix. The rule
 # trades episode/seed counts for fitting the full matrix inside the
 # wall-clock window without OOMing. Re-tune after the first real
 # calibration run produces concrete numbers.

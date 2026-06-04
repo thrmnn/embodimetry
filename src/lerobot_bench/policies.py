@@ -95,8 +95,8 @@ class PolicySpec:
             missing.append("revision_sha")
         raise ValueError(
             f"policy '{self.name}' is not runnable — missing {missing} "
-            f"(source: {self._source}). Lock these at Day 0a per "
-            "docs/NEXT_STEPS.md, then update configs/policies.yaml."
+            f"(source: {self._source}). Lock these per "
+            "docs/REPRODUCE.md, then update configs/policies.yaml."
         )
 
 
