@@ -46,7 +46,7 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# Reuse the audited Wilson primitives from ``src/lerobot_bench/stats.py``
+# Reuse the audited Wilson primitives from ``src/embodimetry/stats.py``
 # rather than reimplementing the score interval here. The dashboard runs
 # from the repo so ``src/`` is importable; in the slim test env it is put
 # on the path by ``conftest`` / ``PYTHONPATH``. We add it defensively so
@@ -55,13 +55,13 @@ _SRC_DIR = Path(__file__).resolve().parent.parent / "src"
 if _SRC_DIR.is_dir() and str(_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(_SRC_DIR))
 
-from lerobot_bench.envs import EnvRegistry, EnvSpec  # noqa: E402
-from lerobot_bench.leaderboard_filter import (  # noqa: E402
+from embodimetry.envs import EnvRegistry, EnvSpec  # noqa: E402
+from embodimetry.leaderboard_filter import (  # noqa: E402
     V1_POLICIES,
     filter_to_v1_policies,
 )
-from lerobot_bench.policies import PolicyRegistry, PolicySpec  # noqa: E402
-from lerobot_bench.stats import wilson_ci, wilson_halfwidth_at_p  # noqa: E402
+from embodimetry.policies import PolicyRegistry, PolicySpec  # noqa: E402
+from embodimetry.stats import wilson_ci, wilson_halfwidth_at_p  # noqa: E402
 
 # ``V1_POLICIES`` + ``filter_to_v1_policies`` are imported (not redefined)
 # so this dashboard and the Gradio Space share one v1 policy gate. Both are
@@ -87,7 +87,7 @@ DEFAULT_RESULTS_DIR = REPO_ROOT / "results"
 # slow even when the file streams themselves are fine.
 DEFAULT_VIDEO_ROOTS: tuple[Path, ...] = (
     REPO_ROOT / "results",
-    Path.home() / "Robotics-Data" / "lerobot-bench-videos",
+    Path.home() / "Robotics-Data" / "embodimetry-videos",
 )
 
 # Manifest cell statuses, mirrored from ``scripts/run_sweep.py``. Kept
@@ -112,7 +112,7 @@ CELL_STATUS_SKIPPED = "skipped"  # every seed skipped (incompat or pre-resumed)
 # Calibration auto-downscope thresholds. Sourced from
 # ``scripts/calibrate.py`` -- we keep duplicates here so the dashboard
 # can derive a human-readable reason without importing ``scripts.*``
-# (the scripts package imports ``lerobot_bench`` which would force
+# (the scripts package imports ``embodimetry`` which would force
 # heavyweight transitive deps just to render a table).
 SLOW_MS_PER_STEP_THRESHOLD = 100.0
 VERY_SLOW_MS_PER_STEP_THRESHOLD = 500.0
@@ -363,7 +363,7 @@ class CellEpisodeStats:
     Computed from the *flat list of per-episode outcomes* -- the unit is
     the episode, never the per-seed mean (DESIGN.md § Methodology,
     "pseudo-replication" guard). ``wilson_lo/hi`` is the closed-form
-    Wilson 95% score interval from :func:`lerobot_bench.stats.wilson_ci`.
+    Wilson 95% score interval from :func:`embodimetry.stats.wilson_ci`.
 
     ``seed_spread`` is ``max - min`` of the per-seed success rates and
     is only defined once two or more seeds have episodes on disk;
@@ -557,7 +557,7 @@ def build_halfwidth_curve(
 
     Picks the cell via :func:`select_plot_cell`, reads its current
     success rate from the parquet, and evaluates
-    :func:`lerobot_bench.stats.wilson_halfwidth_at_p` at that fixed
+    :func:`embodimetry.stats.wilson_halfwidth_at_p` at that fixed
     ``p_hat`` for every ``N`` in ``1..n_current``. Returns ``None`` when
     no cell qualifies (cold start, empty parquet) -- the caller then
     renders an empty-state message instead of a plot.
@@ -1454,7 +1454,7 @@ def env_dashboard_logs_dir() -> Path:
 # badge has a stable denominator even before the manifest is on disk.
 #
 # ``V1_POLICIES`` is imported at module top from
-# ``lerobot_bench.leaderboard_filter`` (shared with the Gradio Space).
+# ``embodimetry.leaderboard_filter`` (shared with the Gradio Space).
 # xvla_libero is intentionally absent: deferred to v1.1 (PR #76 — two
 # patched + one unresolved Hub-JSON processor bugs). The published
 # parquet still carries xvla rows for reproducibility, but
@@ -1579,7 +1579,7 @@ def persistent_header_markdown(
 
     policies_str = ", ".join(f"`{p}`" for p in V1_POLICIES)
     return (
-        "# lerobot-bench -- local operator dashboard\n"
+        "# embodimetry -- local operator dashboard\n"
         "\n"
         "Public reproducible benchmark of pretrained LeRobot policies "
         f"({policies_str}) on 6 sim envs (PushT, Aloha-transfer-cube, "
@@ -1735,9 +1735,9 @@ def methodology_markdown() -> str:
     -- the paper is the authoritative reference and this tab links out
     to it rather than restating the LaTeX in markdown.
     """
-    return f"""## What is lerobot-bench?
+    return f"""## What is embodimetry?
 
-lerobot-bench is a public reproducible benchmark of pretrained policies
+embodimetry is a public reproducible benchmark of pretrained policies
 from the HuggingFace LeRobot stack. The v1 roster runs
 {len(V1_POLICIES)} policies ({", ".join(V1_POLICIES)}) on
 {len(V1_ENVS)} sim envs (PushT, Aloha-transfer-cube, and the four
@@ -1749,7 +1749,7 @@ x {V1_SEEDS_PER_CELL} seeds x {V1_EPISODES_PER_SEED} episodes per seed
 binary outcomes**.
 
 The artifact has three parts: this evaluation harness, a public Hub
-dataset (`thrmnn/lerobot-bench-v1`) with every per-episode
+dataset (`thrmnn/embodimetry-v1`) with every per-episode
 outcome plus an MP4 of every rollout, and a 4-page arXiv writeup.
 This dashboard is the **operator** view: live, local, no Hub fetches.
 The public-facing leaderboard lives separately under `space/`.
@@ -1803,7 +1803,7 @@ The public-facing leaderboard lives separately under `space/`.
 
 ## v1 scope and known limits
 
-- **Simulation only.** Every number is sim. lerobot-bench is a
+- **Simulation only.** Every number is sim. embodimetry is a
   screening tool, not a substitute for hardware evaluation.
 - **Single-hardware bias on wall-clock.** Latency is measured on a
   single RTX 4060 laptop (8 GB VRAM). The policy *ranking* is

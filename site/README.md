@@ -1,8 +1,8 @@
 # site/
 
-Landing page for **lerobot-bench**. Static HTML+CSS, no build step, no JS framework. Intended to be served at `thrmnn.github.io/lerobot-bench` once GitHub Pages is enabled.
+Landing page for **embodimetry**. Static HTML+CSS, no build step, no JS framework. Intended to be served at `thrmnn.github.io/embodimetry` once GitHub Pages is enabled.
 
-This is the *narrative* surface (recruiter/researcher reads the headline, clicks through). The *interactive* surface is the Gradio Space at `huggingface.co/spaces/thrmnn/lerobot-bench` (separate codebase under `space/`).
+This is the *narrative* surface (recruiter/researcher reads the headline, clicks through). The *interactive* surface is the Gradio Space at `huggingface.co/spaces/thrmnn/embodimetry` (separate codebase under `space/`).
 
 ## Files
 
@@ -27,7 +27,7 @@ Then open `http://100.104.205.62:8765/` (or `http://localhost:8765/` from the ho
 GitHub Pages — **not enabled yet**. When the user is ready:
 
 1. Settings → Pages → Source: `Deploy from a branch`, branch `main`, folder `/site`.
-2. Site goes live at `https://thrmnn.github.io/lerobot-bench/`.
+2. Site goes live at `https://thrmnn.github.io/embodimetry/`.
 
 No build step, no CI — Pages serves the static files directly.
 

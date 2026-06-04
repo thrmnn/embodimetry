@@ -30,7 +30,7 @@ The reference probes demonstrate two ways to inject the modified condition.
 
 ### Pattern A — monkey-patch the policy config
 
-When the variable you want to change is **on the policy config object** (anything `PreTrainedConfig` carries — inference settings, head dimensions, action-chunk size, dropout, etc.), monkey-patch `lerobot.configs.policies.PreTrainedConfig.from_pretrained` before calling `lerobot_bench.eval.run_cell_from_specs`.
+When the variable you want to change is **on the policy config object** (anything `PreTrainedConfig` carries — inference settings, head dimensions, action-chunk size, dropout, etc.), monkey-patch `lerobot.configs.policies.PreTrainedConfig.from_pretrained` before calling `embodimetry.eval.run_cell_from_specs`.
 
 ```python
 from lerobot.configs.policies import PreTrainedConfig
@@ -57,7 +57,7 @@ When the variable is **on the env spec** (`max_steps`, `success_threshold`, `gym
 
 ```python
 import dataclasses
-from lerobot_bench.envs import EnvRegistry
+from embodimetry.envs import EnvRegistry
 
 env_reg = EnvRegistry.from_yaml("configs/envs.yaml")
 base_env_spec = env_reg.get("libero_10")          # max_steps=520 (v1 default)
@@ -121,8 +121,8 @@ python -c "import json; print(json.dumps(json.load(open('results/probes/act-aloh
 
 If a probe result is load-bearing for v1.0.2 framing, three things happen:
 
-1. **`docs/PROBE_RESULTS_V1.0.1.md` fill-in** — per-seed table + Wilson CI + interpretation paragraph (the ACT case landed via [PR #97](https://github.com/thrmnn/lerobot-bench/pull/97); follows a 3-bucket "what does Δ mean" structure documented in the scaffold).
-2. **README + MODEL_CARDS update** — replace any "probe pending" language with the empirical numbers ([PR #101](https://github.com/thrmnn/lerobot-bench/pull/101) is the ACT-fill template).
+1. **`docs/PROBE_RESULTS_V1.0.1.md` fill-in** — per-seed table + Wilson CI + interpretation paragraph (the ACT case landed via [PR #97](https://github.com/thrmnn/embodimetry/pull/97); follows a 3-bucket "what does Δ mean" structure documented in the scaffold).
+2. **README + MODEL_CARDS update** — replace any "probe pending" language with the empirical numbers ([PR #101](https://github.com/thrmnn/embodimetry/pull/101) is the ACT-fill template).
 3. **Deck + paper updates** — add a row to the relevant table or callout, with a footnote pointing to the probe.
 
 The full v1.0.1 → v1.0.2 audit-cycle handoff is documented in [`docs/PROBE_RESULTS_V1.0.1.md`](../docs/PROBE_RESULTS_V1.0.1.md).

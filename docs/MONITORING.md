@@ -148,7 +148,7 @@ happens.
   repo can extend the record later without breaking the Training tab.
 - **Offline-first.** `scripts/wm_run_log.py` is stdlib-only (no wandb,
   no network, no third-party deps) and imports nothing from
-  `dashboard/` or `src/lerobot_bench/`. The `WM_RUNS_SUBDIR` /
+  `dashboard/` or `src/embodimetry/`. The `WM_RUNS_SUBDIR` /
   `WM_PROGRESS_FILENAME` constants are duplicated between the writer and
   `dashboard/_helpers.py` on purpose to keep that import boundary clean;
   if you rename one, rename both.
@@ -171,11 +171,11 @@ python scripts/wm_run_log.py --run-id smoke --results-dir /tmp/wm --demo
 ## Out of scope for this wave (deliberately untouched)
 
 - **`failure_mode` parquet column.** A real failure-mode label is a
-  future per-episode parquet schema bump (owned by `src/lerobot_bench/`
+  future per-episode parquet schema bump (owned by `src/embodimetry/`
   + the eval writer). This layer only *reads* the parquet; it does not
   change the schema. See `docs/FAILURE_TAXONOMY.md`.
 - **World-model dispatch.** Evaluating a WM/JEPA planner as a policy is
-  a future `load_policy` dispatch branch in `src/lerobot_bench/eval.py`
+  a future `load_policy` dispatch branch in `src/embodimetry/eval.py`
   (a `kind` field), not a dashboard change. The Compare tab's
   `wm_policy_names` heuristic is the placeholder until that lands.
 - **The sweep parquet, manifest, and `scripts/run_sweep.py`** are not

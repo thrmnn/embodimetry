@@ -1,10 +1,10 @@
-"""Gradio app for the lerobot-bench HF Space.
+"""Gradio app for the embodimetry HF Space.
 
-Runs on the **free CPU tier** at ``huggingface.co/spaces/thrmnn/lerobot-bench``.
+Runs on the **free CPU tier** at ``huggingface.co/spaces/thrmnn/embodimetry``.
 No policy inference, no GPU. Five tabs:
 
 1. **Leaderboard** — pre-aggregated success-rate table with Wilson CIs,
-   read from ``thrmnn/lerobot-bench-v1/results.parquet`` on Hub.
+   read from ``thrmnn/embodimetry-v1/results.parquet`` on Hub.
    Includes a v1 status badge, a methodology accordion, and a
    below-table success-rate band legend.
 2. **Paired comparisons** — for any two policies, the per-env Δsuccess
@@ -75,7 +75,7 @@ NO_DATA_MARKDOWN = (
     "_No published results yet — the dataset at_ "
     f"`{HUB_DATASET_REPO}` _is empty or unreachable. Re-check the_ "
     "_link in a few minutes, or browse the source repo at_ "
-    "<https://github.com/thrmnn/lerobot-bench>."
+    "<https://github.com/thrmnn/embodimetry>."
 )
 
 # Methodology blurb shown in the accordion above the Leaderboard table.
@@ -372,16 +372,16 @@ def build_app() -> gr.Blocks:
     only under ``__main__``.
     """
     with gr.Blocks(
-        title="lerobot-bench",
+        title="embodimetry",
         theme=gr.themes.Soft(),  # readable on the default Spaces background
     ) as demo:
         gr.Markdown(
-            "# lerobot-bench — public leaderboard\n"
+            "# embodimetry — public leaderboard\n"
             "_Public reproducible benchmark of pretrained LeRobot policies "
             "on simulated manipulation envs._\n"
             "\n"
             f"Source data: [`{HUB_DATASET_REPO}`](https://huggingface.co/datasets/{HUB_DATASET_REPO}). "
-            "Code: <https://github.com/thrmnn/lerobot-bench>."
+            "Code: <https://github.com/thrmnn/embodimetry>."
         )
         # v1 status badge — renders at top of every tab via the top-level
         # Markdown block. Hardcoded copy until the publish step starts

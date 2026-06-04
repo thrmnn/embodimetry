@@ -37,7 +37,7 @@ jobs:
       - name: Import smoke
         run: |
           . /tmp/smoke-venv/bin/activate
-          python -c "import lerobot_bench; print('lerobot-bench', lerobot_bench.__version__)"
+          python -c "import embodimetry; print('embodimetry', embodimetry.__version__)"
 
       - name: CLI smoke (--version)
         run: |
@@ -46,7 +46,7 @@ jobs:
           # gracefully and surface the failure mode in the log.
           python -c "
           try:
-              from lerobot_bench.cli import main
+              from embodimetry.cli import main
               main(['--version'])
           except ImportError as e:
               print(f'::warning::cli module not implemented yet: {e}')

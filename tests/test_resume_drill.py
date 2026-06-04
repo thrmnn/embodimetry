@@ -25,7 +25,7 @@ Five scenarios live here (DESIGN.md § Methodology + the agent brief):
 
 The fake subprocess takes the place of ``scripts/run_one.py`` and
 writes synthetic rows directly to the parquet via
-:func:`lerobot_bench.checkpointing.append_cell_rows`. This is the same
+:func:`embodimetry.checkpointing.append_cell_rows`. This is the same
 contract real ``run_one`` follows (atomic per-cell append), so the
 sweep's view of the world is indistinguishable from a real run.
 """
@@ -42,7 +42,7 @@ import pandas as pd
 import pytest
 from scripts import run_sweep as rs
 
-from lerobot_bench.checkpointing import (
+from embodimetry.checkpointing import (
     RESULT_SCHEMA,
     CellKey,
     append_cell_rows,
@@ -727,8 +727,8 @@ def test_drill12_module_has_no_top_level_torch_or_lerobot_import() -> None:
                 assert alias.name != "lerobot" and not alias.name.startswith("lerobot."), (
                     f"top-level import {alias.name!r} would require lerobot at import time"
                 )
-                assert alias.name != "lerobot_bench.render", (
-                    "top-level lerobot_bench.render import would pull imageio in eagerly"
+                assert alias.name != "embodimetry.render", (
+                    "top-level embodimetry.render import would pull imageio in eagerly"
                 )
         if isinstance(node, ast.ImportFrom) and node.module is not None:
             mod = node.module
@@ -738,6 +738,6 @@ def test_drill12_module_has_no_top_level_torch_or_lerobot_import() -> None:
             assert mod != "lerobot" and not mod.startswith("lerobot."), (
                 f"top-level `from {mod}` would require lerobot at import time"
             )
-            assert mod != "lerobot_bench.render", (
-                "top-level `from lerobot_bench.render` would pull imageio in eagerly"
+            assert mod != "embodimetry.render", (
+                "top-level `from embodimetry.render` would pull imageio in eagerly"
             )

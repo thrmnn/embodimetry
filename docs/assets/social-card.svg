@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="lerobot-bench social preview">
-  <title>lerobot-bench — reproducible benchmark of pretrained LeRobot policies</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="embodimetry social preview">
+  <title>embodimetry — reproducible benchmark of pretrained LeRobot policies</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#0d1117"/>
@@ -63,5 +63,5 @@
     <text x="86" y="26" text-anchor="middle" font-family="'DejaVu Sans Mono',Menlo,monospace" font-size="20" fill="#c9d1d9">MIT LICENSED</text>
   </g>
 
-  <text x="1182" y="588" text-anchor="end" font-family="'DejaVu Sans Mono',Menlo,monospace" font-size="22" fill="#7d8590">github.com/thrmnn/lerobot-bench</text>
+  <text x="1182" y="588" text-anchor="end" font-family="'DejaVu Sans Mono',Menlo,monospace" font-size="22" fill="#7d8590">github.com/thrmnn/embodimetry</text>
 </svg>

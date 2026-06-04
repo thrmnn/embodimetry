@@ -39,8 +39,8 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from lerobot_bench.envs import EnvRegistry, EnvSpec
-from lerobot_bench.policies import PolicyRegistry, PolicySpec
+from embodimetry.envs import EnvRegistry, EnvSpec
+from embodimetry.policies import PolicyRegistry, PolicySpec
 
 logger = logging.getLogger("calibrate")
 
@@ -284,7 +284,7 @@ def measure_cell(
         import numpy as np
         import torch
 
-        from lerobot_bench.eval import load_env, load_policy
+        from embodimetry.eval import load_env, load_policy
     except ImportError as exc:
         return _zero_timing(
             policy.name,

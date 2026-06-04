@@ -1,6 +1,6 @@
 # Reproduce a leaderboard cell
 
-`lerobot-bench` is a *reproducibility* benchmark. Every number on the
+`embodimetry` is a *reproducibility* benchmark. Every number on the
 leaderboard is a claim, and this page is how anyone confirms a claim is true —
 not "roughly right within error bars", but **bit-for-bit identical**.
 
@@ -47,7 +47,7 @@ You need the same environment the published sweep used:
    python -c "import lerobot; print(lerobot.__version__)"   # must print 0.5.1
    ```
 
-2. **`lerobot-bench` installed with all extras**, from the repo root:
+2. **`embodimetry` installed with all extras**, from the repo root:
 
    ```bash
    pip install -e ".[all]"
@@ -58,7 +58,7 @@ You need the same environment the published sweep used:
    locally, pull the published dataset:
 
    ```bash
-   huggingface-cli download thrmnn/lerobot-bench-v1 \
+   huggingface-cli download thrmnn/embodimetry-v1 \
        --repo-type dataset --local-dir results/sweep-full
    ```
 

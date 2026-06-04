@@ -1,4 +1,4 @@
-# Contributing to lerobot-bench
+# Contributing to embodimetry
 
 This is a personal portfolio project, but PRs and issues are welcome.
 
@@ -7,8 +7,8 @@ This is a personal portfolio project, but PRs and issues are welcome.
 Requires Python 3.12 and a recent CUDA-capable GPU for sim runs (CPU works for the leaderboard reader only).
 
 ```bash
-git clone https://github.com/thrmnn/lerobot-bench.git
-cd lerobot-bench
+git clone https://github.com/thrmnn/embodimetry.git
+cd embodimetry
 conda activate lerobot          # Python 3.12 env with lerobot 0.5.1
 pip install -e ".[all]"
 pre-commit install
@@ -59,13 +59,13 @@ Onboarding a pretrained LeRobot policy is **one PR**: a single entry in
 copy the template, fill it, dry-run it, open the PR.
 
 If you only want to *suggest* a policy without doing the work, open a
-[Propose a policy](https://github.com/thrmnn/lerobot-bench/issues/new?template=propose-a-policy.yml)
+[Propose a policy](https://github.com/thrmnn/embodimetry/issues/new?template=propose-a-policy.yml)
 issue instead.
 
 ### 1. The `configs/policies.yaml` entry
 
 A policy entry is a YAML mapping under the top-level `policies:` list.
-Validated by `lerobot_bench.policies.PolicyRegistry.from_yaml` —
+Validated by `embodimetry.policies.PolicyRegistry.from_yaml` —
 unknown or missing fields fail CI with the loader's own error message.
 
 ```yaml
@@ -144,7 +144,7 @@ is not in `env_compat`. (Exit `3`, "not runnable", is skipped under
 To validate the whole file the way CI does:
 
 ```bash
-python -c "from pathlib import Path; from lerobot_bench.policies import PolicyRegistry; PolicyRegistry.from_yaml(Path('configs/policies.yaml')); print('OK')"
+python -c "from pathlib import Path; from embodimetry.policies import PolicyRegistry; PolicyRegistry.from_yaml(Path('configs/policies.yaml')); print('OK')"
 ```
 
 ### 5. Open the PR
@@ -172,7 +172,7 @@ admitted checkpoint is the one that was reviewed.
 
 ## Reporting issues
 
-Please use the [issue forms](https://github.com/thrmnn/lerobot-bench/issues/new/choose):
+Please use the [issue forms](https://github.com/thrmnn/embodimetry/issues/new/choose):
 **Bug report** for crashes, or **Result discrepancy** if a benchmark
 number disagrees with a published claim.
 

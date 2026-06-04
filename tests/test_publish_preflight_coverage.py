@@ -32,8 +32,8 @@ import pandas as pd
 import pytest
 from scripts import publish_results as pr
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA, _atomic_write_parquet
-from lerobot_bench.policies import PolicyRegistry, PolicySpec
+from embodimetry.checkpointing import RESULT_SCHEMA, _atomic_write_parquet
+from embodimetry.policies import PolicyRegistry, PolicySpec
 
 # A small, self-contained REQUIRED set used by the gate tests below so they
 # don't depend on the exact contents of configs/. Mirrors the real shape:

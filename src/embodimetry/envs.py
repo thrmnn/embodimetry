@@ -1,7 +1,7 @@
-"""Sim env registry for lerobot-bench.
+"""Sim env registry for embodimetry.
 
 Pure data — no env construction. The actual ``gym.make`` call lives in
-``lerobot_bench.eval``; this module just describes the envs we know
+``embodimetry.eval``; this module just describes the envs we know
 about (gym ids, per-episode step caps, success thresholds, lerobot
 module paths) so the eval loop can resolve names to specs without
 hardcoding.

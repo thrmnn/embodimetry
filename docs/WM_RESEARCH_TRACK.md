@@ -15,7 +15,7 @@ A world-model planner is not a new kind of bench primitive. It is a
 ```
 
 and a policy is *anything* that satisfies the `PolicyCallable` protocol in
-`src/lerobot_bench/eval.py:82`:
+`src/embodimetry/eval.py:82`:
 
 ```python
 def __call__(self, obs: dict[str, Any]) -> NDArray[np.floating[Any]]: ...
@@ -42,7 +42,7 @@ taxonomy, parquet schema — is reused verbatim.
 
 ### 1.1 The one bench-code gap: a `wm` dispatch kind in `load_policy`
 
-`load_policy` (`src/lerobot_bench/eval.py:626`) currently branches twice:
+`load_policy` (`src/embodimetry/eval.py:626`) currently branches twice:
 
 - `spec.is_baseline` → `_NoOpPolicy` / `_RandomPolicy` (needs `action_shape`).
 - otherwise → `_load_pretrained_policy(...)`, which lazy-imports lerobot and
@@ -99,9 +99,9 @@ Same machinery as every other policy, no new registry code:
   pinning the public WM checkpoint, and the proposed `kind: wm` discriminator
   plus a `wm_planner` block (MPC horizon, sample count, cost). Adding the
   `kind` / `wm_planner` fields to the `PolicySpec` schema in
-  `src/lerobot_bench/policies.py` is part of the future implementation wave,
+  `src/embodimetry/policies.py` is part of the future implementation wave,
   not this one.
-- **`src/lerobot_bench/policies.py`** — `PolicySpec` already carries
+- **`src/embodimetry/policies.py`** — `PolicySpec` already carries
   `repo_id` / `revision_sha` / `env_compat` / runnable-gating; the WM entry
   reuses all of it. Only the `kind` / `wm_planner` optional fields are new.
 
@@ -111,7 +111,7 @@ WM policies are **exploratory** and must not bias the headline v1 numbers.
 They are gated off the public board the same way `xvla_libero` is:
 
 - They are **NOT** added to `V1_POLICIES` in
-  `src/lerobot_bench/leaderboard_filter.py`.
+  `src/embodimetry/leaderboard_filter.py`.
 - `filter_to_v1_policies` drops every non-v1 policy right after parquet load,
   so the Space, the dashboard, and every downstream aggregate (Wilson CIs,
   paired bootstrap, MDE) never see WM rows.
@@ -214,7 +214,7 @@ runs?"** Yes → fast lane (DINO-WM/PushT). No → slow lane.
 ### Scope guardrails (this wave)
 
 - **Design only.** No code. The `wm` dispatch branch in `load_policy`
-  (`src/lerobot_bench/eval.py:~662`), the `kind`/`wm_planner` schema fields,
+  (`src/embodimetry/eval.py:~662`), the `kind`/`wm_planner` schema fields,
   the adapter, the config entry, and the separate repo are all **future
   work** described here, not implemented.
 - WM policies stay **off `V1_POLICIES`** and are dropped by

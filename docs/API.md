@@ -1,7 +1,7 @@
 # Python API reference
 
-Hand-authored reference for the public `lerobot_bench` Python API — the
-modules under `src/lerobot_bench/` that a contributor or downstream user
+Hand-authored reference for the public `embodimetry` Python API — the
+modules under `src/embodimetry/` that a contributor or downstream user
 imports. It is kept accurate to the current code; if a signature here
 disagrees with the source, the source wins — please file an issue.
 
@@ -12,9 +12,9 @@ Scope notes:
   Names prefixed with a single underscore (`_load_pretrained_policy`,
   `_DebatchedVecEnvAdapter`, `_NoOpPolicy`, …) are internal and may
   change without notice.
-- `lerobot_bench` does not eagerly import `torch`, `lerobot`, or
+- `embodimetry` does not eagerly import `torch`, `lerobot`, or
   `gymnasium`. The eval module imports them lazily inside the functions
-  that need them, so `import lerobot_bench` works in a torch-free
+  that need them, so `import embodimetry` works in a torch-free
   environment (CI fast tier, the leaderboard reader).
 - The runnable `scripts/` (`run_one`, `run_sweep`, `calibrate`,
   `publish_results`, `reproduce_cell`, …) are thin shells over this API
@@ -23,32 +23,32 @@ Scope notes:
 
 ## Contents
 
-- [`lerobot_bench`](#package-lerobot_bench) — package root
-- [`lerobot_bench.envs`](#module-envs) — sim env registry
-- [`lerobot_bench.policies`](#module-policies) — policy registry
-- [`lerobot_bench.eval`](#module-eval) — eval orchestration core
-- [`lerobot_bench.stats`](#module-stats) — confidence intervals and paired tests
-- [`lerobot_bench.render`](#module-render) — episode → MP4 renderer
-- [`lerobot_bench.checkpointing`](#module-checkpointing) — cell-boundary resume
-- [`lerobot_bench.cli`](#module-cli) — `lerobot-bench` command-line entrypoint
+- [`embodimetry`](#package-embodimetry) — package root
+- [`embodimetry.envs`](#module-envs) — sim env registry
+- [`embodimetry.policies`](#module-policies) — policy registry
+- [`embodimetry.eval`](#module-eval) — eval orchestration core
+- [`embodimetry.stats`](#module-stats) — confidence intervals and paired tests
+- [`embodimetry.render`](#module-render) — episode → MP4 renderer
+- [`embodimetry.checkpointing`](#module-checkpointing) — cell-boundary resume
+- [`embodimetry.cli`](#module-cli) — `embodimetry` command-line entrypoint
 
 ---
 
-## Package `lerobot_bench`
+## Package `embodimetry`
 
 ```python
-from lerobot_bench import __version__
+from embodimetry import __version__
 ```
 
 The package root exports a single name, `__version__` (a string).
-It is sourced from the standalone `lerobot_bench.__version__` module so
+It is sourced from the standalone `embodimetry.__version__` module so
 the version can be read without importing the package's dependencies.
 
 ---
 
 ## Module `envs`
 
-`lerobot_bench.envs` — the sim env registry. Pure data; no env is
+`embodimetry.envs` — the sim env registry. Pure data; no env is
 constructed here (that is `eval.load_env`'s job). The human-edited
 source of truth is `configs/envs.yaml`.
 
@@ -105,7 +105,7 @@ An indexed collection of `EnvSpec`, loaded from YAML.
 
 ## Module `policies`
 
-`lerobot_bench.policies` — the policy registry. Pure data; no weights
+`embodimetry.policies` — the policy registry. Pure data; no weights
 are loaded here (that is `eval.load_policy`'s job). The human-edited
 source of truth is `configs/policies.yaml`.
 
@@ -170,7 +170,7 @@ An indexed collection of `PolicySpec`, loaded from YAML.
 
 ## Module `eval`
 
-`lerobot_bench.eval` — the eval orchestration core. Every `scripts/`
+`embodimetry.eval` — the eval orchestration core. Every `scripts/`
 entrypoint (`calibrate`, `run_one`, `run_sweep`) is a thin shell over
 `run_cell`. The seeding contract from
 [`docs/DESIGN.md`](DESIGN.md) § Methodology is enforced here and nowhere
@@ -321,7 +321,7 @@ this function returns. `videos_dir` is forwarded to `run_cell`.
 
 ## Module `stats`
 
-`lerobot_bench.stats` — statistical helpers behind every leaderboard
+`embodimetry.stats` — statistical helpers behind every leaderboard
 claim. Every stochastic function takes an explicit RNG or seed (no
 hidden global state); same inputs + same RNG state → same output. The
 unit of resampling is the **episode** — pass the flat array of
@@ -416,7 +416,7 @@ within-pair correlation. Same deterministic-`seed` contract as
 
 ## Module `render`
 
-`lerobot_bench.render` — episode-frame → small MP4 renderer for the
+`embodimetry.render` — episode-frame → small MP4 renderer for the
 leaderboard Space. Uses `imageio.v3` end-to-end (no `ffmpeg` shell-out)
 and a pure-numpy bilinear resizer.
 
@@ -476,7 +476,7 @@ uses `codec="png"`.
 
 ## Module `checkpointing`
 
-`lerobot_bench.checkpointing` — the cell-boundary resume layer for the
+`embodimetry.checkpointing` — the cell-boundary resume layer for the
 sweep orchestrator. A "cell" is `(policy, env, seed)`. Resume
 granularity is the cell boundary because mid-cell resume is not
 bit-reproducible (the Torch generator advances across episodes). Pure
@@ -542,7 +542,7 @@ same atomic write strategy as `append_cell_rows`.
 
 ## Module `cli`
 
-`lerobot_bench.cli` — the `lerobot-bench` console entrypoint, wired into
+`embodimetry.cli` — the `embodimetry` console entrypoint, wired into
 `[project.scripts]` in `pyproject.toml`.
 
 - **`build_parser() -> argparse.ArgumentParser`** — construct the

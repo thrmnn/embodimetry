@@ -42,7 +42,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
-import lerobot_bench.eval as ev  # noqa: E402
+import embodimetry.eval as ev  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import run_seeds, setup_probe, write_summary  # noqa: E402

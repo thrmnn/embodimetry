@@ -1,7 +1,7 @@
 # Dashboard -- local-first operator UI
 
 A local-only Gradio app that watches an in-flight (or completed)
-lerobot-bench sweep. No Hub fetches; reads `results/` and `logs/` from
+embodimetry sweep. No Hub fetches; reads `results/` and `logs/` from
 disk. Intended audience: the operator running `make sweep` who wants
 to know "what is this thing actually doing right now?" without
 tailing four terminals.

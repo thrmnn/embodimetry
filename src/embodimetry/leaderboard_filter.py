@@ -9,7 +9,7 @@ but nothing pinned them to stay equal). This module is the canonical
 definition; the two helpers re-export from it.
 
 Kept deliberately dependency-light: ``pandas`` only, no gradio / torch /
-``lerobot_bench`` package imports. That lets the Space's slim pytest job
+``embodimetry`` package imports. That lets the Space's slim pytest job
 and the dashboard's importlib-from-file loader both pull it in without
 dragging the heavy benchmark deps into their import graph.
 """

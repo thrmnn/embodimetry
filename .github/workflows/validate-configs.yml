@@ -37,8 +37,8 @@ jobs:
           import sys
           from pathlib import Path
 
-          from lerobot_bench.envs import EnvRegistry
-          from lerobot_bench.policies import PolicyRegistry
+          from embodimetry.envs import EnvRegistry
+          from embodimetry.policies import PolicyRegistry
 
           ok = True
           try:

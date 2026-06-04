@@ -1,12 +1,12 @@
 # docs/assets
 
-Visual identity and README/social imagery for **lerobot-bench**.
+Visual identity and README/social imagery for **embodimetry**.
 
 ## Vector assets (committed)
 
 | File | Description |
 |---|---|
-| `logo.svg` | Primary wordmark — icon mark + `lerobot-bench` text. Monochrome (`currentColor`), works on light and dark backgrounds. Used in the README hero. |
+| `logo.svg` | Primary wordmark — icon mark + `embodimetry` text. Monochrome (`currentColor`), works on light and dark backgrounds. Used in the README hero. |
 | `mark.svg` | Compact square icon mark (128×128). For favicons and the Hugging Face Space avatar. Same `currentColor` treatment. |
 | `social-card.svg` | 1280×640 social-preview card — project name, value prop, the 6×6 matrix hint, headline stats, MIT badge. Use for the GitHub repo social preview and Twitter/HF cards. |
 

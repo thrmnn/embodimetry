@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lerobot-bench"
+name = "embodimetry"
 version = "1.0.2"
 description = "Public multi-policy benchmark for pretrained LeRobot policies on PushT, Aloha, and Libero sim envs."
 readme = "README.md"
@@ -62,26 +62,26 @@ dev = [
     "pandas-stubs>=2.2",
 ]
 all = [
-    "lerobot-bench[sim,viz,space,dev]",
+    "embodimetry[sim,viz,space,dev]",
 ]
 
 [project.urls]
-Homepage = "https://github.com/thrmnn/lerobot-bench"
-Repository = "https://github.com/thrmnn/lerobot-bench"
-Issues = "https://github.com/thrmnn/lerobot-bench/issues"
-Changelog = "https://github.com/thrmnn/lerobot-bench/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/thrmnn/embodimetry"
+Repository = "https://github.com/thrmnn/embodimetry"
+Issues = "https://github.com/thrmnn/embodimetry/issues"
+Changelog = "https://github.com/thrmnn/embodimetry/blob/main/CHANGELOG.md"
 
 [project.scripts]
-lerobot-bench = "lerobot_bench.cli:main"
+embodimetry = "embodimetry.cli:main"
 
 # ---- setuptools ----
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["lerobot_bench*"]
+include = ["embodimetry*"]
 
 [tool.setuptools.package-data]
-lerobot_bench = ["py.typed"]
+embodimetry = ["py.typed"]
 
 # ---- ruff ----
 
@@ -139,7 +139,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["src/lerobot_bench"]
+source = ["src/embodimetry"]
 # figures.py is matplotlib-only figure tooling; its tests importorskip("matplotlib")
 # and the minimal "fast" CI job has no matplotlib, so it can't be exercised there.
 omit = ["*/tests/*", "*/__main__.py", "*/figures.py"]

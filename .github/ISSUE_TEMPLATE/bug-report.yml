@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a crash or incorrect behaviour in lerobot-bench.
+description: Report a crash or incorrect behaviour in embodimetry.
 title: "[bug] "
 labels: ["bug"]
 body:

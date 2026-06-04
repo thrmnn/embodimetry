@@ -863,7 +863,7 @@ def test_persistent_header_shows_current_results_dir(tmp_path: Path) -> None:
     assert str(fake_results) in rendered
     assert str(fake_logs) in rendered
     # Project pitch lives in the header too -- one-screen elevator pitch.
-    assert "lerobot-bench" in rendered
+    assert "embodimetry" in rendered
     assert "Pi0" in rendered or "pi0" in rendered.lower()
     # v1 scope numbers must surface for the "what is this?" answer.
     assert str(V1_RUNNABLE_CELLS) in rendered
@@ -958,7 +958,7 @@ def test_per_tab_intro_thresholds_match_calibrate_py() -> None:
     value so a future threshold tweak forces a docs update.
     """
     # First try importing the real constant from scripts/calibrate.py.
-    # The scripts package imports lerobot_bench which has heavy deps;
+    # The scripts package imports embodimetry which has heavy deps;
     # fall back to AST extraction if the import fails.
     expected_slow_ms: float | None = None
     expected_high_vram: float | None = None
@@ -975,7 +975,7 @@ def test_per_tab_intro_thresholds_match_calibrate_py() -> None:
     except ImportError:
         # Fallback: parse the constants out of scripts/calibrate.py
         # via ast so the test still pins the source of truth without
-        # importing the heavy lerobot_bench package.
+        # importing the heavy embodimetry package.
         src = (_REPO_ROOT / "scripts" / "calibrate.py").read_text()
         tree = ast.parse(src)
         for node in ast.walk(tree):
@@ -1055,7 +1055,7 @@ def test_about_tab_renders_methodology_sections() -> None:
     """
     rendered = methodology_markdown()
     required_h2 = [
-        "## What is lerobot-bench?",
+        "## What is embodimetry?",
         "## Methodology in 60 seconds",
         "## How a sweep works",
         "## v1 scope and known limits",
@@ -2273,13 +2273,13 @@ def test_space_and_dashboard_share_one_v1_policy_gate() -> None:
 
     The Gradio Space and this dashboard must apply the identical v1
     policy gate. Both now re-export from
-    ``lerobot_bench.leaderboard_filter`` instead of redefining the tuple
+    ``embodimetry.leaderboard_filter`` instead of redefining the tuple
     + filter, so the two surfaces and the canonical module are the *same
     object* -- a future edit to one cannot silently diverge from the
     other. Loaded via importlib because both helper files are named
     ``_helpers`` and would otherwise collide in ``sys.modules``.
     """
-    from lerobot_bench import leaderboard_filter
+    from embodimetry import leaderboard_filter
 
     space_helpers_path = _DASHBOARD_DIR.parent / "space" / "_helpers.py"
     space_spec = importlib.util.spec_from_file_location("space_helpers", space_helpers_path)

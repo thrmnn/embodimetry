@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import re
 
-import lerobot_bench
+import embodimetry
 
 
 def test_version_string_is_semver() -> None:
-    assert isinstance(lerobot_bench.__version__, str)
-    assert re.fullmatch(r"\d+\.\d+\.\d+(?:[-+].*)?", lerobot_bench.__version__)
+    assert isinstance(embodimetry.__version__, str)
+    assert re.fullmatch(r"\d+\.\d+\.\d+(?:[-+].*)?", embodimetry.__version__)
 
 
 def test_version_matches_version_file() -> None:
@@ -18,4 +18,4 @@ def test_version_matches_version_file() -> None:
 
     version_file = Path(__file__).resolve().parents[1] / "VERSION"
     on_disk = version_file.read_text().strip()
-    assert on_disk == lerobot_bench.__version__
+    assert on_disk == embodimetry.__version__

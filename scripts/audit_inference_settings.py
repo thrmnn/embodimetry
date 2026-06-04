@@ -46,7 +46,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from lerobot_bench.policies import PolicyRegistry, PolicySpec
+from embodimetry.policies import PolicyRegistry, PolicySpec
 
 logger = logging.getLogger("audit_inference_settings")
 

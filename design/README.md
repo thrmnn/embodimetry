@@ -1,13 +1,13 @@
 # Visual identity kit
 
-Single source of truth for the lerobot-bench brand: palette, typography, mark, voice.
+Single source of truth for the embodimetry brand: palette, typography, mark, voice.
 This directory is the design-system equivalent of [`docs/POLICY_DIAGRAM_GUIDE.md`](../docs/POLICY_DIAGRAM_GUIDE.md) — a reusable visual language for the deck, the live HF Space, the README chrome, and any future surface (slides, posters, blog posts).
 
 If you are adding a slide, a chart, a Space tab, or a README badge: read this first, then propagate changes back to consumers.
 
 ## Brand identity
 
-lerobot-bench is a public, reproducible benchmark of pretrained LeRobot manipulation policies — a 6×6 policy×env matrix executed (110 cells), with 5 policies on the public leaderboard and xvla deferred to v1.1; every per-episode result open. The visual identity carries the same posture as the writing: dark surface, monospaced numerics, evidence-first composition, semantic color reserved for things that mean something (replicated, below paper, deferred, caveated).
+embodimetry is a public, reproducible benchmark of pretrained LeRobot manipulation policies — a 6×6 policy×env matrix executed (110 cells), with 5 policies on the public leaderboard and xvla deferred to v1.1; every per-episode result open. The visual identity carries the same posture as the writing: dark surface, monospaced numerics, evidence-first composition, semantic color reserved for things that mean something (replicated, below paper, deferred, caveated).
 
 **Tagline.** *Does pretrained robot software actually work?* — from the deck's title meta. Use it as a hero subtitle, not a slogan.
 
@@ -16,7 +16,7 @@ lerobot-bench is a public, reproducible benchmark of pretrained LeRobot manipula
 | File | What |
 |---|---|
 | [`logo.svg`](logo.svg) | Canonical mark · 128×128 · `currentColor` · monochrome |
-| [`logo-wordmark.svg`](logo-wordmark.svg) | Mark + `lerobot-bench` wordmark · monochrome |
+| [`logo-wordmark.svg`](logo-wordmark.svg) | Mark + `embodimetry` wordmark · monochrome |
 | [`palette.svg`](palette.svg) | Color-swatch reference rendered with hex + role + contrast ratio |
 | [`palette.json`](palette.json) | Machine-readable palette for build scripts (Tailwind config, theme generator) |
 | [`typography-sample.svg`](typography-sample.svg) | Type stack rendered with the live Google Fonts |
@@ -96,7 +96,7 @@ When you need a glyph, reach for the deck's symbol library before drawing a new 
 The canonical mark is the chart-bar icon used in the deck chrome (`.chrome .brand svg` in `paper/deck/index.html`): a rounded square frame containing three rising bars. It reads as "benchmark" without literal labels and stays legible at 16×16 favicon scale.
 
 - [`logo.svg`](logo.svg) — bare mark, 128×128, `currentColor`, `stroke-width="10"`. Use as favicon, app icon, slide chrome.
-- [`logo-wordmark.svg`](logo-wordmark.svg) — mark + `lerobot-bench` wordmark in JetBrains Mono Bold; `-bench` rendered at 55% opacity to echo the deck's two-tone wordmark treatment. Use for headers, social cards, README hero.
+- [`logo-wordmark.svg`](logo-wordmark.svg) — mark + `embodimetry` wordmark in JetBrains Mono Bold; `-bench` rendered at 55% opacity to echo the deck's two-tone wordmark treatment. Use for headers, social cards, README hero.
 
 Both files are monochrome and inherit color via `currentColor` — drop them into any surface and they pick up the host's text color. Don't recolor.
 

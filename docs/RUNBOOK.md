@@ -13,7 +13,7 @@ companion to `docs/DESIGN.md` (the *what* and *why*).
 5. [Publish to HF Hub dataset](#publish-to-hf-hub-dataset)
 6. [Deploy + roll back the Space](#deploy--roll-back-the-space)
 7. [Verify reproducibility of a published cell](#verify-reproducibility-of-a-published-cell)
-8. [Release a new lerobot-bench version](#release-a-new-lerobot-bench-version)
+8. [Release a new embodimetry version](#release-a-new-embodimetry-version)
 9. [Prune stale agent worktrees](#prune-stale-agent-worktrees)
 
 ---
@@ -85,7 +85,7 @@ df.to_parquet(path, index=False)
 Triggered by `torch.cuda.OutOfMemoryError` mid-cell.
 
 1. **Single-cell OOM**: log the cell, drop to fp16 if not already, retry once. If still OOM, drop the policy from this sweep and add to `manifest.json#dropped_policies` with reason.
-2. **VRAM creep across cells**: insert `torch.cuda.empty_cache()` between cells if not already (see `lerobot_bench.eval.run_cell`). If the creep persists, restart the process every N cells via the orchestrator.
+2. **VRAM creep across cells**: insert `torch.cuda.empty_cache()` between cells if not already (see `embodimetry.eval.run_cell`). If the creep persists, restart the process every N cells via the orchestrator.
 3. **Pi0 specifically**: design decision is to drop, not quantize. See `docs/DESIGN.md` § Open Questions Q3.
 
 ## Publish to HF Hub dataset
@@ -97,7 +97,7 @@ make publish SWEEP=results/sweep-YYYYMMDD
 
 `scripts/publish_results.py` is idempotent: files already on Hub with
 matching SHA are skipped. The dataset repo is
-`thrmnn/lerobot-bench-v1`. Bump to `-v2` only on a breaking
+`thrmnn/embodimetry-v1`. Bump to `-v2` only on a breaking
 schema change.
 
 ## Deploy + roll back the Space
@@ -110,8 +110,8 @@ contents at the Space root.
 One-time setup (create the Space + add the remote; auth as `thrmnn`):
 
 ```bash
-huggingface-cli repo create lerobot-bench --type space --space_sdk gradio
-git remote add hf-space https://huggingface.co/spaces/thrmnn/lerobot-bench
+huggingface-cli repo create embodimetry --type space --space_sdk gradio
+git remote add hf-space https://huggingface.co/spaces/thrmnn/embodimetry
 ```
 
 Then deploy (the target guards on the `hf-space` remote existing and prints
@@ -153,7 +153,7 @@ CI runs the same boot test on every push to `space/**` via
 # Pulls the manifest from the published dataset, picks one
 # (policy, env, seed, episode_index), reruns, compares success.
 python scripts/verify_repro.py \
-  --dataset thrmnn/lerobot-bench-v1 \
+  --dataset thrmnn/embodimetry-v1 \
   --sweep YYYYMMDD \
   --policy diffusion_policy --env pusht --seed 0 --episode 0
 ```
@@ -162,12 +162,12 @@ Bit-equality is guaranteed only at cell boundaries. Within-cell episode
 index is reproducible only if the cell starts from episode 0 (mid-cell
 restart is documented as non-reproducible).
 
-## Release a new lerobot-bench version
+## Release a new embodimetry version
 
 ```bash
 # 1. Bump three places in lock-step:
 #      VERSION
-#      src/lerobot_bench/__version__.py
+#      src/embodimetry/__version__.py
 #      pyproject.toml [project].version
 # 2. Update CHANGELOG.md — move [Unreleased] entries under [X.Y.Z].
 # 3. Commit, tag, push the tag — release.yml validates the three are equal.

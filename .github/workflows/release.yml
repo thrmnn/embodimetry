@@ -38,7 +38,7 @@ jobs:
       - name: Verify VERSION matches package + tag
         run: |
           file_v=$(cat VERSION)
-          pkg_v=$(grep -oP '__version__ = "\K[^"]+' src/lerobot_bench/__version__.py)
+          pkg_v=$(grep -oP '__version__ = "\K[^"]+' src/embodimetry/__version__.py)
           toml_v=$(grep -oP '^version = "\K[^"]+' pyproject.toml | head -1)
           if [ "${{ github.event_name }}" = "push" ]; then
             tag_v="${GITHUB_REF_NAME#v}"
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/lerobot-bench
+      url: https://test.pypi.org/p/embodimetry
     permissions:
       id-token: write
     steps:

@@ -28,7 +28,7 @@ This module is the keystone for the sweep. Everything in ``scripts/``
 **Termination & success.** Each episode runs until any of:
 ``terminated``, ``truncated``, or ``step_count == env_spec.max_steps``.
 The success rule is driven by ``env_spec.success_metric`` (see
-:mod:`lerobot_bench.envs`):
+:mod:`embodimetry.envs`):
 
 * ``final_reward_threshold`` (v1_legacy default for every env) —
   ``success := final_reward >= env_spec.success_threshold``. Defensible
@@ -45,7 +45,7 @@ The success rule is driven by ``env_spec.success_metric`` (see
 
 The criterion is fixed on the :class:`EnvSpec` the eval loop receives;
 flipping between v1_legacy and canonical happens at config-load time via
-:meth:`lerobot_bench.envs.EnvSpec.with_criterion`.
+:meth:`embodimetry.envs.EnvSpec.with_criterion`.
 
 **Lazy imports.** ``torch`` and ``lerobot`` are imported lazily inside
 :func:`seed_everything` and :func:`load_policy` respectively; importing
@@ -68,9 +68,9 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA
-from lerobot_bench.envs import EnvSpec
-from lerobot_bench.policies import PolicySpec
+from embodimetry.checkpointing import RESULT_SCHEMA
+from embodimetry.envs import EnvSpec
+from embodimetry.policies import PolicySpec
 
 logger = logging.getLogger(__name__)
 
@@ -1465,7 +1465,7 @@ def _encode_and_drop_frames(
     Filename convention matches the legacy
     ``render_episodes_to_videos`` helper: ``{policy}__{env}__seed{N}__ep{K:03d}.mp4``.
 
-    Lazy-imports :mod:`lerobot_bench.render` so the eval module stays
+    Lazy-imports :mod:`embodimetry.render` so the eval module stays
     importable in CI fast (no imageio/ffmpeg required). The frame stack
     is materialized as a single ``(T, H, W, 3)`` numpy array, handed to
     :func:`render_episode`, and then immediately released by the
@@ -1478,7 +1478,7 @@ def _encode_and_drop_frames(
     investigate, not something to swallow. The partial MP4 (if any) is
     already cleaned up by :func:`render_episode` itself.
     """
-    from lerobot_bench.render import render_episode
+    from embodimetry.render import render_episode
 
     out_path = (
         videos_dir / f"{policy_name}__{env_name}__seed{seed_idx}__ep{episode.episode_index:03d}.mp4"

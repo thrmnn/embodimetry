@@ -1,4 +1,4 @@
-"""Tests for ``lerobot_bench.envs``."""
+"""Tests for ``embodimetry.envs``."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from lerobot_bench.envs import EnvRegistry, EnvSpec
+from embodimetry.envs import EnvRegistry, EnvSpec
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENVS_YAML = REPO_ROOT / "configs" / "envs.yaml"

@@ -28,10 +28,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from lerobot_bench.checkpointing import append_cell_rows  # noqa: E402
-from lerobot_bench.envs import EnvRegistry, EnvSpec  # noqa: E402
-from lerobot_bench.eval import CellResult, run_cell_from_specs  # noqa: E402
-from lerobot_bench.policies import PolicyRegistry, PolicySpec  # noqa: E402
+from embodimetry.checkpointing import append_cell_rows  # noqa: E402
+from embodimetry.envs import EnvRegistry, EnvSpec  # noqa: E402
+from embodimetry.eval import CellResult, run_cell_from_specs  # noqa: E402
+from embodimetry.policies import PolicyRegistry, PolicySpec  # noqa: E402
 
 SEEDS: tuple[int, ...] = (0, 1, 2, 3, 4)
 N_EPISODES_PER_SEED = 50

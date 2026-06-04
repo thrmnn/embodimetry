@@ -17,7 +17,7 @@ something. Tests inject a fake via the module-level
 without ever touching ``run_one`` for real.
 
 **Resume contract.** Cells are atomic at the parquet boundary (see
-``src/lerobot_bench/checkpointing.py``). On startup:
+``src/embodimetry/checkpointing.py``). On startup:
 
 1. Build the planned cell list from the YAML config.
 2. Call :func:`plan_resume` against ``results_path``: cells already at
@@ -39,7 +39,7 @@ auto-downscope has shaped ``configs/sweep_full.yaml``, mid-sweep
 surprises should be rare and re-runnable manually with ``run_one``.
 
 **Lazy imports.** Same AST contract as :mod:`scripts.run_one`: no
-top-level torch / lerobot / lerobot_bench.render imports. The script
+top-level torch / lerobot / embodimetry.render imports. The script
 must import cleanly in CI without sim/GPU extras.
 
 Usage::
@@ -74,14 +74,14 @@ from typing import Any
 
 import yaml
 
-from lerobot_bench.checkpointing import (
+from embodimetry.checkpointing import (
     CellKey,
     drop_partial_cells,
     load_results,
     plan_resume,
 )
-from lerobot_bench.envs import EnvRegistry
-from lerobot_bench.policies import PolicyRegistry
+from embodimetry.envs import EnvRegistry
+from embodimetry.policies import PolicyRegistry
 
 logger = logging.getLogger("run-sweep")
 

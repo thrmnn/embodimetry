@@ -36,7 +36,7 @@ import pandas as pd
 import pytest
 from scripts import publish_results as pr
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA, _atomic_write_parquet
+from embodimetry.checkpointing import RESULT_SCHEMA, _atomic_write_parquet
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PUBLISH_SOURCE = REPO_ROOT / "scripts" / "publish_results.py"
@@ -158,7 +158,7 @@ def _make_fake_api() -> MagicMock:
     """
     api = MagicMock(name="HfApi")
     api.whoami.return_value = {"name": "test-user"}
-    api.repo_info.return_value = MagicMock(id="thrmnn/lerobot-bench-v1")
+    api.repo_info.return_value = MagicMock(id="thrmnn/embodimetry-v1")
     api.upload_folder.return_value = MagicMock(commit_url="https://hf.co/fake/commit")
     return api
 

@@ -24,7 +24,7 @@ FREEZE_BELOW_GB="${FREEZE_BELOW_GB:-5}"
 THAW_ABOVE_GB="${THAW_ABOVE_GB:-8}"
 SAMPLE_S="${SAMPLE_S:-15}"
 
-LOG=$(cat /tmp/lerobot-bench-sweep-log 2>/dev/null)
+LOG=$(cat /tmp/embodimetry-sweep-log 2>/dev/null)
 state="running"          # running | frozen
 frozen_since=0
 last_line=$(wc -l < "$LOG" 2>/dev/null || echo 0)

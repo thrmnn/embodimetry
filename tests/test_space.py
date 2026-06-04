@@ -35,8 +35,8 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA
-from lerobot_bench.stats import wilson_ci
+from embodimetry.checkpointing import RESULT_SCHEMA
+from embodimetry.stats import wilson_ci
 
 # space/ is a sibling of tests/, not on the default sys.path. Add it so
 # we can import the helpers as ``_helpers`` directly. The test file is
@@ -309,7 +309,7 @@ def test_methodology_md_contains_required_terms() -> None:
 
 def test_methodology_links_back_to_repo() -> None:
     md = render_methodology_md()
-    assert "github.com/thrmnn/lerobot-bench" in md
+    assert "github.com/thrmnn/embodimetry" in md
 
 
 # --------------------------------------------------------------------- #

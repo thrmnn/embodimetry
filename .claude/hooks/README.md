@@ -1,4 +1,4 @@
-# Claude Code hooks for lerobot-bench
+# Claude Code hooks for embodimetry
 
 Project-local hooks wired in `.claude/settings.local.json`. They exist to
 prevent the four worktree gotchas memorialized in user memory:

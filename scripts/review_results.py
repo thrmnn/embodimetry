@@ -45,9 +45,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from lerobot_bench.envs import EnvRegistry, EnvSpec
-from lerobot_bench.policies import PolicyRegistry, PolicySpec
-from lerobot_bench.stats import wilson_ci
+from embodimetry.envs import EnvRegistry, EnvSpec
+from embodimetry.policies import PolicyRegistry, PolicySpec
+from embodimetry.stats import wilson_ci
 
 logger = logging.getLogger("review_results")
 

@@ -1,4 +1,4 @@
-"""Tests for ``lerobot_bench.policies``."""
+"""Tests for ``embodimetry.policies``."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from lerobot_bench.policies import PolicyRegistry, PolicySpec
+from embodimetry.policies import PolicyRegistry, PolicySpec
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POLICIES_YAML = REPO_ROOT / "configs" / "policies.yaml"

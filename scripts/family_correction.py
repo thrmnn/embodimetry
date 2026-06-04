@@ -33,8 +33,8 @@ from pathlib import Path
 import pandas as pd
 from scipy import stats as scipy_stats
 
-from lerobot_bench.policies import PolicyRegistry
-from lerobot_bench.stats import holm_bonferroni
+from embodimetry.policies import PolicyRegistry
+from embodimetry.stats import holm_bonferroni
 
 logger = logging.getLogger("family-correction")
 

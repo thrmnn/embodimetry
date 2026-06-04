@@ -1,5 +1,5 @@
 """Asserts the MDE table in ``docs/MDE_TABLE.md`` matches what
-``lerobot_bench.stats`` actually computes.
+``embodimetry.stats`` actually computes.
 
 The doc is the source of truth for every "is this comparison powered?"
 claim in ``paper/main.tex`` § Methods and the
@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from lerobot_bench.stats import wilson_ci
+from embodimetry.stats import wilson_ci
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MDE_DOC = REPO_ROOT / "docs" / "MDE_TABLE.md"
@@ -112,7 +112,7 @@ def test_simulated_paired_mde_at_p050_in_expected_range() -> None:
     """
     from scripts.calibrate_mde import paired_bernoulli
 
-    from lerobot_bench.stats import paired_delta_bootstrap
+    from embodimetry.stats import paired_delta_bootstrap
 
     rng = np.random.default_rng(42)
     n_pairs = 250

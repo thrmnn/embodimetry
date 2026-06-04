@@ -1,4 +1,4 @@
-# Policy registry. Loaded by lerobot_bench.policies.PolicyRegistry.from_yaml.
+# Policy registry. Loaded by embodimetry.policies.PolicyRegistry.from_yaml.
 #
 # A policy is "runnable" when it is a baseline (no weights) OR has both
 # repo_id and revision_sha filled in. Pre-Day-0a entries can ship with

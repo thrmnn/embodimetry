@@ -44,7 +44,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from lerobot_bench.checkpointing import (
+from embodimetry.checkpointing import (
     _ROW_KEY,
     RESULT_SCHEMA,
     _atomic_write_parquet,

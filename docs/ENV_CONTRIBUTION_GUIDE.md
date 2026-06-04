@@ -1,6 +1,6 @@
 # Env contribution guide
 
-Companion to [`POLICY_DIAGRAM_GUIDE.md`](POLICY_DIAGRAM_GUIDE.md) (policy onboarding) and [`PIPELINE_ROADMAP.md`](PIPELINE_ROADMAP.md). **Use this when adding a new environment to the lerobot-bench leaderboard.**
+Companion to [`POLICY_DIAGRAM_GUIDE.md`](POLICY_DIAGRAM_GUIDE.md) (policy onboarding) and [`PIPELINE_ROADMAP.md`](PIPELINE_ROADMAP.md). **Use this when adding a new environment to the embodimetry leaderboard.**
 
 The bench is designed to host community-contributed envs via the same factory mechanism that hosts LIBERO and the upstream lerobot envs. This doc is the operator-facing walkthrough — the canonical worked example is [`thrmnn/lerobot-env-so100-pickplace`](https://github.com/thrmnn/lerobot-env-so100-pickplace), built as part of v1.1.
 
@@ -40,7 +40,7 @@ def make_env(*, image_size: int = 240, max_steps: int = 400, render_mode: str = 
     ...
 ```
 
-The bench's loader (`src/lerobot_bench/eval.py:959-1020`) calls this with the `factory_kwargs` from `configs/envs.yaml` plus any defaults. `n_envs` is intentionally not a parameter — the bench runs single-env cells.
+The bench's loader (`src/embodimetry/eval.py:959-1020`) calls this with the `factory_kwargs` from `configs/envs.yaml` plus any defaults. `n_envs` is intentionally not a parameter — the bench runs single-env cells.
 
 ### Observation contract (`obs_type='pixels_agent_pos'`)
 
@@ -118,7 +118,7 @@ If you're using a third-party asset (MJCF, URDF, mesh), check the license:
 
 ### 3. Add an `EnvSpec` entry to `configs/envs.yaml`
 
-In `lerobot-bench`:
+In `embodimetry`:
 
 ```yaml
 - name: your_env_name
@@ -134,7 +134,7 @@ In `lerobot-bench`:
 
 The `factory:` field is the dotted import path to a module with a `make_env` function. `factory_kwargs:` is a dict (loaded as `tuple-of-pairs` internally so the spec stays hashable) of arguments passed through to `make_env(**kwargs)`.
 
-### 4. Add a pip dep to `lerobot-bench/pyproject.toml`
+### 4. Add a pip dep to `embodimetry/pyproject.toml`
 
 ```toml
 [project.optional-dependencies]
@@ -147,7 +147,7 @@ Pin the SHA, not a tag or branch — the bench's reproducibility contract requir
 
 ### 5. PR + run a sweep cell
 
-Open a PR against `lerobot-bench` with both changes (`configs/envs.yaml` + `pyproject.toml`). The CI runs `validate-configs.yml` which loads the registry through `EnvRegistry.from_yaml` and catches schema errors. Once green, run:
+Open a PR against `embodimetry` with both changes (`configs/envs.yaml` + `pyproject.toml`). The CI runs `validate-configs.yml` which loads the registry through `EnvRegistry.from_yaml` and catches schema errors. Once green, run:
 
 ```bash
 python scripts/run_one.py --policy random --env your_env_name --seed 0 --n-episodes 5
@@ -174,4 +174,4 @@ If this prints success/failure rows to `results/results.parquet`, your env is be
 
 ---
 
-*Maintainer: bump this doc when the env factory contract changes (`src/lerobot_bench/eval.py:959-1020`) or when `configs/envs.yaml` schema gains/loses fields.*
+*Maintainer: bump this doc when the env factory contract changes (`src/embodimetry/eval.py:959-1020`) or when `configs/envs.yaml` schema gains/loses fields.*

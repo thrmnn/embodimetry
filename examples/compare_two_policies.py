@@ -39,7 +39,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from lerobot_bench.stats import cohens_h, paired_diff_ci, paired_wilcoxon, wilson_halfwidth_at_p
+from embodimetry.stats import cohens_h, paired_diff_ci, paired_wilcoxon, wilson_halfwidth_at_p
 
 _DEFAULT_PARQUET_CANDIDATES = (
     Path("results/sweep-full/results.parquet"),

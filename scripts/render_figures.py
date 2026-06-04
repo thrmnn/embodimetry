@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the canonical lerobot-bench figures at the three target styles.
+"""Render the canonical embodimetry figures at the three target styles.
 
 Usage::
 
@@ -35,7 +35,7 @@ matplotlib.use("Agg")
 
 import pandas as pd
 
-from lerobot_bench.figures import FIGURES, PARQUET_FREE_FIGURES, STYLES, Style, _as_style
+from embodimetry.figures import FIGURES, PARQUET_FREE_FIGURES, STYLES, Style, _as_style
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_RESULTS = _REPO_ROOT / "results" / "sweep-full" / "results.parquet"
@@ -45,7 +45,7 @@ _DEFAULT_OUT_DIR = _REPO_ROOT / "paper" / "figures"
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="render-figures",
-        description="Render the three canonical lerobot-bench figures at paper/deck/web styles.",
+        description="Render the three canonical embodimetry figures at paper/deck/web styles.",
     )
     p.add_argument(
         "--style",

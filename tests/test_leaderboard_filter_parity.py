@@ -1,7 +1,7 @@
 """Cross-surface guard: xvla must be filtered out on BOTH public surfaces.
 
 ``V1_POLICIES`` + ``filter_to_v1_policies`` live in a single source of
-truth (``src/lerobot_bench/leaderboard_filter.py``) re-exported by both
+truth (``src/embodimetry/leaderboard_filter.py``) re-exported by both
 ``space/_helpers.py`` and ``dashboard/_helpers.py``. Sharing the
 definition is necessary but not sufficient: a future edit could still
 drop the *call* to ``filter_to_v1_policies`` from one surface's load
@@ -33,7 +33,7 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA
+from embodimetry.checkpointing import RESULT_SCHEMA
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 

@@ -42,7 +42,7 @@
                   ┌──────────────────┐          ┌────────────────────┐
                   │ HF Hub dataset   │          │ space/app.py       │
                   │ thrmnn/          │ <─reads─ │ Gradio UI          │
-                  │ lerobot-bench-v1 │          │ (leaderboard +     │
+                  │ embodimetry-v1 │          │ (leaderboard +     │
                   │                  │          │  browse-rollouts)  │
                   └──────────────────┘          └────────────────────┘
 ```
@@ -51,13 +51,13 @@
 
 | Module | Purpose |
 | --- | --- |
-| `lerobot_bench.envs` | Sim env registry: gym IDs, `max_steps`, success thresholds |
-| `lerobot_bench.policies` | Policy registry: HF Hub repo IDs + revision SHAs + env compat |
-| `lerobot_bench.eval` | Core eval loop: `(policy, env, seed, n_episodes) -> CellResult` |
-| `lerobot_bench.stats` | Bootstrap CIs, paired Wilcoxon, Cohen's h, effect sizes |
-| `lerobot_bench.render` | Episode → MP4 (256px / 10fps / ≤2MB), thumbnail strips |
-| `lerobot_bench.checkpointing` | Per-cell skip logic on resume |
-| `lerobot_bench.cli` | `lerobot-bench` entrypoint |
+| `embodimetry.envs` | Sim env registry: gym IDs, `max_steps`, success thresholds |
+| `embodimetry.policies` | Policy registry: HF Hub repo IDs + revision SHAs + env compat |
+| `embodimetry.eval` | Core eval loop: `(policy, env, seed, n_episodes) -> CellResult` |
+| `embodimetry.stats` | Bootstrap CIs, paired Wilcoxon, Cohen's h, effect sizes |
+| `embodimetry.render` | Episode → MP4 (256px / 10fps / ≤2MB), thumbnail strips |
+| `embodimetry.checkpointing` | Per-cell skip logic on resume |
+| `embodimetry.cli` | `embodimetry` entrypoint |
 
 ## Data contracts
 
@@ -76,9 +76,9 @@ Full seeding contract in `docs/DESIGN.md` § Methodology.
 
 ## Deploy
 
-- **GitHub repo**: `thrmnn/lerobot-bench` — code, this repo.
-- **HF Hub dataset**: `thrmnn/lerobot-bench-v1` — parquet + videos.
-- **HF Space**: `huggingface.co/spaces/thrmnn/lerobot-bench` — its own git remote.
+- **GitHub repo**: `thrmnn/embodimetry` — code, this repo.
+- **HF Hub dataset**: `thrmnn/embodimetry-v1` — parquet + videos.
+- **HF Space**: `huggingface.co/spaces/thrmnn/embodimetry` — its own git remote.
   `space/` ships via `make space-deploy` which runs `git push hf-space main`.
 
 No GitHub Actions deploy workflow in v1 — the bench itself runs on the dev box,

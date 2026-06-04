@@ -1,4 +1,4 @@
-"""Tests for ``lerobot_bench.figures`` and ``scripts/render_figures.py``.
+"""Tests for ``embodimetry.figures`` and ``scripts/render_figures.py``.
 
 Headless / fast: ``matplotlib.use("Agg")`` is set at import; no torch /
 lerobot / gym deps. Synthetic data is generated per test so the suite
@@ -23,8 +23,8 @@ matplotlib.use("Agg")
 
 import pandas as pd  # noqa: E402  -- after pytest.importorskip("matplotlib") guard
 
-from lerobot_bench import figures as fig_mod  # noqa: E402
-from lerobot_bench.figures import (  # noqa: E402
+from embodimetry import figures as fig_mod  # noqa: E402
+from embodimetry.figures import (  # noqa: E402
     MDE_BAND,
     STYLES,
     act_norm_ablation_2x2,
@@ -33,7 +33,7 @@ from lerobot_bench.figures import (  # noqa: E402
     forest_plot,
     replication_scatter,
 )
-from lerobot_bench.policies import PolicyRegistry, PolicySpec  # noqa: E402
+from embodimetry.policies import PolicyRegistry, PolicySpec  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 

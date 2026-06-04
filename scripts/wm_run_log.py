@@ -28,7 +28,7 @@ Design constraints:
   and smoke tests.
 
 This script writes *only* under ``results/wm-runs/`` -- it never touches
-the sweep parquet, the manifest, or ``src/lerobot_bench/``.
+the sweep parquet, the manifest, or ``src/embodimetry/``.
 
 Usage::
 
@@ -57,7 +57,7 @@ from typing import Any
 # default mirrors the dashboard's ``results/wm-runs/`` discovery. The
 # ``WM_RUNS_SUBDIR`` / ``WM_PROGRESS_FILENAME`` names are duplicated from
 # ``dashboard/_helpers.py`` on purpose: this writer must not import the
-# dashboard (which drags in pandas + the lerobot_bench package). Keep the
+# dashboard (which drags in pandas + the embodimetry package). Keep the
 # two in sync -- if you rename one, rename both.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RESULTS_DIR = _REPO_ROOT / "results"

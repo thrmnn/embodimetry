@@ -11,7 +11,7 @@ version: 2
 # anchors. We let dependabot watch those presentation libs so a CVE or a
 # breaking gradio bump surfaces as a PR, but `ignore` the reproducibility
 # anchors (`lerobot`) so the pin can never be auto-bumped. The
-# `git+https://github.com/thrmnn/lerobot-bench.git@<sha>` line in
+# `git+https://github.com/thrmnn/embodimetry.git@<sha>` line in
 # space/requirements.txt is a VCS dependency dependabot does not track by
 # package name, so it is left to the manual SHA-bump-per-sweep workflow.
 
@@ -47,11 +47,11 @@ updates:
     labels:
       - "dependencies"
       - "space"
-    # Reproducibility anchor — never auto-bump. The `git+...lerobot-bench`
+    # Reproducibility anchor — never auto-bump. The `git+...embodimetry`
     # VCS line is not name-tracked by dependabot and is excluded implicitly.
     ignore:
       - dependency-name: "lerobot"
-      - dependency-name: "lerobot-bench"
+      - dependency-name: "embodimetry"
     groups:
       space-deps:
         patterns:
@@ -72,7 +72,7 @@ updates:
       - "dashboard"
     ignore:
       - dependency-name: "lerobot"
-      - dependency-name: "lerobot-bench"
+      - dependency-name: "embodimetry"
     groups:
       dashboard-deps:
         patterns:

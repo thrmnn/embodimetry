@@ -17,8 +17,8 @@ visible at a glance before the writeup builds claims on it. (The N=50 and
 N=100 rows are kept as design what-ifs for the floor the auto-downscope
 rule could in principle reach; no v1 cell ran at those N.)
 
-All numbers in this doc are produced by `lerobot_bench.stats.wilson_ci`
-and `lerobot_bench.stats.paired_delta_bootstrap` (no closed-form
+All numbers in this doc are produced by `embodimetry.stats.wilson_ci`
+and `embodimetry.stats.paired_delta_bootstrap` (no closed-form
 approximations except where explicitly labeled "closed-form bound").
 The simulation cells use `numpy.random.default_rng(seed=42)` so the
 table is reproducible; re-running the simulation script with the same
@@ -283,7 +283,7 @@ family of tests and the per-cell α=0.05 threshold no longer controls
 the false-positive rate at the family level.
 
 **Recommended correction:** **Holm-Bonferroni step-down**
-(`lerobot_bench.stats.holm_bonferroni`; Holm, 1979). Holm controls the
+(`embodimetry.stats.holm_bonferroni`; Holm, 1979). Holm controls the
 family-wise error rate (FWER) at α and is uniformly more powerful
 than plain Bonferroni — every hypothesis Bonferroni rejects, Holm
 also rejects, and Holm may reject more. The family for a given claim
@@ -321,7 +321,7 @@ neutral grey in the leaderboard table and excluded from the
 The Wilson tables (§1, §3) are deterministic — re-run
 
 ```python
-from lerobot_bench.stats import wilson_ci
+from embodimetry.stats import wilson_ci
 for p in [0.02, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.98]:
     for N in [50, 100, 125, 250, 500]:
         s = round(p * N)

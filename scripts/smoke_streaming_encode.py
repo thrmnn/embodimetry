@@ -3,7 +3,7 @@
 
 Recreates the OOM scenario from the live ``make sweep`` cgroup-kill
 without needing lerobot / gym-aloha / torch installed. We run
-:func:`lerobot_bench.eval.run_cell` against a fake env that returns
+:func:`embodimetry.eval.run_cell` against a fake env that returns
 realistically-sized frames (480x640x3 uint8 = ~921 KB each) over many
 steps. With the streaming encode contract:
 
@@ -108,8 +108,8 @@ def main() -> int:
     )
     print(f"[smoke] pre-fix worst case (whole cell buffered): ~{cell_buffered_gb:.2f} GB")
 
-    from lerobot_bench.envs import EnvSpec
-    from lerobot_bench.eval import run_cell
+    from embodimetry.envs import EnvSpec
+    from embodimetry.eval import run_cell
 
     env_spec = EnvSpec(
         name="smoke_env",

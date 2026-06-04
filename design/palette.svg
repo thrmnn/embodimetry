@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="lerobot-bench color palette">
-  <title>lerobot-bench color palette</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="embodimetry color palette">
+  <title>embodimetry color palette</title>
   <style>
     .bg{fill:#0a0d12}
     .ink{fill:#f5f7fa}
@@ -21,7 +21,7 @@
   <!-- header -->
   <g transform="translate(64,72)">
     <text class="mono eyebrow mute">color palette · v1 · matches paper/deck/index.html :root</text>
-    <text y="44" class="serif title ink">the <tspan fill="#7aa3ff" font-style="normal">lerobot-bench</tspan> palette</text>
+    <text y="44" class="serif title ink">the <tspan fill="#7aa3ff" font-style="normal">embodimetry</tspan> palette</text>
   </g>
 
   <!-- swatches: 5 cols x 3 rows (14 swatches + 1 spacer) -->

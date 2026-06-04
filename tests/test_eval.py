@@ -1,4 +1,4 @@
-"""Tests for ``lerobot_bench.eval``.
+"""Tests for ``embodimetry.eval``.
 
 Pure orchestration tests using ``MockEnv`` / ``MockPolicy`` -- no
 torch, no lerobot, no gymnasium imports needed. The seeding contract
@@ -17,9 +17,9 @@ import pandas as pd
 import pytest
 from numpy.typing import NDArray
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA
-from lerobot_bench.envs import EnvSpec
-from lerobot_bench.eval import (
+from embodimetry.checkpointing import RESULT_SCHEMA
+from embodimetry.envs import EnvSpec
+from embodimetry.eval import (
     CellResult,
     EpisodeResult,
     _buffer_name_to_feature_key,
@@ -35,7 +35,7 @@ from lerobot_bench.eval import (
     run_cell,
     seed_everything,
 )
-from lerobot_bench.policies import PolicySpec
+from embodimetry.policies import PolicySpec
 
 # --------------------------------------------------------------------- #
 # Mocks                                                                 #
@@ -312,8 +312,8 @@ def test_run_cell_drops_frames_after_per_episode_encode(
     post-cell ``ep.frames`` tuple is empty and that each successful
     episode carries a ``video_path`` + ``video_sha256``.
     """
-    from lerobot_bench import eval as eval_mod
-    from lerobot_bench.render import RenderResult
+    from embodimetry import eval as eval_mod
+    from embodimetry.render import RenderResult
 
     encoded_paths: list[Path] = []
 
@@ -322,7 +322,7 @@ def test_run_cell_drops_frames_after_per_episode_encode(
         # passes (and so this test mirrors what the real encoder does).
         out_path.write_bytes(b"FAKE-MP4")
         encoded_paths.append(out_path)
-        from lerobot_bench.render import EncoderSettings
+        from embodimetry.render import EncoderSettings
 
         return RenderResult(
             path=out_path,
@@ -336,7 +336,7 @@ def test_run_cell_drops_frames_after_per_episode_encode(
 
     # Replace render_episode at the module the streaming encode imports
     # from, not at eval's namespace -- the import is inside the helper.
-    import lerobot_bench.render as render_mod
+    import embodimetry.render as render_mod
 
     monkeypatch.setattr(render_mod, "render_episode", _fake_render)
 
@@ -381,14 +381,14 @@ def test_run_cell_streaming_skips_errored_and_zero_frame_episodes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Errored episodes contribute no MP4 (matches the legacy behaviour)."""
-    from lerobot_bench import render as render_mod
+    from embodimetry import render as render_mod
 
     calls: list[Path] = []
 
     def _fake_render(stacked: np.ndarray, out_path: Path) -> Any:
         out_path.write_bytes(b"x")
         calls.append(out_path)
-        from lerobot_bench.render import EncoderSettings, RenderResult
+        from embodimetry.render import EncoderSettings, RenderResult
 
         return RenderResult(
             path=out_path,
@@ -694,7 +694,7 @@ def test_load_policy_pretrained_calls_lerobot_factory(monkeypatch: pytest.Monkey
     helper: positional args go through verbatim, the spec's locked SHA
     is forwarded as the Hub revision pin.
     """
-    from lerobot_bench import eval as eval_mod
+    from embodimetry import eval as eval_mod
 
     captured: dict[str, Any] = {}
 
@@ -923,7 +923,7 @@ def test_gym_obs_to_batch_unpacks_nested_pixels_dict_for_aloha() -> None:
     ``robot_state``) and unpack each view into ``observation.images.<view>``.
     """
     torch = pytest.importorskip("torch")
-    from lerobot_bench.eval import _gym_obs_to_batch
+    from embodimetry.eval import _gym_obs_to_batch
 
     obs = {
         "pixels": {"top": np.zeros((480, 640, 3), dtype=np.uint8)},
@@ -1194,7 +1194,7 @@ def test_load_env_dispatches_to_factory_when_factory_set(
         )
 
         # Stub out _ensure_libero_setup so the test doesn't touch ~/.libero.
-        from lerobot_bench import eval as eval_mod
+        from embodimetry import eval as eval_mod
 
         monkeypatch.setattr(eval_mod, "_ensure_libero_setup", lambda: None)
 
@@ -1209,7 +1209,7 @@ def test_load_env_dispatches_to_factory_when_factory_set(
     }
     assert captured["make_env_args"]["n_envs"] == 1
     # The returned env is wrapped in our debatching adapter.
-    from lerobot_bench.eval import _DebatchedVecEnvAdapter
+    from embodimetry.eval import _DebatchedVecEnvAdapter
 
     assert isinstance(env, _DebatchedVecEnvAdapter)
 
@@ -1262,7 +1262,7 @@ def test_load_env_factory_skips_gym_namespace_import(monkeypatch: pytest.MonkeyP
             lerobot_module="x",
             factory="factory_no_gym",
         )
-        from lerobot_bench import eval as eval_mod
+        from embodimetry import eval as eval_mod
 
         monkeypatch.setattr(eval_mod, "_ensure_libero_setup", lambda: None)
 
@@ -1296,7 +1296,7 @@ def test_load_env_factory_rejects_n_envs_above_one(monkeypatch: pytest.MonkeyPat
             factory="factory_multi",
             factory_kwargs=(("env_type", "libero"), ("n_envs", 4)),
         )
-        from lerobot_bench import eval as eval_mod
+        from embodimetry import eval as eval_mod
 
         monkeypatch.setattr(eval_mod, "_ensure_libero_setup", lambda: None)
 
@@ -1342,7 +1342,7 @@ def test_load_env_factory_rejects_multi_suite_result(monkeypatch: pytest.MonkeyP
             factory="factory_multi_result",
             factory_kwargs=(("env_type", "libero"),),
         )
-        from lerobot_bench import eval as eval_mod
+        from embodimetry import eval as eval_mod
 
         monkeypatch.setattr(eval_mod, "_ensure_libero_setup", lambda: None)
 
@@ -1384,7 +1384,7 @@ def test_debatched_vec_env_adapter_strips_and_adds_batch_dim() -> None:
         def close(self) -> None:
             return None
 
-    from lerobot_bench.eval import _DebatchedVecEnvAdapter
+    from embodimetry.eval import _DebatchedVecEnvAdapter
 
     adapter = _DebatchedVecEnvAdapter(_FakeVecEnv())
     obs, _info = adapter.reset(seed=42)
@@ -1401,7 +1401,7 @@ def test_debatched_vec_env_adapter_strips_and_adds_batch_dim() -> None:
 
 def test_strip_batch_dim_handles_nested_dicts() -> None:
     """LIBERO obs has 2-3 levels of dict nesting under robot_state."""
-    from lerobot_bench.eval import _strip_batch_dim
+    from embodimetry.eval import _strip_batch_dim
 
     nested = {
         "pixels": {"image": np.zeros((1, 4, 4, 3), dtype=np.uint8)},
@@ -1424,7 +1424,7 @@ def test_libero_obs_to_batch_translates_correctly() -> None:
     """LIBERO obs → lerobot batch: H+W flip on images, quat→axisangle on state."""
     torch = pytest.importorskip("torch")
 
-    from lerobot_bench.eval import _libero_obs_to_batch
+    from embodimetry.eval import _libero_obs_to_batch
 
     # Identity quaternion (w=1) -> zero axis-angle.
     obs = {
@@ -1465,7 +1465,7 @@ def test_libero_obs_to_batch_translates_correctly() -> None:
 def test_gym_obs_to_batch_dispatches_to_libero_branch_on_dict_pixels() -> None:
     """The dispatcher recognizes nested LIBERO obs by `pixels: dict` or `robot_state` key."""
     pytest.importorskip("torch")
-    from lerobot_bench.eval import _gym_obs_to_batch
+    from embodimetry.eval import _gym_obs_to_batch
 
     obs = {
         "pixels": {"image": np.zeros((4, 4, 3), dtype=np.uint8)},
@@ -1483,7 +1483,7 @@ def test_gym_obs_to_batch_dispatches_to_libero_branch_on_dict_pixels() -> None:
 
 def test_ensure_libero_setup_idempotent_when_config_exists(tmp_path: Path) -> None:
     """If ~/.libero/config.yaml already exists, _ensure_libero_setup is a no-op."""
-    from lerobot_bench import eval as eval_mod
+    from embodimetry import eval as eval_mod
 
     fake_libero_dir = tmp_path / "libero_cfg"
     fake_libero_dir.mkdir()
@@ -2007,7 +2007,7 @@ def test_patch_processors_loads_real_xvla_libero_pipeline_contains_both_steps() 
         XVLARotation6DToAxisAngleProcessorStep,
     )
 
-    from lerobot_bench.policies import PolicyRegistry
+    from embodimetry.policies import PolicyRegistry
 
     registry = PolicyRegistry.from_yaml(Path("configs/policies.yaml"))
     spec = registry.get("xvla_libero")

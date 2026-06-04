@@ -3,7 +3,7 @@
 **Status:** draft · 2026-05-29 (post-v1.0.2 cascade) · target reviewer: maintainer
 **Companion:** the deck at `paper/deck/` (slides 07, 08, 20) and `docs/DEFERRED_POLICIES.md`.
 
-This document plans how `lerobot-bench` evolves past the v1.0 sweep. It is organised so that **methodology robustness comes first** — the deck's "replication gap" claim is only as good as the assumptions behind it, and several of those assumptions are not yet verified to the standard we want for a public benchmark.
+This document plans how `embodimetry` evolves past the v1.0 sweep. It is organised so that **methodology robustness comes first** — the deck's "replication gap" claim is only as good as the assumptions behind it, and several of those assumptions are not yet verified to the standard we want for a public benchmark.
 
 ---
 
@@ -13,9 +13,9 @@ This document plans how `lerobot-bench` evolves past the v1.0 sweep. It is organ
 
 **Ordered steps (see `## Publish runbook` below for exact commands):**
 
-1. Create the Hub **dataset** repo `thrmnn/lerobot-bench-v1` + upload its card (`docs/HUB_DATASET_README.md` → dataset `README.md`). *Gates everything downstream.*
+1. Create the Hub **dataset** repo `thrmnn/embodimetry-v1` + upload its card (`docs/HUB_DATASET_README.md` → dataset `README.md`). *Gates everything downstream.*
 2. **Publish** artifacts from `results/sweep-full/` (parquet + manifest + 5247 videos) with `scripts/publish_results.py`.
-3. Create + **deploy the Space** `thrmnn/lerobot-bench` (renders non-empty only after step 2 lands the parquet).
+3. Create + **deploy the Space** `thrmnn/embodimetry` (renders non-empty only after step 2 lands the parquet).
 4. **README URL unblock** — drop the dataset-TODO comment once the parquet is live.
 5. **v1.0.0 git tag + GitHub release** (release.yml auto-creates the release on tag push).
 
@@ -39,7 +39,7 @@ Exact commands for the chain above. **Two Make targets are broken as written —
 
 ```
 huggingface-cli login                                       # write scope; auth is live as thrmnn
-huggingface-cli repo create lerobot-bench-v1 --type dataset
+huggingface-cli repo create embodimetry-v1 --type dataset
 # upload docs/HUB_DATASET_README.md as the dataset's README.md (has the configs: results.parquet front-matter)
 ```
 
@@ -64,12 +64,12 @@ Only `results.parquet` / `sweep_manifest.json` / `videos/*.mp4` are staged (the 
 `make space-deploy` is **insufficient** — there is no `hf-space` remote and `space/` is not a standalone repo (it's part of the parent monorepo), so a flat `git push hf-space main` would nest `app.py` under `space/` where the Space can't find it. Create the Space, add the remote, and push the **subtree** so `space/`'s contents land at the Space root:
 
 ```
-huggingface-cli repo create lerobot-bench --type space --space_sdk gradio
-git remote add hf-space https://huggingface.co/spaces/thrmnn/lerobot-bench
+huggingface-cli repo create embodimetry --type space --space_sdk gradio
+git remote add hf-space https://huggingface.co/spaces/thrmnn/embodimetry
 git subtree push --prefix space hf-space main
 ```
 
-The Space reads the dataset purely by URL (`…/lerobot-bench-v1/resolve/main/results.parquet`, videos via `resolve/main/…mp4`), so it renders non-empty only after step 2. `requirements.txt` pins the project at a GitHub SHA — confirm that SHA is still an ancestor of `main` before deploy.
+The Space reads the dataset purely by URL (`…/embodimetry-v1/resolve/main/results.parquet`, videos via `resolve/main/…mp4`), so it renders non-empty only after step 2. `requirements.txt` pins the project at a GitHub SHA — confirm that SHA is still an ancestor of `main` before deploy.
 
 ### Step 4 — README URL unblock
 
@@ -111,7 +111,7 @@ But they are **single-lab, single-hardware, single-task-id** numbers. Before we 
 
 **Post-cascade update (v1.0.2):** the v1.0.1 audit ran (see §1 below — §§1.1/1.2/1.3 closed, §§1.4/1.5/1.6 open on external/cheap-local resources). The ACT `aloha_transfer_cube` cell above is now understood as an **inference-config artifact, not an architecture failure**: with `temporal_ensemble_coeff` set, the probe lifts it **0.016 → 0.764** (Wilson [.708, .812], CIs disjoint from the broken cell by an order of magnitude). The SmolVLA `libero_10` headline is reframed as a **task-coverage scope mismatch** (paper = 10-task suite avg; v1 = `task_id=0`), and a cap=600 probe confirms the step budget is **not** the bottleneck (`0.252 → 0.256`). Both findings are baked into the paper abstract.
 
-The **v1.0.2 consolidation** also shipped, beyond the audit numbers: probe-script dedup into `scripts/probes/_common.py`; the `leaderboard_filter` module that drops `xvla_libero` on read; a deck symbol fix; the paper trimmed to **4 body pages** (+1 refs); the figure pipeline (`src/lerobot_bench/figures.py` `replication_scatter()` + `scripts/render_figures.py`) with the scatter embedded in paper §S1 and the site Results section; and a doc-reconciliation pass fixing the deck ACT contradiction and stale references.
+The **v1.0.2 consolidation** also shipped, beyond the audit numbers: probe-script dedup into `scripts/probes/_common.py`; the `leaderboard_filter` module that drops `xvla_libero` on read; a deck symbol fix; the paper trimmed to **4 body pages** (+1 refs); the figure pipeline (`src/embodimetry/figures.py` `replication_scatter()` + `scripts/render_figures.py`) with the scatter embedded in paper §S1 and the site Results section; and a doc-reconciliation pass fixing the deck ACT contradiction and stale references.
 
 ---
 
@@ -140,7 +140,7 @@ Goal: turn each "warn" entry from deck slide 08 into a "verified" entry on slide
 
 > **Open question:** "Are we using the same success criterion as the paper?"
 
-- **Closed (with a soft underbelly).** Audit `docs/SUCCESS_CRITERION_AUDIT.md` (PR #89): PushT + Aloha rule mismatches (bench `final_reward>=thr` over-counts vs sticky); LIBERO rule bit-equivalent but step-cap 520 vs canonical 600. Infra `docs/CANONICAL_CRITERIA.md` (PR #90): `--canonical` flag + `EnvSpec.with_criterion()` in `src/lerobot_bench/envs.py`. Cap probe `results/probes/smolvla-libero-10-cap600/summary.json` → **0.252 → 0.256** (Δ +0.4pp, within Wilson half-width); cap-hits 74.8% → 74.4% — policy stuck-while-trying, **step budget is not the bottleneck**.
+- **Closed (with a soft underbelly).** Audit `docs/SUCCESS_CRITERION_AUDIT.md` (PR #89): PushT + Aloha rule mismatches (bench `final_reward>=thr` over-counts vs sticky); LIBERO rule bit-equivalent but step-cap 520 vs canonical 600. Infra `docs/CANONICAL_CRITERIA.md` (PR #90): `--canonical` flag + `EnvSpec.with_criterion()` in `src/embodimetry/envs.py`. Cap probe `results/probes/smolvla-libero-10-cap600/summary.json` → **0.252 → 0.256** (Δ +0.4pp, within Wilson half-width); cap-hits 74.8% → 74.4% — policy stuck-while-trying, **step budget is not the bottleneck**.
 - **Residue:** the cap probe covers only `libero_10`. The PushT/Aloha **rule-axis** over-count and SUCCESS_CRITERION_AUDIT §9 items 1/2/4 (PushT decomposition, ACT strict-transfer rate, Hub-card repro) are **not yet empirically probed** — scheduled for v1.1 (parquet schema bump + rule switch). Closeable as "documented + infra-built + primary cap probe done"; headline claims survive directionally.
 
 ### 1.4 Independent SmolVLA replication — OPEN (needs external lab)
@@ -182,7 +182,7 @@ Goal: address the "smolvla coverage skew" critique. Currently 4 of 6 non-baselin
 - Engage upstream issue `huggingface/lerobot#3674`.
 - Once resolved, run the same 4-suite × 10-task matrix as 2.1.
 - Re-enable XVLA on the live leaderboards (revert the filter from PR #82).
-- **Readiness:** NOT autonomous — highest-uncertainty item. Bugs 1+2 (6D→axis-angle postproc, ImageNet preproc) are patched and confirmed firing (PRs #71/#74), but XVLA is still **0/10 across all 4 LIBERO suites**. The `control_mode=absolute` hypothesis (upstream lerobot#3401) was tested — 0/5, full timeout — and ruled out. Remaining candidates (none isolated): chunked-action layout, `empty_camera_0` handling, tokenizer/prompt contract. Fix path needs upstream coordination (#3674) + lerobot-bench task #62 (remove loader-side patching). Locked SHA preserved.
+- **Readiness:** NOT autonomous — highest-uncertainty item. Bugs 1+2 (6D→axis-angle postproc, ImageNet preproc) are patched and confirmed firing (PRs #71/#74), but XVLA is still **0/10 across all 4 LIBERO suites**. The `control_mode=absolute` hypothesis (upstream lerobot#3401) was tested — 0/5, full timeout — and ruled out. Remaining candidates (none isolated): chunked-action layout, `empty_camera_0` handling, tokenizer/prompt contract. Fix path needs upstream coordination (#3674) + embodimetry task #62 (remove loader-side patching). Locked SHA preserved.
 
 ### 2.3 Multi-comparison correction
 
@@ -193,14 +193,14 @@ Goal: address the "smolvla coverage skew" critique. Currently 4 of 6 non-baselin
 ### 2.4 Replication scatter as a first-class figure
 
 - Promote the supplementary deck slide S1 (paper-vs-measured scatter) to a top-level figure in the paper and a dashboard panel.
-- **Shipped:** `src/lerobot_bench/figures.py` `replication_scatter()` + `scripts/render_figures.py` read `results.parquet` + `MODEL_CARDS.md` paper_rates, emit SVG/PNG/PDF (paper/deck/web variants). Embedded in paper §S1 + the site Results section.
+- **Shipped:** `src/embodimetry/figures.py` `replication_scatter()` + `scripts/render_figures.py` read `results.parquet` + `MODEL_CARDS.md` paper_rates, emit SVG/PNG/PDF (paper/deck/web variants). Embedded in paper §S1 + the site Results section.
 
 ### 2.5 Continuous CI sweep
 
 - Add a nightly GitHub Actions job that runs **one cell per policy** as a regression test.
 - Catches regressions in lerobot upstream that would silently change numbers.
 
-**Exit criteria for v1.1:** dataset bumps to `lerobot-bench-v1.1`. Deck slide 04 matrix re-renders with denser cells. Headline gap claim is restated with full-suite numbers.
+**Exit criteria for v1.1:** dataset bumps to `embodimetry-v1.1`. Deck slide 04 matrix re-renders with denser cells. Headline gap claim is restated with full-suite numbers.
 
 ---
 
@@ -292,11 +292,11 @@ This is the **slow lane** — research-grade, not on the v1 critical path. It is
 ### 6.2 Why a separate lane (and a separate repo)
 
 - Research churn (model classes, planning horizons, latent dynamics) would destabilise a benchmark whose value is its stability. The two-speed split keeps the prod bench shippable while the WM work iterates freely.
-- The research track owns its dependencies and compute profile; it does not impose them on `lerobot-bench` users. Repo split + toolchain rationale live in [`docs/WM_RESEARCH_TRACK.md`](WM_RESEARCH_TRACK.md).
+- The research track owns its dependencies and compute profile; it does not impose them on `embodimetry` users. Repo split + toolchain rationale live in [`docs/WM_RESEARCH_TRACK.md`](WM_RESEARCH_TRACK.md).
 
 ### 6.3 The single sanctioned write: a gated adapter PR
 
-- When a planner is mature enough to benchmark, it enters via **one** adapter PR that wires a WM `kind` into `load_policy` (a future dispatch branch in `src/lerobot_bench/eval.py`, alongside the existing baseline / `repo_id` branches).
+- When a planner is mature enough to benchmark, it enters via **one** adapter PR that wires a WM `kind` into `load_policy` (a future dispatch branch in `src/embodimetry/eval.py`, alongside the existing baseline / `repo_id` branches).
 - That adapter lands **behind the leaderboard filter** (the same `leaderboard_filter.py` mechanism that defers `xvla_libero`): executed in the sweep, published in the raw parquet for reproducibility, but **excluded from the public board** until explicitly promoted.
 - Promotion is a deliberate, reviewed step — not an automatic consequence of the cell running green. Until then the WM cells are exploratory, clearly labelled, and carry no leaderboard standing.
 
@@ -310,7 +310,7 @@ This is the **slow lane** — research-grade, not on the v1 critical path. It is
 
 - **Publish first.** The publish chain (top of this doc) is the live priority — the public surfaces are content-ready and hard-blocked on the Hub artifacts existing.
 - **One milestone at a time.** v1.0.1 (audit) must close before v1.1 starts — otherwise we keep building on numbers we haven't validated. Per §1, the gate is achievable with doc-only waivers + one cheap local probe (§1.6).
-- **Each milestone bumps the dataset version** (`lerobot-bench-v1.0.1`, `…-v1.1`, etc.). Old data stays published; new data is additive.
+- **Each milestone bumps the dataset version** (`embodimetry-v1.0.1`, `…-v1.1`, etc.). Old data stays published; new data is additive.
 - **Every milestone re-renders the deck and paper.** The "what we verified" slide 07 grows; the "open questions" slide 08 shrinks. Track on `docs/CLAIM_AUDIT_SMOLVLA.md`.
 - **PR template** for new milestones: methodology audit checklist on top, then expansion items.
 - **Each policy/env addition lands in a single PR** that includes: model card update, calibration entry, one full cell, and one paragraph in this document.

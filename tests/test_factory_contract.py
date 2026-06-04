@@ -39,8 +39,8 @@ from typing import Any
 
 import pytest
 
-from lerobot_bench import eval as bench_eval
-from lerobot_bench.envs import EnvSpec
+from embodimetry import eval as bench_eval
+from embodimetry.envs import EnvSpec
 
 
 # --------------------------------------------------------------------------
