@@ -22,6 +22,7 @@ can run inside any minimal CI image with just matplotlib + pandas.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import sys
 import time
 from pathlib import Path
@@ -35,6 +36,8 @@ matplotlib.use("Agg")
 
 import matplotlib.font_manager as _fm
 import pandas as pd
+
+from embodimetry.figures import FIGURES, PARQUET_FREE_FIGURES, STYLES, Style, _as_style
 
 
 def _register_brand_fonts() -> None:
@@ -55,15 +58,12 @@ def _register_brand_fonts() -> None:
         if not font_dir.is_dir():
             continue
         for ttf in font_dir.glob("**/InstrumentSans*.ttf"):
-            try:
+            with contextlib.suppress(OSError, RuntimeError):
                 _fm.fontManager.addfont(str(ttf))
-            except (OSError, RuntimeError):
-                pass
 
 
 _register_brand_fonts()
 
-from embodimetry.figures import FIGURES, PARQUET_FREE_FIGURES, STYLES, Style, _as_style
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_RESULTS = _REPO_ROOT / "results" / "sweep-full" / "results.parquet"
