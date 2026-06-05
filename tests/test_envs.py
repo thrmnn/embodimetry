@@ -35,7 +35,9 @@ def test_default_pusht_spec() -> None:
 def test_by_family_groups_correctly() -> None:
     registry = EnvRegistry.from_yaml(DEFAULT_ENVS_YAML)
     pusht_family = registry.by_family("pusht")
-    assert {s.name for s in pusht_family} == {"pusht"}
+    # `pusht` (pixels, for the vision policies) + `pusht_state` (state obs,
+    # for the L2 classical-control rung) share the pusht family.
+    assert {s.name for s in pusht_family} == {"pusht", "pusht_state"}
     aloha_family = registry.by_family("aloha")
     assert all(s.family == "aloha" for s in aloha_family)
 

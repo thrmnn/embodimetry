@@ -57,6 +57,27 @@ envs:
       # 65.4% number was produced under. Cap stays at 300 (same as v1).
       success_metric: sticky_is_success
 
+  # State-feedback variant of `pusht` for the L2 classical-control rung.
+  # IDENTICAL task, step cap, success_threshold, lerobot_module, and
+  # canonical scoring rule as `pusht` above — the ONLY difference is the
+  # observation channel: obs_type='state' emits the flat 5-vector
+  # [agent_xy, block_xy, block_angle] a state-feedback controller needs,
+  # whereas `pusht` emits pixels for the vision policy. Same family, same
+  # coverage>0.95 success rule, so classical_pusht's number is scored
+  # apples-to-apples against diffusion_policy on `pusht`. Not on the
+  # published v1 leaderboard (research-in-progress ladder env).
+  - name: pusht_state
+    family: pusht
+    gym_id: gym_pusht/PushT-v0
+    max_steps: 300
+    success_threshold: 0.95
+    lerobot_module: lerobot.envs.pusht
+    gym_kwargs:
+      # Flat 5-vector [agent_x, agent_y, block_x, block_y, block_angle].
+      obs_type: state
+    canonical:
+      success_metric: sticky_is_success
+
   - name: aloha_transfer_cube
     family: aloha
     gym_id: gym_aloha/AlohaTransferCube-v0

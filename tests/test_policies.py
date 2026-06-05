@@ -77,9 +77,11 @@ def test_runnable_includes_locked_pretrained_policies() -> None:
     runnable_names = {p.name for p in registry.runnable()}
     # Day 0a: diffusion_policy + act SHAs locked.
     # Libero v2 integration: 5 VLA libero finetunes locked.
+    # L2 ladder: classical_pusht is a weightless baseline (always runnable).
     assert runnable_names == {
         "no_op",
         "random",
+        "classical_pusht",
         "diffusion_policy",
         "act",
         "pi05_libero_finetuned_v044",

@@ -694,6 +694,16 @@ def load_policy(
             return _NoOpPolicy(action_shape)
         if spec.name == "random":
             return _RandomPolicy(action_shape)
+        # Classical (hand-coded) controllers are weightless CPU baselines —
+        # the L2 rung of the capability ladder. They carry is_baseline=true
+        # (no repo_id/SHA, skip the run_one.py GPU precheck) and dispatch to
+        # a scripted controller. Routed by name prefix so the registry + this
+        # branch cannot silently drift; the strategy lives in
+        # embodimetry.policies_classical.
+        if spec.name.startswith("classical_"):
+            from embodimetry.policies_classical import load_classical_policy
+
+            return load_classical_policy(spec.name, action_shape=action_shape)
         raise ValueError(f"unknown baseline policy '{spec.name}'")
 
     # Pretrained branch (Day 0b). Lazy-import everything heavy so this

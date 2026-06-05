@@ -39,6 +39,27 @@ policies:
     notes: "Uniformly samples from the action space each step."
     paper_reported_notes: "Baseline — no published reference."
 
+  # L2 (classical control) rung of the Capability-Ladder Audit. A scripted
+  # push-behind state-feedback controller for PushT — no learned weights,
+  # CPU-only, no VRAM. is_baseline=true so it dispatches through the same
+  # weightless (policy, env, seed, n_eps)->CellResult contract as no_op/
+  # random AND skips the run_one.py GPU precheck. Runs on `pusht_state`
+  # (obs_type=state), scored by the SAME coverage>0.95 success rule as
+  # diffusion_policy on `pusht`. Strategy lives in
+  # embodimetry.policies_classical. GATED off the public v1 leaderboard:
+  # deliberately absent from embodimetry.leaderboard_filter.V1_POLICIES,
+  # same as xvla_libero — research-in-progress, not a published v1 row.
+  - name: classical_pusht
+    is_baseline: true
+    env_compat:
+      - pusht_state
+    license: MIT
+    notes: >-
+      L2 classical-control rung. Scripted push-behind PID-style controller
+      on the PushT `state` observation; deterministic given the seed; CPU,
+      no model, no VRAM. Gated off V1_POLICIES (not a published v1 row).
+    paper_reported_notes: "Classical baseline — no published reference."
+
   - name: diffusion_policy
     is_baseline: false
     env_compat: [pusht]
