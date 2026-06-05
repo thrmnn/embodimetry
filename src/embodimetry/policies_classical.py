@@ -100,7 +100,7 @@ class _ClassicalPushTPolicy:
     1. Read the agent ``(ax, ay)``, block body origin ``(bx, by)`` and block
        heading ``b_theta`` from the ``state`` obs. Reconstruct the block's
        **centre of gravity** in world coords (the point pymunk rotates about):
-       ``cog = block_origin + R(b_theta) · (0, 45)``. The goal centroid is the
+       ``cog = block_origin + rot(b_theta) · (0, 45)``. The goal centroid is the
        same offset applied to the fixed goal pose.
 
     2. **Contact model — pick which face of the T to push.** This is the key
@@ -186,9 +186,9 @@ class _ClassicalPushTPolicy:
         ax, ay, bx, by, b_theta = self._read_state(obs)
         agent = np.array([ax, ay], dtype=np.float64)
         origin = np.array([bx, by], dtype=np.float64)
-        R = _rot(b_theta)
+        rot = _rot(b_theta)
 
-        cog = origin + R @ PUSHT_COG_LOCAL
+        cog = origin + rot @ PUSHT_COG_LOCAL
         goal_cog = (
             np.array(PUSHT_GOAL_XY, dtype=np.float64) + _rot(PUSHT_GOAL_THETA) @ PUSHT_COG_LOCAL
         )
@@ -199,13 +199,13 @@ class _ClassicalPushTPolicy:
 
         if pos_dist > self._POS_TOL_PX:
             # COARSE TRANSLATE: drive the centroid toward the goal centroid.
-            target = self._translate_target(agent, origin, R, push_dir, pos_dist, fine=False)
+            target = self._translate_target(agent, origin, rot, push_dir, pos_dist, fine=False)
         elif abs(theta_err) > self._THETA_TOL_RAD:
             # ROTATE: torque the T toward the goal heading about its COG.
-            target = self._rotate_target(agent, origin, R, cog, theta_err)
+            target = self._rotate_target(agent, origin, rot, cog, theta_err)
         elif pos_dist > self._POS_FINE_TOL_PX:
             # FINE TRANSLATE: re-centre after the rotation nudged the centroid.
-            target = self._translate_target(agent, origin, R, push_dir, pos_dist, fine=True)
+            target = self._translate_target(agent, origin, rot, push_dir, pos_dist, fine=True)
         else:
             # SETTLE: both errors inside tolerance — hold and let the block rest.
             target = agent
@@ -218,7 +218,7 @@ class _ClassicalPushTPolicy:
         self,
         agent: NDArray[np.float64],
         origin: NDArray[np.float64],
-        R: NDArray[np.float64],
+        rot: NDArray[np.float64],
         push_dir: NDArray[np.float64],
         pos_dist: float,
         *,
@@ -232,7 +232,7 @@ class _ClassicalPushTPolicy:
         coarse press ramps down as the centroid nears the goal so the pusher
         eases off rather than overshooting; the fine phase is gentler still.
         """
-        face_center, face_normal = self._best_translate_face(origin, R, push_dir)
+        face_center, face_normal = self._best_translate_face(origin, rot, push_dir)
         standoff = face_center + face_normal * (PUSHT_AGENT_RADIUS + self._STANDOFF_MARGIN_PX)
         tangent = np.array([-face_normal[1], face_normal[0]])
         perp_off = abs(float((agent - face_center) @ tangent))
@@ -252,15 +252,15 @@ class _ClassicalPushTPolicy:
     def _best_translate_face(
         self,
         origin: NDArray[np.float64],
-        R: NDArray[np.float64],
+        rot: NDArray[np.float64],
         push_dir: NDArray[np.float64],
     ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """The face whose world outward normal best opposes ``push_dir``."""
         best_score = -np.inf
         best: tuple[NDArray[np.float64], NDArray[np.float64]] | None = None
         for center_local, normal_local in _PUSHT_FACES:
-            fc = origin + R @ center_local
-            fn = R @ normal_local
+            fc = origin + rot @ center_local
+            fn = rot @ normal_local
             score = float(fn @ (-push_dir))
             if score > best_score:
                 best_score = score
@@ -272,7 +272,7 @@ class _ClassicalPushTPolicy:
         self,
         agent: NDArray[np.float64],
         origin: NDArray[np.float64],
-        R: NDArray[np.float64],
+        rot: NDArray[np.float64],
         cog: NDArray[np.float64],
         theta_err: float,
     ) -> NDArray[np.float64]:
@@ -283,7 +283,7 @@ class _ClassicalPushTPolicy:
         a magnitude that scales with the remaining angle error.
         """
         sign = 1.0 if theta_err > 0 else -1.0
-        lever = origin + R @ _PUSHT_ROT_LEVER_LOCAL
+        lever = origin + rot @ _PUSHT_ROT_LEVER_LOCAL
         radial = lever - cog
         radial_norm = float(np.linalg.norm(radial)) + 1e-9
         radial_hat = radial / radial_norm
