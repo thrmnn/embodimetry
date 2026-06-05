@@ -6,7 +6,7 @@ The v1.0.1 audit produced two reference probes that this guide walks through. Us
 
 | Probe | What it changes | Result |
 |---|---|---|
-| [`scripts/probes/probe_act_temporal_ensemble.py`](../scripts/probes/probe_act_temporal_ensemble.py) | ACT `temporal_ensemble_coeff` Hub default → paper setting | 0.016 → **0.764** on `aloha_transfer_cube` (PR #97; +74.8 pp, Wilson CIs disjoint by an order of magnitude) |
+| [`scripts/probes/probe_act_temporal_ensemble.py`](../scripts/probes/probe_act_temporal_ensemble.py) | ACT `temporal_ensemble_coeff` Hub default → paper setting | This early probe read **0.764** on post-#51 code and was first attributed to ensembling; the 2×2 ablation later showed the recovery was the **normalization fix**, not inference settings (a wash). Canonical cell = **0.824 [0.772, 0.866]**. See [`docs/PROBE_RESULTS_V1.0.1.md`](../docs/PROBE_RESULTS_V1.0.1.md) CORRECTION banner. |
 | [`scripts/probes/probe_smolvla_libero_canonical_cap.py`](../scripts/probes/probe_smolvla_libero_canonical_cap.py) | LIBERO env `max_steps` v1 default (520) → canonical (600) | running at time of writing; see [`docs/PROBE_RESULTS_V1.0.1.md`](../docs/PROBE_RESULTS_V1.0.1.md) |
 
 Both probes write standard `RESULT_SCHEMA`-compatible parquet rows to `results/probes/<probe-name>/`, with a `summary.json` for the headline number — so the output slots into the same analysis tooling as the main sweep.

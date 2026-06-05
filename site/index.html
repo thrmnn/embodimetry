@@ -20,10 +20,11 @@
 
     <blockquote class="headline-quote">
       <strong class="ink">Headline:</strong>
-      <span class="mono ink">ACT × aloha</span> at paper inference settings:
-      <span class="stat">0.764 [0.708, 0.812]</span> vs.
-      <span class="stat">0.016</span> at Hub default.
-      Inference settings, not architecture, are the load-bearing variable.
+      <span class="mono ink">ACT × aloha</span> reads the canonical
+      <span class="stat">0.824 [0.772, 0.866]</span> (Hub-default, N&nbsp;=&nbsp;250).
+      The v1.0.0 <span class="stat">0.016</span> was <em>our</em> harness
+      normalization bug (fixed in #51); a 2×2 ablation pins the recovery on the
+      norm fix, not inference settings.
     </blockquote>
 
     <div class="artifacts">
@@ -55,11 +56,11 @@
 
     <figure class="figure-card">
       <div class="figure-frame">
-        <img src="assets/replication_scatter.svg" alt="Replication scatter: measured success rate vs. each policy's reported paper number for the 5 leaderboard policies (xvla deferred). The ACT × aloha point at paper inference settings sits at 0.764, on the replication diagonal; the Hub-default point sits near zero." loading="lazy">
+        <img src="assets/replication_scatter.svg" alt="Replication scatter: measured success rate vs. each policy's reported paper number for the 5 leaderboard policies (xvla deferred). The ACT × aloha point sits at the canonical 0.824 on the replication diagonal; the un-normalized v1.0.0 point sat near zero before the norm fix." loading="lazy">
       </div>
       <figcaption>
         <span class="cap-lab">Fig. 1 · Replication scatter</span>
-        Measured success rate against each policy's reported paper number. Points on the diagonal replicate; points below fall short under our protocol. The headline <span class="mono ink">ACT × aloha</span> cell lands at <span class="mono ink">0.764</span> once paper inference settings are loaded.
+        Measured success rate against each policy's reported paper number. Points on the diagonal replicate; points below fall short under our protocol. The headline <span class="mono ink">ACT × aloha</span> cell lands at the canonical <span class="mono ink">0.824</span> once our normalization bug is fixed (#51).
       </figcaption>
     </figure>
 
@@ -80,22 +81,22 @@
     <article class="finding-card">
       <div>
         <div class="label">ACT × aloha · success rate</div>
-        <h3>The architecture clears paper — once you load paper inference settings.</h3>
-        <p>Hub default: <span class="mono ink">coeff=None, n_action_steps=100</span>. Zhao 2023 Table&nbsp;I: <span class="mono ink">coeff=0.01, n=1</span>. Wilson 95% CIs disjoint by an order of magnitude.</p>
+        <h3>The architecture clears paper — once we fixed our own normalization bug.</h3>
+        <p>The v1.0.0 <span class="mono ink">0.016</span> was a bench-side bug: our harness skipped dataset normalization on <span class="mono ink">observation.images.top</span>, feeding ACT un-normalized images. PR&nbsp;#51 fixes it; the same checkpoint reads the canonical <span class="mono ink">0.824 [0.772, 0.866]</span> (Hub-default, N&nbsp;=&nbsp;250). A controlled 2×2 ablation (norm&nbsp;×&nbsp;inference, N&nbsp;=&nbsp;250/cell) pins the recovery on the norm fix — the <span class="mono">0.812</span>&nbsp;(Hub) vs <span class="mono">0.768</span>&nbsp;(paper-settings) variant overlaps in Wilson CI, so temporal ensembling is a wash.</p>
       </div>
-      <div class="ci-chart" aria-label="Confidence interval comparison: Hub default vs paper inference settings">
+      <div class="ci-chart" aria-label="Confidence interval comparison: buggy normalization vs canonical fixed normalization">
         <div class="ci-row fail">
-          <div class="lab"><span>Hub default</span><span class="val">0.016</span></div>
+          <div class="lab"><span>v1.0.0 (norm bug)</span><span class="val">0.016</span></div>
           <div class="ci-track">
             <div class="ci-bar fail" style="left: 0%; right: 95.6%;"></div>
             <div class="ci-point" style="left: 1.6%;"></div>
           </div>
         </div>
         <div class="ci-row ok">
-          <div class="lab"><span>Paper settings</span><span class="val">0.764</span></div>
+          <div class="lab"><span>Canonical (#51 fixed)</span><span class="val">0.824</span></div>
           <div class="ci-track">
-            <div class="ci-bar ok" style="left: 70.8%; right: 18.8%;"></div>
-            <div class="ci-point" style="left: 76.4%;"></div>
+            <div class="ci-bar ok" style="left: 77.2%; right: 13.4%;"></div>
+            <div class="ci-point" style="left: 82.4%;"></div>
           </div>
         </div>
         <div class="ci-scale"><span>0.0</span><span>0.5</span><span>1.0</span></div>
@@ -141,8 +142,8 @@
       <div class="caveat ok">
         <div class="glyph">✓</div>
         <div class="body-block">
-          <span class="lab">PR #86 · ACT inference — <span class="accent">RESOLVED</span></span>
-          <h5>Paper settings: <span class="mono ink">0.764</span> vs Hub default <span class="mono">0.016</span>. v1.0.2 lands the correct number.</h5>
+          <span class="lab">PR #86 · ACT normalization — <span class="accent">RESOLVED</span></span>
+          <h5>v1.0.0's <span class="mono">0.016</span> was our harness normalization bug; PR&nbsp;#51 fixes it and the same checkpoint reads the canonical <span class="mono ink">0.824 [0.772, 0.866]</span>.</h5>
         </div>
       </div>
       <div class="caveat warn">
