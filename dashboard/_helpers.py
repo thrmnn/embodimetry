@@ -1934,6 +1934,27 @@ _ENV_CONTEXT: dict[str, dict[str, str]] = {
             'Learning via Action Diffusion" (RSS 2023); gym-pusht env.'
         ),
     },
+    "pusht_state": {
+        "task": (
+            "Identical PushT task to `pusht` (push a T-block into a fixed "
+            "target pose; same coverage-threshold success rule), but the "
+            "policy reads ground-truth state instead of pixels. The "
+            "state-feedback variant for the L2 classical-control ladder rung."
+        ),
+        "obs": (
+            "Flat 5-D state vector: agent (x, y), block (x, y), block angle. "
+            "No image -- the channel a hand-coded controller needs."
+        ),
+        "discriminates": (
+            "Whether a scripted classical controller can solve the planar "
+            "pushing geometry with perfect state, separating the control "
+            "problem from the perception problem the pixel variant adds."
+        ),
+        "source": (
+            "Same gym-pusht env as `pusht` with obs_type='state'. "
+            "Research env for the L2 ladder rung; off the published v1 set."
+        ),
+    },
     "aloha_transfer_cube": {
         "task": (
             "Bimanual cube transfer: one arm picks a cube from the table "
