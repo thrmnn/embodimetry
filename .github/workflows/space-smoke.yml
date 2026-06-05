@@ -100,7 +100,7 @@ jobs:
           # ``git+https://...@<sha>`` line from space/requirements.txt.
           # Grepping it out keeps this in lock-step with the deploy pin
           # without hand-duplicating the SHA here.
-          PIN="$(grep -E '^git\+https://github\.com/.+/lerobot-bench\.git@' space/requirements.txt)"
+          PIN="$(grep -E '^git\+https://github\.com/.+/embodimetry\.git@' space/requirements.txt)"
           if [ -z "$PIN" ]; then
             echo "::error::could not find the pinned embodimetry git line in space/requirements.txt"
             exit 1
@@ -126,7 +126,7 @@ jobs:
           # landed; otherwise the whole RESULT_SCHEMA is the required set.
           # Either way we assert REQUIRED is a SUBSET of the parquet's
           # columns so extra OPTIONAL columns published later don't fail.
-          from lerobot_bench import checkpointing
+          from embodimetry import checkpointing
 
           required = getattr(checkpointing, "REQUIRED_SCHEMA", None)
           if required is None:
