@@ -1,10 +1,10 @@
-"""Gradio app for the lerobot-bench HF Space.
+"""Gradio app for the embodimetry HF Space.
 
-Runs on the **free CPU tier** at ``huggingface.co/spaces/thrmnn/lerobot-bench``.
+Runs on the **free CPU tier** at ``huggingface.co/spaces/thrmnn/embodimetry``.
 No policy inference, no GPU. Five tabs:
 
 1. **Leaderboard** — pre-aggregated success-rate table with Wilson CIs,
-   read from ``thrmnn/lerobot-bench-v1/results.parquet`` on Hub.
+   read from ``thrmnn/embodimetry-v1/results.parquet`` on Hub.
    Includes a v1 status badge, a methodology accordion, and a
    below-table success-rate band legend.
 2. **Paired comparisons** — for any two policies, the per-env Δsuccess
@@ -372,11 +372,11 @@ def build_app() -> gr.Blocks:
     only under ``__main__``.
     """
     with gr.Blocks(
-        title="lerobot-bench",
+        title="embodimetry",
         theme=gr.themes.Soft(),  # readable on the default Spaces background
     ) as demo:
         gr.Markdown(
-            "# lerobot-bench — public leaderboard\n"
+            "# embodimetry — public leaderboard\n"
             "_Public reproducible benchmark of pretrained LeRobot policies "
             "on simulated manipulation envs._\n"
             "\n"

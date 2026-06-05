@@ -1,6 +1,6 @@
 # Documentation index
 
-`lerobot-bench` is a public, reproducible benchmark of pretrained LeRobot
+`embodimetry` is a public, reproducible benchmark of pretrained LeRobot
 manipulation policies — a 6×6 policy×env matrix of 22 cells (18 published)
 × 5 seeds = 110 cell-seed runs dispatched, 0 failures; with 5 policies on
 the public leaderboard and xvla deferred to v1.1, run under a multi-seed
@@ -11,7 +11,7 @@ taxonomy.
 This page is the map of the `docs/` directory. Find the group that matches
 why you are here, then follow the link. If you only want to *look* at results,
 you do not need any of this — open the
-[live leaderboard](https://huggingface.co/spaces/thrmnn/lerobot-bench).
+[live leaderboard](https://huggingface.co/spaces/thrmnn/embodimetry).
 
 ---
 
@@ -48,7 +48,7 @@ dataset, or building on the leaderboard.
   labeling template for classifying *how* a policy fails when it fails.
 - [`HUB_DATASET_README.md`](HUB_DATASET_README.md) — the dataset card for the
   results published to the Hugging Face Hub; read before consuming the parquet.
-- [`API.md`](API.md) — hand-authored reference for the public `lerobot_bench`
+- [`API.md`](API.md) — hand-authored reference for the public `embodimetry`
   Python API (registries, eval core, stats helpers, renderer, checkpointing).
 
 ## Audits & probes

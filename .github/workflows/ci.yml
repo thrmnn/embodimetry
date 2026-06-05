@@ -70,7 +70,7 @@ jobs:
         # normal churn; raise it when measured coverage climbs durably.
         run: |
           pytest -m "not slow and not gpu and not sim" \
-            --cov=lerobot_bench \
+            --cov=embodimetry \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-fail-under=82

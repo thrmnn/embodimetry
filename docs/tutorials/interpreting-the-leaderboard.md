@@ -1,6 +1,6 @@
 # Interpreting the leaderboard
 
-The `lerobot-bench` leaderboard is a grid of `(policy, env)` cells. Each
+The `embodimetry` leaderboard is a grid of `(policy, env)` cells. Each
 cell looks like a single number — a success rate — but it is really a
 **statistical claim**: "this policy solves this task at roughly this
 rate, with this much uncertainty." Reading a cell well means reading the
@@ -16,7 +16,7 @@ forgetting the floor.
 > effect number quoted here. **Want to compute these yourself?** See
 > [`examples/read_results.py`](../../examples/read_results.py) and
 > [`examples/compare_two_policies.py`](../../examples/compare_two_policies.py)
-> — they call the exact `lerobot_bench.stats` functions this tutorial
+> — they call the exact `embodimetry.stats` functions this tutorial
 > describes.
 
 ## 1. What one cell is made of
@@ -26,7 +26,7 @@ the pooled outcome of **5 seeds × 50 episodes = 250 binary outcomes**
 (`success` ∈ {True, False}). The unit of evidence is the *episode*, not
 the seed — all 250 episodes are pooled into one flat list before any
 statistic is computed. (Bootstrapping over the 5 seeds instead would
-give wildly inflated intervals; see the `src/lerobot_bench/stats.py`
+give wildly inflated intervals; see the `src/embodimetry/stats.py`
 module docstring on "wrong granularity".)
 
 Each cell on the leaderboard shows three things:
@@ -41,7 +41,7 @@ Each cell on the leaderboard shows three things:
 - **Success rate** — `successes / N`. The maximum-likelihood point
   estimate. On its own it is the *least* informative part of the cell.
 - **95% confidence interval** — the Wilson score interval
-  (`lerobot_bench.stats.wilson_ci`). The plausible range for the true
+  (`embodimetry.stats.wilson_ci`). The plausible range for the true
   success rate given this much data. The leaderboard's error bars.
 - **N** — the episode count behind the cell. Usually 250; some slow
   cells are auto-downscoped to N=100 or N=50 (more on this below).
@@ -170,7 +170,7 @@ p-value is 0.033, below 0.05." **The benchmark says inconclusive.** Why?
 - **Cohen's h = 0.19 is a *small* effect.** Even taking the delta at
   face value, this is not a meaningful capability gap. A "significant"
   small effect is still small — always report `h` next to a Δ
-  (`lerobot_bench.stats.cohens_h`).
+  (`embodimetry.stats.cohens_h`).
 
 The conservative verdict wins. Ranking these two cells off this data
 would be the **paper-killing error** `docs/MDE_TABLE.md` § 5 was written

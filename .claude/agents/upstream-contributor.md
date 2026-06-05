@@ -31,12 +31,12 @@ Plus `MultiSeedResult` dataclass with bootstrap CI helper. The function reproduc
 - **One feature per PR**. Multi-seed eval + bootstrap CI helper. No drive-by changes, no opinionated refactors of their existing eval. Easy to review = easy to merge.
 - **No new heavy dependencies**. numpy + torch are already in their tree. Anything else needs justification.
 - **Tests first**. The PR ships with unit tests in their existing test layout; they pass under their CI.
-- **Pin the PR description to the public artifact**. "Powers the leaderboard at huggingface.co/spaces/theoh-io/lerobot-bench" — gives reviewers context and a live demo.
+- **Pin the PR description to the public artifact**. "Powers the leaderboard at huggingface.co/spaces/theoh-io/embodimetry" — gives reviewers context and a live demo.
 
 ## Workflow
 
 1. Fork `huggingface/lerobot`, branch `feat/multi-seed-eval` off the same SHA we pin in `lerobot==0.5.1`.
-2. Port `lerobot_bench.eval.run_cell` + `lerobot_bench.stats.bootstrap_ci` with their naming and style. Coordinate with `bench-eval-engineer` so the in-repo version stays compatible.
+2. Port `embodimetry.eval.run_cell` + `embodimetry.stats.bootstrap_ci` with their naming and style. Coordinate with `bench-eval-engineer` so the in-repo version stays compatible.
 3. Add tests under their `tests/` tree. Run their full CI locally before pushing.
 4. Open the PR with: a short motivation paragraph, a link to our Space, a link to our paper (when arxiv is up), a 5-line code example, a note on the seeding contract.
 5. After PR opens: monitor reviews, respond same-day, hold the line on scope (defer non-essential review asks to a follow-up PR).

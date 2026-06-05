@@ -49,9 +49,9 @@ if [ "$#" -gt 0 ]; then
 fi
 
 echo "launching sweep MEM_CAP=${MEM_CAP} log=${LOG}"
-echo "$$" > /tmp/lerobot-bench-sweep.pid
-echo "${TS}" > /tmp/lerobot-bench-sweep-ts
-echo "${LOG}" > /tmp/lerobot-bench-sweep-log
+echo "$$" > /tmp/embodimetry-sweep.pid
+echo "${TS}" > /tmp/embodimetry-sweep-ts
+echo "${LOG}" > /tmp/embodimetry-sweep-log
 
 OMP_NUM_THREADS="${OMP_NUM_THREADS:-4}" \
 OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-4}" \

@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 from scripts import merge_corrected_act_rows as mod
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA, load_results
+from embodimetry.checkpointing import RESULT_SCHEMA, load_results
 
 EXPECTED_RERUN_ROWS = mod.EXPECTED_RERUN_ROWS  # 250 (5 seeds × 50 episodes)
 

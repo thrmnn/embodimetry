@@ -1,10 +1,10 @@
 ---
 name: bench-eval-engineer
-description: Use proactively when implementing or modifying the core eval loop in lerobot-bench — the (policy, env, seed, n_eps) → CellResult pipeline, env/policy registries, success thresholds, or cell-boundary checkpointing. Owns src/lerobot_bench/{eval,envs,policies,checkpointing}.py.
+description: Use proactively when implementing or modifying the core eval loop in embodimetry — the (policy, env, seed, n_eps) → CellResult pipeline, env/policy registries, success thresholds, or cell-boundary checkpointing. Owns src/embodimetry/{eval,envs,policies,checkpointing}.py.
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
-You implement the core evaluation primitives for lerobot-bench. Read `docs/DESIGN.md` (§ Methodology) and `docs/ARCHITECTURE.md` before any work — they are the source of truth.
+You implement the core evaluation primitives for embodimetry. Read `docs/DESIGN.md` (§ Methodology) and `docs/ARCHITECTURE.md` before any work — they are the source of truth.
 
 ## Hard constraints (non-negotiable)
 

@@ -1,4 +1,4 @@
-"""Pure-Python helpers for the lerobot-bench Gradio Space.
+"""Pure-Python helpers for the embodimetry Gradio Space.
 
 Lives next to ``space/app.py`` but contains no Gradio import. The point
 of the split is testability: the project's CI runs against
@@ -12,13 +12,13 @@ Responsibilities:
 1. **Load + cache the published parquet.** ``load_results_df`` reads
    the Hub-hosted ``results.parquet`` (or a local override path used by
    tests) and validates the column set against the canonical
-   :data:`lerobot_bench.checkpointing.RESULT_SCHEMA`. The result is
+   :data:`embodimetry.checkpointing.RESULT_SCHEMA`. The result is
    cached so a tab switch doesn't re-fetch.
 
 2. **Aggregate to leaderboard rows.** ``compute_leaderboard_table``
    groups the per-episode rows by ``(policy, env)`` and emits one row
    per cell with success rate and a Wilson score CI half-width
-   (computed via :func:`lerobot_bench.stats.wilson_ci`). The aggregate
+   (computed via :func:`embodimetry.stats.wilson_ci`). The aggregate
    is sorted so that the policy with the highest **overall mean
    success rate** appears first; within each policy, rows are ordered
    alphabetically by env so the table reads as a policy ranking.
@@ -26,7 +26,7 @@ Responsibilities:
 3. **Paired comparisons.** ``compute_paired_table`` builds a per-env
    delta table between two policies, with pivotal-bootstrap CIs on the
    delta and a per-cell MDE threshold derived from
-   :func:`lerobot_bench.stats.wilson_halfwidth_at_p`. ``narrate_top_finding``
+   :func:`embodimetry.stats.wilson_halfwidth_at_p`. ``narrate_top_finding``
    returns the auto-generated headline sentence under that table.
 
 4. **Failure taxonomy renderer.** ``parse_failure_taxonomy_md`` reads
@@ -57,14 +57,19 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA
-
-# Re-exported so existing ``from _helpers import V1_POLICIES, filter_to_v1_policies``
-# call sites (app.py, tests/test_space.py) keep working. The canonical
-# definition lives in ``lerobot_bench.leaderboard_filter`` so the Space and
-# the dashboard share one v1 policy gate and cannot drift apart.
-from lerobot_bench.leaderboard_filter import V1_POLICIES, filter_to_v1_policies
-from lerobot_bench.stats import paired_diff_ci, wilson_ci, wilson_halfwidth_at_p
+# Rename transition shim: the local checkout / pytest run against the renamed
+# ``embodimetry`` package, but the deployed Space still installs the library
+# from a pre-rename pinned SHA where it is ``lerobot_bench``. Prefer the new
+# name, fall back to the old. Drop the fallback once the Space pin is bumped
+# to a post-rename SHA (see the deferred-flip follow-up).
+try:
+    from embodimetry.checkpointing import RESULT_SCHEMA
+    from embodimetry.leaderboard_filter import V1_POLICIES, filter_to_v1_policies
+    from embodimetry.stats import paired_diff_ci, wilson_ci, wilson_halfwidth_at_p
+except ModuleNotFoundError:
+    from lerobot_bench.checkpointing import RESULT_SCHEMA
+    from lerobot_bench.leaderboard_filter import V1_POLICIES, filter_to_v1_policies
+    from lerobot_bench.stats import paired_diff_ci, wilson_ci, wilson_halfwidth_at_p
 
 __all__ = ["V1_POLICIES", "filter_to_v1_policies"]
 
@@ -77,10 +82,10 @@ logger = logging.getLogger(__name__)
 # HF Hub dataset that hosts the published parquet + MP4 grid.
 # Mirrors the value used by scripts/publish_results.py and
 # docs/RUNBOOK.md. Bumped in lock-step on a breaking schema change.
-HUB_DATASET_REPO = "thrmnn/lerobot-bench-v1"
+HUB_DATASET_REPO = "thrmnn/embodimetry-v1"
 
 # NOTE: ``V1_POLICIES`` is imported above from
-# ``lerobot_bench.leaderboard_filter`` (re-exported for back-compat). The
+# ``embodimetry.leaderboard_filter`` (re-exported for back-compat). The
 # canonical definition + the xvla-exclusion rationale live there so this
 # surface and the dashboard cannot drift apart.
 
@@ -418,7 +423,7 @@ def render_methodology_md() -> str:
     return (
         "## Methodology\n"
         "\n"
-        "This Space renders the published results of the **lerobot-bench**\n"
+        "This Space renders the published results of the **embodimetry**\n"
         "multi-policy benchmark. All numbers come from a pre-computed sweep\n"
         "on `lerobot==0.5.1`; the Space itself runs no policy inference\n"
         "and uses no GPU.\n"
@@ -531,13 +536,13 @@ def compute_paired_table(
     * ``delta`` — ``success_rate_A - success_rate_B``.
     * ``ci_low_delta`` / ``ci_high_delta`` — pivotal-bootstrap 95% CI
       on ``delta``, computed via
-      :func:`lerobot_bench.stats.paired_diff_ci`. Pairing is by
+      :func:`embodimetry.stats.paired_diff_ci`. Pairing is by
       ``(seed, episode_index)`` — if the per-(seed, episode) pairs do
       not align between cells, that env falls back to the
       cell sizes' min and is logged.
     * ``MDE`` — per-cell minimum detectable difference at the cell's
       ``max(p_hat_a, p_hat_b)``, derived from
-      :func:`lerobot_bench.stats.wilson_halfwidth_at_p` (2·HW under
+      :func:`embodimetry.stats.wilson_halfwidth_at_p` (2·HW under
       the looser Wilson-band rule from ``docs/MDE_TABLE.md`` §4).
     * ``clears_MDE`` — ``|delta| >= MDE``. The UI renders this as a
       coloured chip.
@@ -793,7 +798,7 @@ FAILURE_MODES: tuple[str, ...] = (
 
 # Path to the canonical taxonomy doc, resolved at import time so the
 # Space can fall back to the bundled snapshot if docs/ is not on disk
-# (the HF Space deploy ships only ``space/`` + the lerobot_bench
+# (the HF Space deploy ships only ``space/`` + the embodimetry
 # package). Tests pass an explicit path.
 _DEFAULT_TAXONOMY_PATH = Path(__file__).resolve().parent.parent / "docs" / "FAILURE_TAXONOMY.md"
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "_doc": "Project-scoped Claude Code settings for lerobot-bench. See .claude/agents/ for the team. Hooks below: (1) auto-format Python files after Edit/Write, (2) gate `git push` behind `make all`, (3) block writes to generated artifacts, (4) print branch + uncommitted-files status on Stop.",
+  "_doc": "Project-scoped Claude Code settings for embodimetry. See .claude/agents/ for the team. Hooks below: (1) auto-format Python files after Edit/Write, (2) gate `git push` behind `make all`, (3) block writes to generated artifacts, (4) print branch + uncommitted-files status on Stop.",
   "hooks": {
     "PostToolUse": [
       {
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null && { branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null); dirty=$(git status --porcelain 2>/dev/null | wc -l); echo \"[lerobot-bench] branch=$branch  uncommitted=$dirty\"; } || true"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null && { branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null); dirty=$(git status --porcelain 2>/dev/null | wc -l); echo \"[embodimetry] branch=$branch  uncommitted=$dirty\"; } || true"
           }
         ]
       }

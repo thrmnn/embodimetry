@@ -1,8 +1,8 @@
-lerobot-bench
+embodimetry
 Copyright (c) 2026 Théo Hermann
 
-The lerobot-bench source code is licensed under the MIT License (see LICENSE).
-The published evaluation artifacts (the thrmnn/lerobot-bench-v1 Hub dataset:
+The embodimetry source code is licensed under the MIT License (see LICENSE).
+The published evaluation artifacts (the thrmnn/embodimetry-v1 Hub dataset:
 parquet tables, manifests, and rendered MP4 rollouts) are released under
 CC-BY-4.0 (see docs/HUB_DATASET_README.md).
 

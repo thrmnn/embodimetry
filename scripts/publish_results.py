@@ -4,7 +4,7 @@
 The last hop in the bench stack: :mod:`scripts.run_sweep` produces
 ``results.parquet`` + ``sweep_manifest.json`` + a per-cell MP4 corpus
 under ``videos/``; this script bundles those artefacts and uploads them
-to ``thrmnn/lerobot-bench-v1`` so the public Space can read
+to ``thrmnn/embodimetry-v1`` so the public Space can read
 from the Hub instead of the dev box.
 
 **Idempotence.** ``HfApi.upload_folder`` is content-addressed: re-running
@@ -66,13 +66,13 @@ from typing import Any
 
 import yaml
 
-from lerobot_bench.checkpointing import (
+from embodimetry.checkpointing import (
     OPTIONAL_COLUMNS,
     REQUIRED_COLUMNS,
     load_results,
 )
-from lerobot_bench.leaderboard_filter import V1_POLICIES, filter_to_v1_policies
-from lerobot_bench.policies import PolicyRegistry
+from embodimetry.leaderboard_filter import V1_POLICIES, filter_to_v1_policies
+from embodimetry.policies import PolicyRegistry
 
 logger = logging.getLogger("publish-results")
 
@@ -87,7 +87,7 @@ _SWEEP_FULL_YAML = _REPO_ROOT / "configs" / "sweep_full.yaml"
 # Defaults                                                              #
 # --------------------------------------------------------------------- #
 
-DEFAULT_HUB_REPO = "thrmnn/lerobot-bench-v1"
+DEFAULT_HUB_REPO = "thrmnn/embodimetry-v1"
 DEFAULT_REVISION = "main"
 DEFAULT_MAX_VIDEO_MIB = 2.0  # mirrors the render ladder cap in DESIGN.md
 
@@ -337,7 +337,7 @@ def _preflight(
          back-filled by ``load_results``). This lets the existing parquet
          -- written before ``errored``/``eval_run_id`` existed -- publish.
       2. xvla rows are dropped via
-         :func:`lerobot_bench.leaderboard_filter.filter_to_v1_policies`
+         :func:`embodimetry.leaderboard_filter.filter_to_v1_policies`
          BEFORE any counting or MP4-reference check, so xvla cells +
          their MP4s are neither staged nor required on disk (xvla is
          deferred to v1.1 and excluded from the published dataset).

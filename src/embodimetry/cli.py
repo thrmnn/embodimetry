@@ -1,4 +1,4 @@
-"""Command-line entrypoint for ``lerobot-bench``.
+"""Command-line entrypoint for ``embodimetry``.
 
 Wired into ``[project.scripts]`` in ``pyproject.toml``. Subcommands will
 be added incrementally as the eval lib lands; for now this only exposes
@@ -10,18 +10,18 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
-from lerobot_bench.__version__ import __version__
+from embodimetry.__version__ import __version__
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="lerobot-bench",
+        prog="embodimetry",
         description="Multi-policy benchmark for pretrained LeRobot policies.",
     )
     parser.add_argument(
         "--version",
         action="version",
-        version=f"lerobot-bench {__version__}",
+        version=f"embodimetry {__version__}",
     )
     return parser
 

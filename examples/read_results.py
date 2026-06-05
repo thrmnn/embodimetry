@@ -5,7 +5,7 @@ loads the per-episode parquet, picks one ``(policy, env)`` pair, pools
 its seed cells into a flat list of binary outcomes, and reports the
 success rate with a Wilson 95% confidence interval.
 
-It uses the *real* public stats API — ``lerobot_bench.stats.wilson_ci``
+It uses the *real* public stats API — ``embodimetry.stats.wilson_ci``
 and ``wilson_halfwidth_at_p`` — so the number it prints matches what the
 leaderboard and ``docs/MDE_TABLE.md`` would show.
 
@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from lerobot_bench.stats import wilson_ci, wilson_halfwidth_at_p
+from embodimetry.stats import wilson_ci, wilson_halfwidth_at_p
 
 # Candidate parquet locations, in priority order. The full sweep writes
 # results/sweep-full/results.parquet; a local run_one.py writes
@@ -43,7 +43,7 @@ _DEFAULT_PARQUET_CANDIDATES = (
 def _synthetic_sample() -> pd.DataFrame:
     """A documented stand-in when no parquet is on disk.
 
-    Schema matches ``lerobot_bench.checkpointing.RESULT_SCHEMA`` for the
+    Schema matches ``embodimetry.checkpointing.RESULT_SCHEMA`` for the
     columns this example reads. The outcomes are an illustrative
     Bernoulli draw (success rate ~0.7), NOT a real benchmark result.
     """

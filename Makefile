@@ -31,7 +31,7 @@ test-fast:  ## Run only fast tests (skip sim and gpu marks)
 	$(PYTHON) -m pytest -m "not slow and not gpu and not sim"
 
 test-cov:  ## Run tests with coverage report
-	$(PYTHON) -m pytest --cov=lerobot_bench --cov-report=term-missing --cov-report=html
+	$(PYTHON) -m pytest --cov=embodimetry --cov-report=term-missing --cov-report=html
 
 clean:  ## Remove build artifacts and caches
 	rm -rf build/ dist/ *.egg-info src/*.egg-info
@@ -53,7 +53,7 @@ all: lint typecheck test  ## Lint + typecheck + test
 
 # Slug for the HF Space git remote; override if the Space lives elsewhere.
 HF_SPACE_REMOTE ?= hf-space
-HF_SPACE_URL    ?= https://huggingface.co/spaces/thrmnn/lerobot-bench
+HF_SPACE_URL    ?= https://huggingface.co/spaces/thrmnn/embodimetry
 
 calibrate:  ## Day 0b: per-policy step latency probe
 	$(PYTHON) scripts/calibrate.py
@@ -86,7 +86,7 @@ publish:  ## Push results to HF Hub dataset: pass `ARGS="--results-path ... --ma
 space-deploy:  ## Deploy space/ to the HF Space via subtree push (create the Space + remote first; see docs/RUNBOOK.md)
 	@git remote get-url $(HF_SPACE_REMOTE) >/dev/null 2>&1 || { \
 		echo "No '$(HF_SPACE_REMOTE)' remote. Create the Space + add the remote first:"; \
-		echo "  huggingface-cli repo create lerobot-bench --type space --space_sdk gradio"; \
+		echo "  huggingface-cli repo create embodimetry --type space --space_sdk gradio"; \
 		echo "  git remote add $(HF_SPACE_REMOTE) $(HF_SPACE_URL)"; \
 		exit 2; }
 	git subtree push --prefix space $(HF_SPACE_REMOTE) main

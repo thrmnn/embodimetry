@@ -47,11 +47,11 @@ updates:
     labels:
       - "dependencies"
       - "space"
-    # Reproducibility anchor — never auto-bump. The `git+...lerobot-bench`
+    # Reproducibility anchor — never auto-bump. The `git+...embodimetry`
     # VCS line is not name-tracked by dependabot and is excluded implicitly.
     ignore:
       - dependency-name: "lerobot"
-      - dependency-name: "lerobot-bench"
+      - dependency-name: "embodimetry"
     groups:
       space-deps:
         patterns:
@@ -72,7 +72,7 @@ updates:
       - "dashboard"
     ignore:
       - dependency-name: "lerobot"
-      - dependency-name: "lerobot-bench"
+      - dependency-name: "embodimetry"
     groups:
       dashboard-deps:
         patterns:

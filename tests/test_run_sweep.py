@@ -17,9 +17,9 @@ import pytest
 import yaml
 from scripts import run_sweep as rs
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA
-from lerobot_bench.envs import EnvRegistry
-from lerobot_bench.policies import PolicyRegistry
+from embodimetry.checkpointing import RESULT_SCHEMA
+from embodimetry.envs import EnvRegistry
+from embodimetry.policies import PolicyRegistry
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POLICIES_YAML = REPO_ROOT / "configs" / "policies.yaml"

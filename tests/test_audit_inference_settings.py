@@ -28,7 +28,7 @@ from scripts.audit_inference_settings import (
     render_markdown,
 )
 
-from lerobot_bench.policies import PolicyRegistry
+from embodimetry.policies import PolicyRegistry
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 POLICIES_YAML = REPO_ROOT / "configs/policies.yaml"

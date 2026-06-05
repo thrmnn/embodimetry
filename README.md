@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/logo.svg" alt="lerobot-bench" width="420">
+<img src="docs/assets/logo.svg" alt="embodimetry" width="420">
 
 ### A public, reproducible benchmark of pretrained LeRobot manipulation policies.
 
@@ -15,7 +15,7 @@
 
 **Quick links:** [Get started](docs/GETTING_STARTED.md) · [Paper (LaTeX source)](paper/main.tex) · [Bring your own env](docs/ENV_CONTRIBUTION_GUIDE.md) · [Contributing](CONTRIBUTING.md) · [Reproduce](docs/REPRODUCE.md)
 <picture>
-  <img src="docs/assets/fig-replication-scatter.png" alt="lerobot-bench replication scatter: lerobot-bench measured success rate vs. source-paper reported success rate for the v1 published policy×env cells, with 95% confidence intervals" width="820">
+  <img src="docs/assets/fig-replication-scatter.png" alt="embodimetry replication scatter: embodimetry measured success rate vs. source-paper reported success rate for the v1 published policy×env cells, with 95% confidence intervals" width="820">
 </picture>
 
 </div>
@@ -38,7 +38,7 @@
 > On broken norm, switching to paper inference settings does **nothing** (0.016 → 0.016). On fixed norm, Hub-default vs paper settings are **statistically indistinguishable** (0.812 vs 0.768, overlapping Wilson CIs) — **temporal ensembling is a wash, not the cause.** The ablation's fixed+Hub cell (0.812) and the leaderboard 0.824 are separate N=250 runs of the same condition, consistent within CI. Probe: [`scripts/probes/probe_act_normalization_ablation.py`](scripts/probes/probe_act_normalization_ablation.py) → [`results/probes/act-norm-ablation/`](results/probes/act-norm-ablation/) · fix: [PR #51](https://github.com/thrmnn/lerobot-bench/pull/51) · doc: [`docs/PROBE_RESULTS_V1.0.1.md`](docs/PROBE_RESULTS_V1.0.1.md).
 
 > **Second finding — SmolVLA on `libero_10` is single-task scope, not 10-task average.**
-> Measures **0.252** [0.202, 0.309] under the lerobot-bench v1 default protocol, against the **0.71** reported by Shukor et al. The v1.0.1 audit ([PR #84](https://github.com/thrmnn/lerobot-bench/pull/84) scope, [PR #89](https://github.com/thrmnn/lerobot-bench/pull/89) step cap) establishes this is a **single-task probe at a truncated step cap** (`task_id=0` × 5 seeds × 50 ep vs. the paper's 10 tasks × 10 trials/suite; 74.8% of failed episodes hit our 520-step cap vs. canonical 600). The 0.252 is real for that scope and is a **lower bound** at our cap; v1.1 closes both caveats via [PR #90](https://github.com/thrmnn/lerobot-bench/pull/90)'s selectable `--canonical` criterion + all-10-tasks LIBERO sweep. See [Methodology caveats](#methodology-caveats-v101-audit) below.
+> Measures **0.252** [0.202, 0.309] under the embodimetry v1 default protocol, against the **0.71** reported by Shukor et al. The v1.0.1 audit ([PR #84](https://github.com/thrmnn/lerobot-bench/pull/84) scope, [PR #89](https://github.com/thrmnn/lerobot-bench/pull/89) step cap) establishes this is a **single-task probe at a truncated step cap** (`task_id=0` × 5 seeds × 50 ep vs. the paper's 10 tasks × 10 trials/suite; 74.8% of failed episodes hit our 520-step cap vs. canonical 600). The 0.252 is real for that scope and is a **lower bound** at our cap; v1.1 closes both caveats via [PR #90](https://github.com/thrmnn/lerobot-bench/pull/90)'s selectable `--canonical` criterion + all-10-tasks LIBERO sweep. See [Methodology caveats](#methodology-caveats-v101-audit) below.
 
 ---
 
@@ -46,10 +46,10 @@
 
 Three artifacts, all open:
 
-1. **Public leaderboard** — Hugging Face Space + Hub dataset `thrmnn/lerobot-bench-v1` (v1.0.0, 110 cell-seed runs, 0 failures; 18 published cells). Every per-episode outcome, every rollout MP4, queryable by `(policy, env, seed, episode)`.
+1. **Public leaderboard** — Hugging Face Space + Hub dataset `thrmnn/embodimetry-v1` (v1.0.0, 110 cell-seed runs, 0 failures; 18 published cells). Every per-episode outcome, every rollout MP4, queryable by `(policy, env, seed, episode)`.
 
 2. **4-page arxiv writeup** — `paper/main.tex`. Methodology, related work, results, limitations. Every figure regenerated from `notebooks/01-write-finding.ipynb`.
-3. **Upstream-ready eval pipeline** — `src/lerobot_bench/eval.py` extracted as `lerobot.eval.multi_seed` in a follow-up PR to `huggingface/lerobot`.
+3. **Upstream-ready eval pipeline** — `src/embodimetry/eval.py` extracted as `lerobot.eval.multi_seed` in a follow-up PR to `huggingface/lerobot`.
 
 Two tools for running and inspecting it:
 
@@ -126,7 +126,7 @@ an activated Python 3.12 conda env (`conda activate lerobot`):
 
 ```bash
 # 1. Clone and install (editable, all extras: sim + viz + space + dev)
-git clone https://github.com/thrmnn/lerobot-bench.git && cd lerobot-bench
+git clone https://github.com/thrmnn/lerobot-bench.git && cd embodimetry
 pip install -e ".[all]"
 
 # 2. Run a single (policy, env, seed) cell — a few minutes (model download + 5 rollouts)
@@ -166,7 +166,7 @@ make dashboard
 # → http://127.0.0.1:7860
 
 # Or tail the log directly
-tail -F logs/sweep-$(cat /tmp/lerobot-bench-sweep-ts).log
+tail -F logs/sweep-$(cat /tmp/embodimetry-sweep-ts).log
 ```
 
 ---
@@ -174,8 +174,8 @@ tail -F logs/sweep-$(cat /tmp/lerobot-bench-sweep-ts).log
 ## Repo layout
 
 ```
-lerobot-bench/
-├── src/lerobot_bench/     # eval, stats, render, registries, checkpointing
+embodimetry/
+├── src/embodimetry/     # eval, stats, render, registries, checkpointing
 ├── scripts/               # entrypoints: calibrate, run_sweep, run_one, publish_results,
 │                          #             merge_calibration, auto_downscope,
 │                          #             run_capped, watchdog, launch_overnight_sweep
@@ -214,8 +214,8 @@ Every leaderboard row is anchored to:
 - The pinned `lerobot==0.5.1` PyPI release (recorded in `pyproject.toml`).
 - A pinned commit SHA per policy checkpoint (`configs/policies.yaml`, validated by tests).
 - A deterministic seeding contract documented in [`docs/DESIGN.md`](docs/DESIGN.md) § Methodology.
-- Wilson + bootstrap CIs from `src/lerobot_bench/stats.py` (audited; see PR #30 commit).
-- Cell-boundary checkpointing in `src/lerobot_bench/checkpointing.py` — `kill -9` during the sweep loses only the current cell.
+- Wilson + bootstrap CIs from `src/embodimetry/stats.py` (audited; see PR #30 commit).
+- Cell-boundary checkpointing in `src/embodimetry/checkpointing.py` — `kill -9` during the sweep loses only the current cell.
 
 Hardware reference: NVIDIA RTX 4060 Laptop (8 GB VRAM), 32 GB host RAM, Ubuntu on WSL2.
 
@@ -228,4 +228,4 @@ MIT. See [LICENSE](LICENSE).
 ## Citation
 
 The arxiv writeup pre-print lands alongside the v1.0.0 dataset upload. Until the arXiv ID is assigned, cite this repository using [`CITATION.cff`](CITATION.cff) (GitHub's "Cite this repository" widget reads it directly).
-<!-- TODO: add the arxiv BibTeX entry here once the ID is assigned (dataset is live at huggingface.co/datasets/thrmnn/lerobot-bench-v1). -->
+<!-- TODO: add the arxiv BibTeX entry here once the ID is assigned (dataset is live at huggingface.co/datasets/thrmnn/embodimetry-v1). -->

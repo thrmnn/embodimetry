@@ -1,7 +1,7 @@
-"""Policy registry for lerobot-bench.
+"""Policy registry for embodimetry.
 
 Pure data — no policy loading. The actual ``policy.from_pretrained``
-call lives in ``lerobot_bench.eval``; this module describes the
+call lives in ``embodimetry.eval``; this module describes the
 policies we plan to evaluate (HF Hub repo IDs, pinned revision SHAs,
 env compat, fp precision) so the eval loop can resolve a policy name
 to a runnable spec.

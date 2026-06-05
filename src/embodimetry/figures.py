@@ -1,4 +1,4 @@
-"""Parameterized figure-generation pipeline for lerobot-bench.
+"""Parameterized figure-generation pipeline for embodimetry.
 
 Three canonical figures (forest plot, ACT temporal-ensembling probe bar,
 paper-vs-measured replication scatter) render at three target styles
@@ -33,8 +33,8 @@ import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
 
-from lerobot_bench.policies import PolicyRegistry
-from lerobot_bench.stats import wilson_ci, wilson_halfwidth_at_p
+from embodimetry.policies import PolicyRegistry
+from embodimetry.stats import wilson_ci, wilson_halfwidth_at_p
 
 Style = Literal["paper", "deck", "web"]
 
@@ -211,7 +211,7 @@ def forest_plot(df: pd.DataFrame, *, style: Style, out_dir: Path) -> list[Path]:
     Source: ``results/sweep-full/results.parquet`` (PR #74). Each cell
     is one ``(policy, env)`` pair; pooled rate across the cell's
     ``5 × n_episodes_per_seed`` episodes, with Wilson 95% CI per
-    ``lerobot_bench.stats.wilson_ci`` (Wilson 1927; Agresti & Coull 1998).
+    ``embodimetry.stats.wilson_ci`` (Wilson 1927; Agresti & Coull 1998).
 
     xvla_libero rows are excluded (deferred from the v1 leaderboard per
     PR #82). The vertical dotted line is the random-baseline pooled rate

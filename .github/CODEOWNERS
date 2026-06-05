@@ -1,4 +1,4 @@
-# Code ownership for lerobot-bench.
+# Code ownership for embodimetry.
 # https://docs.github.com/articles/about-code-owners
 # Sole maintainer: @thrmnn. The catch-all covers everything; the
 # explicit lines below exist only to make ownership obvious at a glance
@@ -21,7 +21,7 @@
 /configs/       @thrmnn
 
 # Public read surfaces — keep these two in lockstep; both re-export the
-# v1-policy filter from src/lerobot_bench/leaderboard_filter.py.
+# v1-policy filter from src/embodimetry/leaderboard_filter.py.
 /dashboard/     @thrmnn
 /space/         @thrmnn
 

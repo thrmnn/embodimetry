@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Acquire the lerobot-bench GPU semaphore, then exec the command.
+# Acquire the embodimetry GPU semaphore, then exec the command.
 # Prevents two CUDA-touching processes from racing for the 8 GB VRAM budget.
 #
 # Usage:
@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-LOCK_FILE="${LEROBOT_GPU_LOCK:-/tmp/lerobot-bench-gpu.lock}"
+LOCK_FILE="${LEROBOT_GPU_LOCK:-/tmp/embodimetry-gpu.lock}"
 TIMEOUT=3600
 
 while [[ $# -gt 0 ]]; do

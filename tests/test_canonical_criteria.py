@@ -1,6 +1,6 @@
 """Tests for the v1.1 canonical-criterion path.
 
-Drives :func:`lerobot_bench.eval._run_one_episode` through synthetic
+Drives :func:`embodimetry.eval._run_one_episode` through synthetic
 ``ScriptedEnv`` rollouts so we can assert that:
 
 * ``criterion='v1_legacy'`` reproduces v1.0 behaviour bit-for-bit
@@ -24,14 +24,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA, append_cell_rows, load_results
-from lerobot_bench.envs import (
+from embodimetry.checkpointing import RESULT_SCHEMA, append_cell_rows, load_results
+from embodimetry.envs import (
     CRITERION_LABELS,
     CanonicalOverlay,
     EnvRegistry,
     EnvSpec,
 )
-from lerobot_bench.eval import EpisodeResult, _run_one_episode
+from embodimetry.eval import EpisodeResult, _run_one_episode
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENVS_YAML = REPO_ROOT / "configs" / "envs.yaml"

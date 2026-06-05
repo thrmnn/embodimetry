@@ -1,4 +1,4 @@
-"""Top-level orchestration scripts for lerobot-bench.
+"""Top-level orchestration scripts for embodimetry.
 
 These are CLI entrypoints rather than library code; they live outside
 ``src/`` because they are what the operator invokes directly. The

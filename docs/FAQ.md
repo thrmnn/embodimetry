@@ -1,7 +1,7 @@
 # FAQ
 
 Real questions a user, contributor, or reviewer asks about
-`lerobot-bench`, with short answers. Where a question has a deep answer,
+`embodimetry`, with short answers. Where a question has a deep answer,
 the answer points at the doc that owns it rather than duplicating it.
 
 New to the project? Start with [`docs/GETTING_STARTED.md`](GETTING_STARTED.md).
@@ -101,7 +101,7 @@ intact without exception.
 
 ### Can I look at results without installing anything?
 
-Yes. The [live leaderboard Space](https://huggingface.co/spaces/thrmnn/lerobot-bench)
+Yes. The [live leaderboard Space](https://huggingface.co/spaces/thrmnn/embodimetry)
 renders the full leaderboard, paired comparisons, and a browsable
 rollout video for every `(policy, env, seed, episode)`. Installation is
 only needed to *run* the benchmark locally.
@@ -325,6 +325,6 @@ a valid bit-for-bit reproduction of a GPU-measured cell. See
 `results/` is gitignored. A local run writes `results/results.parquet`
 (one row per episode) and `results/videos/*.mp4`. The published sweep's
 artifacts live on the HF Hub dataset
-[`thrmnn/lerobot-bench-v1`](https://huggingface.co/datasets/thrmnn/lerobot-bench-v1);
+[`thrmnn/embodimetry-v1`](https://huggingface.co/datasets/thrmnn/embodimetry-v1);
 pull them with `huggingface-cli download`. See
 [`docs/REPRODUCE.md`](REPRODUCE.md) § Prerequisites.

@@ -13,7 +13,7 @@ You own the meta-layer: the tooling, the workflows, the docs that describe how t
 - `.github/workflows/*.yml`:
   - `ci.yml` — lint + mypy + fast tests (no sim, no GPU). Already exists.
   - `release.yml` — on tag `v*`, build sdist + wheel, attach to GH release. TestPyPI publish gated behind a manual workflow_dispatch input.
-  - `smoke.yml` — daily cron, fresh install in a clean venv, `lerobot-bench --version`. Catches `lerobot==0.5.1` upstream breakage.
+  - `smoke.yml` — daily cron, fresh install in a clean venv, `embodimetry --version`. Catches `lerobot==0.5.1` upstream breakage.
   - `space-smoke.yml` — on `space/**` change, install Gradio, boot the app in the background, curl `/`, fail on 5xx.
 - `.github/dependabot.yml` — gh-actions ecosystem, weekly. Python deps are intentionally NOT auto-bumped (lerobot pin is sacred).
 - `docs/RUNBOOK.md` — operations: how to start/resume the sweep, OOM playbook, how to publish, how to roll back.

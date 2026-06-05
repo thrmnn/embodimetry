@@ -8,7 +8,7 @@ to confirm your install works before you read `docs/REPRODUCE.md` (verify a
 published cell) or `CONTRIBUTING.md` (add your own policy).
 
 > Just want to *look* at results? You do not need to install anything — open
-> the [live leaderboard](https://huggingface.co/spaces/thrmnn/lerobot-bench).
+> the [live leaderboard](https://huggingface.co/spaces/thrmnn/embodimetry).
 > This guide is for running the benchmark locally.
 
 ## Contents
@@ -49,20 +49,20 @@ extra is named `all` (it expands to `sim,viz,space,dev`, see
 
 ```bash
 git clone https://github.com/thrmnn/lerobot-bench.git
-cd lerobot-bench
+cd embodimetry
 pip install -e ".[all]"
 ```
 
 Verify the install and the `lerobot` pin in one shot:
 
 ```bash
-python -c "import lerobot_bench, lerobot; print('lerobot-bench OK; lerobot', lerobot.__version__)"
+python -c "import embodimetry, lerobot; print('embodimetry OK; lerobot', lerobot.__version__)"
 ```
 
 Expected output:
 
 ```
-lerobot-bench OK; lerobot 0.5.1
+embodimetry OK; lerobot 0.5.1
 ```
 
 If `lerobot.__version__` is **not** `0.5.1`, stop here — fix the env before
@@ -136,7 +136,7 @@ the policy attempt the task — this is how the failure taxonomy
 | Add your own pretrained policy to the benchmark | [`CONTRIBUTING.md`](../CONTRIBUTING.md) § Add a policy |
 | Run the full overnight sweep | [`docs/RUNBOOK.md`](RUNBOOK.md) § Running a sweep |
 | Understand the methodology (seeding, CIs, MDE, downscope) | [`docs/DESIGN.md`](DESIGN.md) |
-| Browse all results without installing anything | [Live leaderboard](https://huggingface.co/spaces/thrmnn/lerobot-bench) |
+| Browse all results without installing anything | [Live leaderboard](https://huggingface.co/spaces/thrmnn/embodimetry) |
 
 A quick smoke sweep (baselines only, minutes not hours) is also a good next
 step:

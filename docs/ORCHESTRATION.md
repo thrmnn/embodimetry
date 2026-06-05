@@ -45,7 +45,7 @@ for a wave regardless of GitHub owner. The current partition:
 
 `/dashboard/` and `/space/` are split across agents only when the change is
 surface-local; anything touching the shared v1-policy filter lives in
-`src/lerobot_bench/leaderboard_filter.py` (the `/src/` owner) so the two
+`src/embodimetry/leaderboard_filter.py` (the `/src/` owner) so the two
 read surfaces cannot drift apart.
 
 ## Dispatching a wave

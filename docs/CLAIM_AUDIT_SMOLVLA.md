@@ -10,7 +10,7 @@
 
 ## 1. One-sentence finding
 
-Per SmolVLA paper §4.1 "Simulated environments" (Shukor et al. 2025, arXiv:2506.01844, p. 8), the Table 2 LIBERO numbers ([Spatial 90, Object 96, Goal 92, Long 71] for the 0.45B variant we evaluate) are the average across **all 10 tasks per suite × 10 trials per task** — `lerobot-bench` v1 runs only `task_id=0` × 5 seeds × 50 episodes per suite, so a head-to-head claim against the published 0.71 is statistically incoherent until v1.1 widens our task coverage.
+Per SmolVLA paper §4.1 "Simulated environments" (Shukor et al. 2025, arXiv:2506.01844, p. 8), the Table 2 LIBERO numbers ([Spatial 90, Object 96, Goal 92, Long 71] for the 0.45B variant we evaluate) are the average across **all 10 tasks per suite × 10 trials per task** — `embodimetry` v1 runs only `task_id=0` × 5 seeds × 50 episodes per suite, so a head-to-head claim against the published 0.71 is statistically incoherent until v1.1 widens our task coverage.
 
 ## 2. Sources traced
 
@@ -52,11 +52,11 @@ Summary of the paper's protocol per cell:
 | Flow-matching denoise steps | 10 |
 | Inference mode | Synchronous (sim only — async is real-world only per §4.6) |
 
-## 4. Our protocol (lerobot-bench v1)
+## 4. Our protocol (embodimetry v1)
 
-Per `configs/envs.yaml` libero entries, `configs/policies.yaml` SmolVLA entry, and `src/lerobot_bench/eval.py`:
+Per `configs/envs.yaml` libero entries, `configs/policies.yaml` SmolVLA entry, and `src/embodimetry/eval.py`:
 
-| Field | lerobot-bench v1 |
+| Field | embodimetry v1 |
 | ----- | ---------------- |
 | Tasks per suite | **`task_id=0` only** (one task — the canonical first task per suite) |
 | Trials per task | 250 (5 seeds × 50 episodes) |
@@ -81,7 +81,7 @@ In all four cases the published number is a single scalar summarising 100 binary
 
 ## 6. What this rules in / out
 
-- **Rules in:** the *headline gap on task 0* is real and large. SmolVLA at `libero_10 task_id=0` is empirically 0.252 [0.202, 0.309] over 250 episodes; that fact is bit-reproducible from `thrmnn/lerobot-bench-v1` and not in dispute.
+- **Rules in:** the *headline gap on task 0* is real and large. SmolVLA at `libero_10 task_id=0` is empirically 0.252 [0.202, 0.309] over 250 episodes; that fact is bit-reproducible from `thrmnn/embodimetry-v1` and not in dispute.
 - **Rules out:** the claim "SmolVLA on libero_10 measures 0.252, not the paper-reported 0.71". This is not a defensible apples-to-apples comparison until either (a) we run all 10 tasks per suite at our protocol, or (b) the SmolVLA authors release per-task numbers we can compare task 0 against. Currently the paper releases only suite-averaged rates in Table 2.
 - **Does not rule out:** that the gap *survives* averaging over all 10 tasks. It's entirely possible that v1.1 finds suite-averaged SmolVLA × libero_10 ≈ 0.3–0.5 (still well below 0.71); the bound from a single task is `0.1 × 0.252 + 0.9 × <unknown>` where the unknown 9 tasks could in principle each score 1.0, putting the suite average at ≤ 0.925. The arithmetic permits the published 0.71 *and* permits a real gap.
 

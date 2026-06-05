@@ -15,7 +15,7 @@ numbers in ``docs/MDE_TABLE.md`` § 2b to the bit.
 
 This script imports nothing from torch / lerobot / gymnasium. It is safe
 to run on the CI box without GPU. Stats live entirely in
-``lerobot_bench.stats``.
+``embodimetry.stats``.
 
 Usage::
 
@@ -38,13 +38,13 @@ from pathlib import Path
 import numpy as np
 from numpy.typing import NDArray
 
-# Make ``lerobot_bench`` importable when the script is run from the repo root.
+# Make ``embodimetry`` importable when the script is run from the repo root.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _SRC = _REPO_ROOT / "src"
 if _SRC.is_dir() and str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from lerobot_bench.stats import paired_delta_bootstrap  # noqa: E402
+from embodimetry.stats import paired_delta_bootstrap  # noqa: E402
 
 # Locked grid — these are the columns / rows in docs/MDE_TABLE.md § 2.
 PS: tuple[float, ...] = (0.02, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.98)

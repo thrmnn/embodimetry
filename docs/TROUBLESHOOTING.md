@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Failure modes you are likely to hit running `lerobot-bench`, and the fix for
+Failure modes you are likely to hit running `embodimetry`, and the fix for
 each. Every entry gives a copy-paste command. If a script's own error message
 points you here, the matching section is below.
 

@@ -1,4 +1,4 @@
-"""Statistical helpers for lerobot-bench leaderboard claims.
+"""Statistical helpers for embodimetry leaderboard claims.
 
 See ``docs/DESIGN.md`` § Methodology for the protocol these functions
 implement: bootstrap CI over the flat list of (seed, episode) outcomes

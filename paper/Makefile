@@ -1,4 +1,4 @@
-# Build the lerobot-bench arxiv writeup.
+# Build the embodimetry arxiv writeup.
 # Standard incantation: pdflatex -> bibtex -> pdflatex -> pdflatex.
 # The double-final-pass resolves cross-references (table/figure
 # numbers, bibliography back-references) that the first post-bibtex

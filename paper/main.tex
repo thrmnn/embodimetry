@@ -1,4 +1,4 @@
-% lerobot-bench --- 4-page arXiv writeup (cs.RO primary, cs.LG secondary).
+% embodimetry --- 4-page arXiv writeup (cs.RO primary, cs.LG secondary).
 
 \documentclass[10pt]{article}
 
@@ -26,7 +26,7 @@
     urlcolor=blue!50!black,
 }
 
-\title{\vspace{-1.5ex}lerobot-bench: a multi-policy reproducible
+\title{\vspace{-1.5ex}embodimetry: a multi-policy reproducible
 evaluation suite for pretrained LeRobot policies\vspace{-0.5ex}}
 \author{Th\'eo Hermann\\
 \texttt{thermann.ai@gmail.com} \quad
@@ -45,7 +45,7 @@ evaluation suite for pretrained LeRobot policies\vspace{-0.5ex}}
 Reported success rates for pretrained LeRobot~\cite{cadene2024lerobot}
 policies live in self-reported tables across heterogeneous protocols,
 with no shared seed accounting or confidence intervals. We introduce
-\emph{lerobot-bench}, a public reproducible evaluation suite that runs
+\emph{embodimetry}, a public reproducible evaluation suite that runs
 a fixed roster of six policies --- four learned (Diffusion Policy, ACT,
 SmolVLA, XVLA) and two weights-free floor baselines (no-op,
 uniform-random) --- on six LeRobot sim envs (PushT, Aloha-transfer-cube,
@@ -94,10 +94,10 @@ derived. The result is a set of numbers in PDFs that cannot be trusted
 head-to-head --- a problem documented repeatedly in adjacent
 fields~\cite{henderson2018deep,agarwal2021deep}.
 
-We fill that gap with \emph{lerobot-bench}, released across three
+We fill that gap with \emph{embodimetry}, released across three
 surfaces: open data (a public Hugging Face
 Hub~\cite{huggingfacehub2024} dataset
-\texttt{thrmnn/lerobot-bench-v1} of every per-episode outcome plus an
+\texttt{thrmnn/embodimetry-v1} of every per-episode outcome plus an
 MP4 of every rollout, indexed by \textit{(policy, env, seed, episode)});
 open eval (a pinned, scriptable pipeline that re-derives any parquet row
 in $<1$\,h on commodity hardware, plus the resumable orchestrator that
@@ -495,7 +495,7 @@ inconclusive.
 
 \begin{itemize}\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}
     \item \textbf{Simulation only.} All numbers are sim; the sim-to-real
-    gap is unmeasured. lerobot-bench is a screening tool, not a
+    gap is unmeasured. embodimetry is a screening tool, not a
     substitute for hardware evaluation.
     \item \textbf{Single-hardware wall-clock.} Per-step latency is from
     one RTX~4060 laptop; absolute ms/step differs across GPUs, but the

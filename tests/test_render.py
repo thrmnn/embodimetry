@@ -1,4 +1,4 @@
-"""Tests for ``lerobot_bench.render``.
+"""Tests for ``embodimetry.render``.
 
 These run on synthetic deterministic frame stacks and stay fast (no sim
 env, no GPU). Outputs go to ``tmp_path`` only — the git-push hook
@@ -23,8 +23,8 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
-from lerobot_bench import render
-from lerobot_bench.render import (
+from embodimetry import render
+from embodimetry.render import (
     MAX_BYTES,
     RENDER_LADDER,
     EncoderSettings,
@@ -325,7 +325,7 @@ def test_render_ladder_long_episode_deterministic_in_subprocess(tmp_path: Path) 
     runner = (
         "import json, sys, numpy as np, pathlib;\n"
         f"sys.path.insert(0, {str(Path(__file__).resolve().parent.parent)!r});\n"
-        "from lerobot_bench.render import render_episode;\n"
+        "from embodimetry.render import render_episode;\n"
         "from tests.test_render import _make_smooth_motion;\n"
         "frames = _make_smooth_motion(t=600, noise_amp=15);\n"
         "out = pathlib.Path(sys.argv[1]);\n"

@@ -419,7 +419,7 @@ def render_thumbnail_strip(
 
 def _current_max_bytes() -> int:
     """Module-level lookup so tests can monkeypatch :data:`MAX_BYTES`."""
-    import lerobot_bench.render as _self  # local import to dodge cycle on init
+    import embodimetry.render as _self  # local import to dodge cycle on init
 
     value = _self.MAX_BYTES
     return int(value)

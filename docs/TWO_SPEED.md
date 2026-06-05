@@ -3,7 +3,7 @@
 **Status:** framing doc · planned, not shipped
 **Companions:** [`docs/PIPELINE_ROADMAP.md`](PIPELINE_ROADMAP.md) §0, §6 · [`docs/WM_RESEARCH_TRACK.md`](WM_RESEARCH_TRACK.md) · [`docs/DEFERRED_POLICIES.md`](DEFERRED_POLICIES.md)
 
-`lerobot-bench` runs at two speeds, on purpose. This document names the two lanes,
+`embodimetry` runs at two speeds, on purpose. This document names the two lanes,
 says what belongs in each, and pins down the **one** sanctioned write that crosses
 from research into the production benchmark.
 
@@ -18,7 +18,7 @@ clocks.
 
 ## The fast lane — production benchmark
 
-Everything that ships under the `lerobot-bench` name and feeds the public
+Everything that ships under the `embodimetry` name and feeds the public
 leaderboard.
 
 - **Scope.** The 6×6 policy×env matrix — 22 cells (18 published) × 5 seeds =
@@ -31,7 +31,7 @@ leaderboard.
   (`v1.0.x`, `v1.1`, …); old data stays published.
 - **Bar to merge.** Tests green, locked SHAs, every leaderboard number traceable to
   a parquet row. This is the lane the roadmap's §§1–5 describe.
-- **Lives in.** This repo (`lerobot-bench`), this toolchain, this CI.
+- **Lives in.** This repo (`embodimetry`), this toolchain, this CI.
 
 ## The slow lane — world-model research track
 
@@ -43,9 +43,9 @@ The exploratory effort to evaluate world-model / JEPA-style planners *as policie
 - **Clock.** Its own. Iterates freely; not gated behind the prod bench's release
   cadence and does not gate it either.
 - **Lives in.** A **separate repo** with its **own toolchain and dependencies** — it
-  does not impose its compute profile or dependency set on `lerobot-bench` users.
+  does not impose its compute profile or dependency set on `embodimetry` users.
 - **Status.** Planned, not shipped. No world-model `kind` dispatch exists in
-  `src/lerobot_bench/eval.py` today; adding one is explicitly out of scope for the
+  `src/embodimetry/eval.py` today; adding one is explicitly out of scope for the
   v1 wave.
 
 ---
@@ -60,12 +60,12 @@ Concretely:
 1. **One adapter PR, not a stream of changes.** When a planner is mature enough to
    benchmark, it enters the bench through exactly one PR that wires a world-model
    `kind` into `load_policy` — a future dispatch branch in
-   `src/lerobot_bench/eval.py`, alongside the existing baseline / `repo_id`
+   `src/embodimetry/eval.py`, alongside the existing baseline / `repo_id`
    branches. The planner is then scored by the *unchanged* eval machinery, exactly
    like any other policy. No new statistics, no new success rules, no bespoke path.
 
 2. **Gated off the leaderboard by default.** The adapter cell lands **behind the
-   leaderboard filter** — the same `src/lerobot_bench/leaderboard_filter.py`
+   leaderboard filter** — the same `src/embodimetry/leaderboard_filter.py`
    mechanism that defers `xvla_libero`. It is executed in the sweep and kept in the
    raw parquet for reproducibility, but **excluded from the public board** on read.
 
@@ -74,7 +74,7 @@ Concretely:
    a cell running green. Until promoted, world-model cells are exploratory, clearly
    labelled, and carry no leaderboard standing.
 
-This is the same posture `lerobot-bench` already takes with deferred policies: run
+This is the same posture `embodimetry` already takes with deferred policies: run
 it, keep the raw rows for reproducibility, but don't let an unvetted number stand on
 the public board. See [`docs/DEFERRED_POLICIES.md`](DEFERRED_POLICIES.md) for the
 existing precedent (xvla, pi-family).

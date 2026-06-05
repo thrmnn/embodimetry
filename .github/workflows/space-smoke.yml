@@ -74,7 +74,7 @@ jobs:
           if [ -f /tmp/space.pid ]; then kill "$(cat /tmp/space.pid)" 2>/dev/null || true; fi
 
   schema-drift:
-    # Guards against the Space's PINNED lerobot-bench lib (the
+    # Guards against the Space's PINNED embodimetry lib (the
     # ``git+...@<sha>`` line in space/requirements.txt) silently
     # disagreeing with the LIVE published parquet it reads at runtime.
     # The Space imports RESULT_SCHEMA/wilson_ci/filter_to_v1_policies from
@@ -93,7 +93,7 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install the PINNED lerobot-bench lib + parquet readers
+      - name: Install the PINNED embodimetry lib + parquet readers
         run: |
           pip install --upgrade pip
           # Reuse the exact pin the Space deploys with: the
@@ -102,7 +102,7 @@ jobs:
           # without hand-duplicating the SHA here.
           PIN="$(grep -E '^git\+https://github\.com/.+/lerobot-bench\.git@' space/requirements.txt)"
           if [ -z "$PIN" ]; then
-            echo "::error::could not find the pinned lerobot-bench git line in space/requirements.txt"
+            echo "::error::could not find the pinned embodimetry git line in space/requirements.txt"
             exit 1
           fi
           echo "Installing pinned lib: $PIN"
@@ -112,7 +112,7 @@ jobs:
         env:
           # Mirrors space/_helpers.py::HUB_DATASET_REPO. The Space reads
           # the parquet from this dataset's resolve/main at runtime.
-          PARQUET_URL: "https://huggingface.co/datasets/thrmnn/lerobot-bench-v1/resolve/main/results.parquet"
+          PARQUET_URL: "https://huggingface.co/datasets/thrmnn/embodimetry-v1/resolve/main/results.parquet"
         run: |
           python - <<'PY'
           import os

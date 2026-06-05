@@ -21,7 +21,7 @@ You own the public-facing surface: `space/`. This is what a HF reviewer clicks t
 
 ## Repo layout
 
-`space/` is its **own git repo** (separate remote at `huggingface.co/spaces/theoh-io/lerobot-bench`). The lerobot-bench repo's `space/` directory is pushed via `make space-deploy` → `git push hf-space main`. There's no GH Actions deploy.
+`space/` is its **own git repo** (separate remote at `huggingface.co/spaces/theoh-io/embodimetry`). The embodimetry repo's `space/` directory is pushed via `make space-deploy` → `git push hf-space main`. There's no GH Actions deploy.
 
 ```
 space/

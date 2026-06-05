@@ -59,7 +59,7 @@ the locked SHAs that carry forward.
   evaluations). The LeRobot Hub model card additionally reports
   **83.0%** on 500 episodes from a LeRobot retraining; the model card
   itself acknowledges the gap from the paper and attributes it to
-  `gym-aloha` success heuristics. lerobot-bench re-runs at 5 seeds ×
+  `gym-aloha` success heuristics. embodimetry re-runs at 5 seeds ×
   50 episodes per cell.
 - **Known failure modes**: Per-mode taxonomy labels (overshoot / slip /
   etc.) are a Day-7 hand-labeling pass and not yet in the parquet
@@ -77,7 +77,7 @@ the locked SHAs that carry forward.
 - **Caveats**: Paper vs. Hub-card success rates differ by ~33pp on the
   same nominal task — a head-to-head against any other number requires
   matching the success heuristic and episode budget, which is exactly
-  the comparability gap lerobot-bench exists to close.
+  the comparability gap embodimetry exists to close.
 - **Paper vs. measured (v1.0.2 correction — supersedes the v1.0.1
   "temporal ensembling" framing)**: the canonical leaderboard number is
   `act × aloha_transfer_cube` = **0.824** [0.772, 0.866] (Wilson 95% CI,
@@ -120,7 +120,7 @@ the locked SHAs that carry forward.
   underscore when mapping `buffer_*` keys back to feature keys, so
   `observation.images_top` was not being matched to
   `observation.images.top` and image normalization stats were silently
-  dropped for this checkpoint. See `src/lerobot_bench/eval.py`
+  dropped for this checkpoint. See `src/embodimetry/eval.py`
   → `_buffer_name_to_feature_key`. Downstream consumers loading via the
   pre-PR-#51 code path will get under-normalized images and ~2pp lower
   success on `aloha_transfer_cube`.
@@ -159,8 +159,8 @@ the locked SHAs that carry forward.
   al. 2023 (Table 2) report PushT as *target-area coverage* (0.91 max
   / 0.84 avg-of-last-10 for the image-CNN policy), a continuous metric
   that is not directly comparable to the binary success threshold
-  `gym-pusht` and lerobot-bench use. The Hub-card number is the
-  apples-to-apples reference. lerobot-bench re-runs at 5 seeds × 50
+  `gym-pusht` and embodimetry use. The Hub-card number is the
+  apples-to-apples reference. embodimetry re-runs at 5 seeds × 50
   episodes per cell.
 - **Known failure modes**: Per-mode taxonomy labels are a Day-7 pass and
   not yet in the parquet. Label-free signal: at the bench's `final_reward
@@ -177,7 +177,7 @@ the locked SHAs that carry forward.
 - **Caveats**: The paper's coverage metric and the benchmark's binary
   success metric measure different things; do not compare the 0.91
   coverage figure against any binary success rate.
-- **Paper vs. measured (v1.0.1 audit, PR #89)**: lerobot-bench v1
+- **Paper vs. measured (v1.0.1 audit, PR #89)**: embodimetry v1
   measures `diffusion_policy × pusht` = **0.816** [0.739, 0.874]
   (N=125 after auto-downscope), **+16.2 pp above** the 0.654
   Hub-card reference. The audit flags this gap as a **success-rule
@@ -232,7 +232,7 @@ the locked SHAs that carry forward.
   - `libero_goal`    = **0.92**
   - `libero_10`      = **0.71**  (paper's "Long" suite; Avg 87.3)
 
-  lerobot-bench re-runs at 5 seeds × 50 episodes per cell, ~5× more
+  embodimetry re-runs at 5 seeds × 50 episodes per cell, ~5× more
   rollouts than the paper, so CI widths should be tighter.
 - **Known failure modes**: Per-mode taxonomy labels are a Day-7 pass and
   not yet in the parquet. Label-free signal from the audit cap-hit-on-
@@ -253,7 +253,7 @@ the locked SHAs that carry forward.
   task difficulty. The `libero_10` (long-horizon) score is the lowest
   cell in the paper — long-horizon compositional tasks are the known
   weak point of this policy class.
-- **Paper vs. measured (v1.0.1 audit, PRs #84 + #89)**: lerobot-bench
+- **Paper vs. measured (v1.0.1 audit, PRs #84 + #89)**: embodimetry
   v1 measures, at `task_id=0` × 5 seeds × 50 episodes per suite
   (N=250 binary outcomes per cell):
   - `libero_spatial` = **0.776** [0.720, 0.823] (paper 0.90)
@@ -346,7 +346,7 @@ the locked SHAs that carry forward.
   - `libero_goal`    = **0.978**
   - `libero_10`      = **0.976**  (paper's "Long" suite; Avg 98.1)
 
-  lerobot-bench re-runs at 5 seeds × 50 episodes per cell.
+  embodimetry re-runs at 5 seeds × 50 episodes per cell.
 - **Known failure modes**: **Not taxonomy-classifiable.** xvla scores
   **0/10 across all four LIBERO suites** in our rollouts (success rate
   0.000 on every cell), and that 0% is attributed to an unresolved
@@ -372,11 +372,11 @@ the locked SHAs that carry forward.
   eval pipeline patches the postprocessor at load time by inserting
   `XVLARotation6DToAxisAngleProcessorStep` before the trailing
   `DeviceProcessorStep` — see
-  `src/lerobot_bench/eval.py:_patch_postprocessor_for_policy`.
+  `src/embodimetry/eval.py:_patch_postprocessor_for_policy`.
   Downstream consumers loading this checkpoint via vanilla
   `lerobot.policies.factory.make_pre_post_processors` will silently
   get zero-success rollouts. A complementary upstream PR is planned
-  (lerobot-bench task #62).
+  (embodimetry task #62).
 - **Wiring caveat (PR #74)**: The upstream `lerobot/xvla-libero` Hub
   `policy_preprocessor.json` declares `norm_map: {VISUAL: IDENTITY}`,
   so images **skip** ImageNet normalization on the input side even

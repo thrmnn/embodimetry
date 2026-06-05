@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use lerobot-bench in your research, please cite this repository. Once the accompanying arXiv paper is public, please cite the paper instead (see preferred-citation)."
-title: "lerobot-bench: a multi-policy reproducible evaluation suite for pretrained LeRobot policies"
+message: "If you use embodimetry in your research, please cite this repository. Once the accompanying arXiv paper is public, please cite the paper instead (see preferred-citation)."
+title: "embodimetry: a multi-policy reproducible evaluation suite for pretrained LeRobot policies"
 abstract: "A public, reproducible benchmark of pretrained LeRobot manipulation policies across PushT, Aloha, and LIBERO sim environments, with a multi-seed contract, Wilson and bootstrap confidence intervals, MDE bounds, paired comparisons, and a failure taxonomy."
 type: software
 version: 1.0.0
@@ -24,7 +24,7 @@ preferred-citation:
   type: article
   # Forthcoming arXiv preprint. The arXiv identifier is not yet assigned;
   # the placeholder below MUST be replaced with the real id once available.
-  title: "lerobot-bench: a multi-policy reproducible evaluation suite for pretrained LeRobot policies"
+  title: "embodimetry: a multi-policy reproducible evaluation suite for pretrained LeRobot policies"
   year: 2026
   authors:
     - family-names: Hermann

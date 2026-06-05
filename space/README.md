@@ -1,5 +1,5 @@
 ---
-title: lerobot-bench
+title: embodimetry
 emoji: 🤖
 colorFrom: indigo
 colorTo: purple
@@ -11,9 +11,9 @@ license: mit
 short_description: Public multi-policy benchmark for pretrained LeRobot policies.
 ---
 
-# lerobot-bench (HF Space)
+# embodimetry (HF Space)
 
-Public surface of the **lerobot-bench** project. Five tabs:
+Public surface of the **embodimetry** project. Five tabs:
 
 1. **Leaderboard** — per-cell success rate with Wilson 95% CIs.
 2. **Paired comparisons** — per-env Δsuccess between two policies with
@@ -24,7 +24,7 @@ Public surface of the **lerobot-bench** project. Five tabs:
    populate once the labeling pipeline ships `labels.json`.
 5. **About** — seeding contract, CI math, sparse-matrix policy.
 
-Data: [`thrmnn/lerobot-bench-v1`](https://huggingface.co/datasets/thrmnn/lerobot-bench-v1).
+Data: [`thrmnn/embodimetry-v1`](https://huggingface.co/datasets/thrmnn/embodimetry-v1).
 
 Code: <https://github.com/thrmnn/lerobot-bench>.
 

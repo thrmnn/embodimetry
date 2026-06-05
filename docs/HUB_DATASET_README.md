@@ -28,7 +28,7 @@ Public, reproducible evaluation of pretrained [LeRobot](https://github.com/huggi
 The headline cell is **`act` × `aloha_transfer_cube` = 0.824 [0.772, 0.866]** (Wilson 95% CI, N=250, Hub-default inference). This supersedes the earlier v1.0.0 reading of **0.016**, which was a normalization bug *in our own eval harness* — image observations were fed to ACT un-normalized — fixed in PR #51 and confirmed by a controlled 2×2 ablation (the recovery is 100% the normalization fix, 0% temporal ensembling). See `docs/MODEL_CARDS.md` § ACT and `docs/INFERENCE_AUDIT.md` for the full account.
 
 - **Code**: <https://github.com/thrmnn/lerobot-bench>
-- **Live leaderboard (HF Space)**: <https://huggingface.co/spaces/thrmnn/lerobot-bench>
+- **Live leaderboard (HF Space)**: <https://huggingface.co/spaces/thrmnn/embodimetry>
 - **Methodology**: see `docs/DESIGN.md` § Methodology in the GitHub repo.
 - **Statistical rigor doc**: see `docs/MDE_TABLE.md` for minimum-detectable-difference analysis at N=250.
 - **Failure taxonomy**: see `docs/FAILURE_TAXONOMY.md` for the six-mode rollout labeling rubric.
@@ -71,7 +71,7 @@ Per-policy provenance (revision SHAs, parameter scale, calibrated ms/step, paper
 | `n_steps` | int | Steps before terminated/truncated/max_steps |
 | `wallclock_s` | float | Wall-clock seconds for the episode |
 | `video_sha256` | str (nullable) | sha256 of the rendered MP4 if recorded |
-| `code_sha` | str | git SHA of the lerobot-bench commit that produced the row |
+| `code_sha` | str | git SHA of the embodimetry commit that produced the row |
 | `lerobot_version` | str | lerobot version (e.g., `0.5.1`) |
 | `timestamp_utc` | str | ISO 8601 UTC timestamp of the row write |
 | `errored` | bool | True if the episode crashed (OOM / env death) rather than failing the task. Back-filled `false` for rows written before the column existed. |
@@ -86,7 +86,7 @@ Per-policy provenance (revision SHAs, parameter scale, calibrated ms/step, paper
 ```python
 from datasets import load_dataset
 
-ds = load_dataset("thrmnn/lerobot-bench-v1", "results", split="train")
+ds = load_dataset("thrmnn/embodimetry-v1", "results", split="train")
 df = ds.to_pandas()  # one row per episode; columns per the schema above
 
 # Per-cell success rate (matches the leaderboard aggregation):
@@ -98,14 +98,14 @@ Or read the parquet directly without `datasets`:
 ```python
 import pandas as pd
 
-df = pd.read_parquet("hf://datasets/thrmnn/lerobot-bench-v1/results.parquet")
+df = pd.read_parquet("hf://datasets/thrmnn/embodimetry-v1/results.parquet")
 ```
 
 ## Reproducibility
 
 ```bash
 git clone https://github.com/thrmnn/lerobot-bench
-cd lerobot-bench
+cd embodimetry
 pip install -e .[dev]
 pip install -e /path/to/lerobot                 # until lerobot==0.5.1 is on PyPI
 huggingface-cli login                            # for re-publish only

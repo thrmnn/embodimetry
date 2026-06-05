@@ -1,16 +1,16 @@
-"""Tests for the ``lerobot-bench`` CLI entrypoint."""
+"""Tests for the ``embodimetry`` CLI entrypoint."""
 
 from __future__ import annotations
 
 import pytest
 
-from lerobot_bench import __version__
-from lerobot_bench.cli import build_parser, main
+from embodimetry import __version__
+from embodimetry.cli import build_parser, main
 
 
 def test_parser_builds() -> None:
     parser = build_parser()
-    assert parser.prog == "lerobot-bench"
+    assert parser.prog == "embodimetry"
 
 
 def test_version_flag_prints_version_and_exits(
@@ -28,4 +28,4 @@ def test_main_with_no_args_returns_zero(capsys: pytest.CaptureFixture[str]) -> N
     captured = capsys.readouterr()
     assert rc == 0
     # Help text mentions the program name.
-    assert "lerobot-bench" in captured.out
+    assert "embodimetry" in captured.out

@@ -1,4 +1,4 @@
-"""Tests for ``lerobot_bench.checkpointing``.
+"""Tests for ``embodimetry.checkpointing``.
 
 Pure pandas + pyarrow — no torch, no env, no GPU. These run in default CI.
 """
@@ -11,7 +11,7 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from lerobot_bench.checkpointing import (
+from embodimetry.checkpointing import (
     REQUIRED_COLUMNS,
     RESULT_SCHEMA,
     CellKey,

@@ -1,7 +1,7 @@
-# Release checklist — lerobot-bench v1.0.0
+# Release checklist — embodimetry v1.0.0
 
 The definitive, ordered list of everything that must be true to ship
-**lerobot-bench v1.0.0**. This doc is also the project's ship runbook: work it
+**embodimetry v1.0.0**. This doc is also the project's ship runbook: work it
 top to bottom, tick each box only when the referenced command actually
 succeeded.
 
@@ -14,7 +14,7 @@ phases across people — the version-triple bump and the tag must be done by the
 same hand.
 
 **Current state at time of writing:** overnight sweep in flight (~69/107
-cells); `VERSION`, `src/lerobot_bench/__version__.py`, and `pyproject.toml`
+cells); `VERSION`, `src/embodimetry/__version__.py`, and `pyproject.toml`
 all read `0.0.1`; `CHANGELOG.md` has a populated `[Unreleased]` section. None
 of the phases below are complete yet.
 
@@ -138,7 +138,7 @@ One real, defensible number — not a notebook full of placeholders.
       `scripts/publish_results.py` runs pre-flight gates (schema match,
       manifest parse, every `video_sha256` row has its MP4), stages into
       `_publish_staging/`, writes `_provenance.json`, and uploads to
-      `thrmnn/lerobot-bench-v1`. Exit `0` = clean; exit `2` = some
+      `thrmnn/embodimetry-v1`. Exit `0` = clean; exit `2` = some
       videos skipped on the size cap (inspect `_provenance.json#skipped_videos`
       and decide if acceptable); exit `3/4/5` = pre-flight / auth / upload
       failure — fix and re-run (the uploader is idempotent).
@@ -154,7 +154,7 @@ One real, defensible number — not a notebook full of placeholders.
       make space-deploy
       ```
       Then confirm the Space booted and serves the leaderboard:
-      `https://huggingface.co/spaces/thrmnn/lerobot-bench` returns 200 and the
+      `https://huggingface.co/spaces/thrmnn/embodimetry` returns 200 and the
       Leaderboard tab shows real cells. `space-smoke.yml` already boot-tests
       `app.py` on every `space/**` push; a green run there is the CI signal.
       Rollback if broken: `cd space && git push -f hf-space main~1:main`
@@ -166,7 +166,7 @@ One real, defensible number — not a notebook full of placeholders.
 - [ ] **One published cell verified end-to-end.** Pull the dataset back and
       reproduce a cell to prove the published parquet is sound:
       ```bash
-      huggingface-cli download thrmnn/lerobot-bench-v1 \
+      huggingface-cli download thrmnn/embodimetry-v1 \
           --repo-type dataset --local-dir results/sweep-full
       make reproduce CELL=act/aloha_transfer_cube/0
       ```
@@ -182,7 +182,7 @@ One real, defensible number — not a notebook full of placeholders.
 - [ ] **Version bumped in all three places, in lock-step.** `release.yml`
       hard-fails the build if they disagree:
       - `VERSION` → `1.0.0`
-      - `src/lerobot_bench/__version__.py` → `__version__ = "1.0.0"`
+      - `src/embodimetry/__version__.py` → `__version__ = "1.0.0"`
       - `pyproject.toml` `[project].version` → `1.0.0`
 - [ ] **Pre-Alpha classifier updated.** Bump
       `Development Status :: 2 - Pre-Alpha` in `pyproject.toml` to
@@ -193,7 +193,7 @@ One real, defensible number — not a notebook full of placeholders.
       `smoke.yml` / `install-smoke.yml` runs are all passing on the commit that
       will be tagged. Locally, `make all` (lint + typecheck + test) passes.
 - [ ] **Docs index in place.** `README.md` Quick links and the docs cross-refs
-      resolve; `docs/RUNBOOK.md` § Release a new lerobot-bench version is
+      resolve; `docs/RUNBOOK.md` § Release a new embodimetry version is
       accurate; no doc references a file that does not exist.
 - [ ] **Citation section filled.** `README.md` § Citation currently says the
       pre-print "lands when the sweep completes" — replace the placeholder with
@@ -229,7 +229,7 @@ One real, defensible number — not a notebook full of placeholders.
 
 ## Phase 7 — Upstream
 
-- [ ] **`lerobot.eval.multi_seed` PR opened.** `src/lerobot_bench/eval.py`'s
+- [ ] **`lerobot.eval.multi_seed` PR opened.** `src/embodimetry/eval.py`'s
       multi-seed eval pipeline is extracted and a PR opened against
       `huggingface/lerobot` (the third of the three v1 artifacts named in
       `README.md` § TL;DR). This can trail the release slightly but must be
@@ -249,7 +249,7 @@ git checkout main && git pull origin main
 make all                              # lint + typecheck + test must pass
 
 # 1. Bump the version triple — all three, same value.
-#    VERSION, src/lerobot_bench/__version__.py, pyproject.toml [project].version
+#    VERSION, src/embodimetry/__version__.py, pyproject.toml [project].version
 #    -> 1.0.0
 
 # 2. Update CHANGELOG.md: rename [Unreleased] -> [1.0.0] - <date>,
@@ -280,7 +280,7 @@ git push origin main --tags
 **If something goes wrong after tagging:** the tag is immutable. Do not
 `git tag -f`, do not delete and re-push. Fix the problem, bump to `v1.0.1`,
 and cut again — the next version supersedes the bad one. This is the same rule
-stated in `docs/RUNBOOK.md` § Release a new lerobot-bench version.
+stated in `docs/RUNBOOK.md` § Release a new embodimetry version.
 
 **Non-negotiables, repeated because they bite:**
 

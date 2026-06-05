@@ -35,8 +35,8 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA
-from lerobot_bench.stats import wilson_ci
+from embodimetry.checkpointing import RESULT_SCHEMA
+from embodimetry.stats import wilson_ci
 
 # space/ is a sibling of tests/, not on the default sys.path. Add it so
 # we can import the helpers as ``_helpers`` directly. The test file is

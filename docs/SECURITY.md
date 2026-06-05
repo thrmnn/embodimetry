@@ -1,6 +1,6 @@
 # Security Policy
 
-`lerobot-bench` is a public research benchmark, not production infrastructure.
+`embodimetry` is a public research benchmark, not production infrastructure.
 The threat surface is small: there is no user authentication, no PII, and no
 payments. This policy documents how to report a vulnerability and what to expect.
 
@@ -18,7 +18,7 @@ When `1.0` ships, this table will track the current minor series.
 ## Surface
 
 - **Public artifacts:** this GitHub repo, a Hugging Face Hub dataset
-  (`thrmnn/lerobot-bench-v1`, read-only public), and a Hugging Face
+  (`thrmnn/embodimetry-v1`, read-only public), and a Hugging Face
   Space (read-only public Gradio app). The Space reads only the published
   dataset; it runs no policy inference and loads no model checkpoints.
 - **Local secrets:** an HF Hub token (write scope, used only for
@@ -35,7 +35,7 @@ Preferred: use GitHub's **private vulnerability reporting** —
 on the repo, go to the *Security* tab → *Report a vulnerability*. This keeps the
 report private until a fix is published.
 
-Alternative: email `thermann.ai@gmail.com` with `[lerobot-bench security]` in
+Alternative: email `thermann.ai@gmail.com` with `[embodimetry security]` in
 the subject line. Include the affected file/version, a description, and a
 proof-of-concept or reproduction steps if you have one.
 

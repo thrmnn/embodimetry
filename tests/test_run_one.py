@@ -3,7 +3,7 @@
 Same pattern as ``tests/test_calibrate.py``: drive the script's pure
 orchestration with monkeypatched in-process fakes. No torch, no
 lerobot, no gymnasium — every cell-execution test substitutes
-:func:`lerobot_bench.eval.run_cell_from_specs` with a builder that
+:func:`embodimetry.eval.run_cell_from_specs` with a builder that
 returns a synthetic :class:`CellResult`.
 
 The "real registries" tests (#3, #4) deliberately depend on the
@@ -27,8 +27,8 @@ import pandas as pd
 import pytest
 from scripts import run_one as ro
 
-from lerobot_bench.checkpointing import RESULT_SCHEMA
-from lerobot_bench.eval import CellResult, EpisodeResult
+from embodimetry.checkpointing import RESULT_SCHEMA
+from embodimetry.eval import CellResult, EpisodeResult
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POLICIES_YAML = REPO_ROOT / "configs" / "policies.yaml"
@@ -130,13 +130,13 @@ def _patch_run_cell(monkeypatch: pytest.MonkeyPatch, cell: CellResult) -> None:
 
     Uses ``monkeypatch.setattr`` against the imported eval module rather
     than the orchestrator's namespace because :func:`scripts.run_one.run_one`
-    does ``from lerobot_bench import eval as eval_mod`` at call time.
+    does ``from embodimetry import eval as eval_mod`` at call time.
     """
 
     def _stub(*_args: Any, **_kwargs: Any) -> CellResult:
         return cell
 
-    from lerobot_bench import eval as eval_mod
+    from embodimetry import eval as eval_mod
 
     monkeypatch.setattr(eval_mod, "run_cell_from_specs", _stub)
 
@@ -284,14 +284,14 @@ def _module_imports_torch_at_top_level() -> bool:
                     return True
                 if alias.name == "lerobot" or alias.name.startswith("lerobot."):
                     return True
-                if alias.name == "lerobot_bench.render":
+                if alias.name == "embodimetry.render":
                     return True
         if isinstance(node, ast.ImportFrom) and node.module is not None:
             if node.module == "torch" or node.module.startswith("torch."):
                 return True
             if node.module == "lerobot" or node.module.startswith("lerobot."):
                 return True
-            if node.module == "lerobot_bench.render":
+            if node.module == "embodimetry.render":
                 return True
     return False
 
@@ -468,7 +468,7 @@ def test_run_one_forwards_eval_run_id(
         captured.update(kwargs)
         return _fake_cell_result(n=2, n_success=2, eval_run_id=kwargs.get("eval_run_id", ""))
 
-    from lerobot_bench import eval as eval_mod
+    from embodimetry import eval as eval_mod
 
     monkeypatch.setattr(eval_mod, "run_cell_from_specs", _stub)
     _patch_lerobot_available(monkeypatch)

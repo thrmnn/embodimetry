@@ -13,7 +13,7 @@ Owner when reviewing failures: `bench-eval-engineer`.
 
 ## Prerequisites
 
-- `cd /home/theo/projects/lerobot-bench` and the `lerobot` conda env active.
+- `cd /home/theo/projects/embodimetry` and the `lerobot` conda env active.
 - `make all` green on the current commit.
 - `python -c "import lerobot; print(lerobot.__version__)"` prints `0.5.1`.
   - If not: `pip install -e /home/theo/projects/lerobot` until upstream
@@ -88,7 +88,7 @@ env_cfg=None, rename_map=None) -> PreTrainedPolicy`. Shape inference
 needs either dataset metadata or env config, neither of which we
 have at eval time, so we go through `from_pretrained` directly.
 
-What we actually do (see `src/lerobot_bench/eval._load_pretrained_policy`):
+What we actually do (see `src/embodimetry/eval._load_pretrained_policy`):
 
 ```python
 import lerobot.policies.factory as _lerobot_factory  # registers all PreTrainedConfig choices

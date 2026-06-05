@@ -6,13 +6,13 @@ doubles as a spot-check tool — useful for re-running a single OOMed cell
 after the sweep, or for poking at one row before the matrix runs overnight.
 
 The orchestration mirrors :mod:`scripts.calibrate` style for consistency:
-lazy-imports for ``torch`` / ``lerobot`` / ``lerobot_bench.render``, an
+lazy-imports for ``torch`` / ``lerobot`` / ``embodimetry.render``, an
 exit-code-driven CLI, and a pure-orchestration :func:`run_one` function
 that the tests can drive without touching real lerobot/torch.
 
 **On error capture**: rows produced by :meth:`CellResult.to_rows` carry
 the optional boolean ``errored`` column (audit H3): a per-episode
-exception captured by :func:`lerobot_bench.eval.run_cell` shows up as a
+exception captured by :func:`embodimetry.eval.run_cell` shows up as a
 ``success=False, errored=True`` row with zeroed timing fields, so an
 OOM/env-crash is distinguishable from a legit task failure and
 ``plan_resume`` re-runs the cell. The full human-readable error string
@@ -52,12 +52,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from lerobot_bench.checkpointing import append_cell_rows
-from lerobot_bench.envs import EnvRegistry, EnvSpec
-from lerobot_bench.policies import PolicyRegistry, PolicySpec
+from embodimetry.checkpointing import append_cell_rows
+from embodimetry.envs import EnvRegistry, EnvSpec
+from embodimetry.policies import PolicyRegistry, PolicySpec
 
 if TYPE_CHECKING:
-    from lerobot_bench.eval import CellResult
+    from embodimetry.eval import CellResult
 
 logger = logging.getLogger("run-one")
 
@@ -180,7 +180,7 @@ def render_episodes_to_videos(
     """Per-episode MP4 SHA list parallel to ``cell_result.episodes``.
 
     The actual encoding now happens *inside*
-    :func:`lerobot_bench.eval.run_cell` (streaming, one episode at a
+    :func:`embodimetry.eval.run_cell` (streaming, one episode at a
     time) so that the working set never holds more than one episode's
     frames -- previously every episode's frames were buffered until the
     cell finished and the sweep OOMed at ~18 GB on aloha-class cells.
@@ -265,7 +265,7 @@ def run_one(
     Then, if ``dry_run`` is True, return immediately with exit 0 — no
     torch import, no eval call, no parquet write.
 
-    Otherwise: call :func:`lerobot_bench.eval.run_cell_from_specs`,
+    Otherwise: call :func:`embodimetry.eval.run_cell_from_specs`,
     optionally render videos, append rows atomically. If any episode
     errored, the exit code is 2 (rows still appended).
 
@@ -359,7 +359,7 @@ def run_one(
     # Cell execution. Lazy-import eval here so the dry-run path stays
     # torch-free (eval imports torch lazily but its module-level
     # `import pandas` is already cheap).
-    from lerobot_bench import eval as eval_mod
+    from embodimetry import eval as eval_mod
 
     # Streaming MP4 encode: pass ``videos_dir`` so ``run_cell`` encodes
     # each episode's frames as soon as that episode finishes and drops

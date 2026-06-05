@@ -32,7 +32,7 @@ to send a PR for whichever resolution path the maintainers prefer (see
 
 The probe script (5 seeds × 50 episodes on `aloha_transfer_cube`, otherwise
 identical to our v1.0.0 sweep) lives in
-[`thrmnn/lerobot-bench`](https://github.com/thrmnn/lerobot-bench):
+[`thrmnn/embodimetry`](https://github.com/thrmnn/lerobot-bench):
 
 - Script: <https://github.com/thrmnn/lerobot-bench/blob/main/scripts/probes/probe_act_temporal_ensemble.py>
 - Results doc: <https://github.com/thrmnn/lerobot-bench/blob/main/docs/PROBE_RESULTS_V1.0.1.md>
@@ -108,7 +108,7 @@ already documents `0.01` as "the default value used by the original ACT work."
 ## Why we're filing this now
 
 We're publishing a multi-policy benchmark
-([lerobot-bench v1.0.0](https://github.com/thrmnn/lerobot-bench), 5 policies ×
+([embodimetry v1.0.0](https://github.com/thrmnn/lerobot-bench), 5 policies ×
 4 envs, 5 seeds × 50 episodes per cell, ~3,800 episodes total) that uses
 `lerobot` policies verbatim with their Hub defaults. Our v1.0.0 leaderboard
 reads ACT at 0.016 on `aloha_transfer_cube` — which made us doubt the

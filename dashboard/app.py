@@ -1192,10 +1192,10 @@ def build_app() -> gr.Blocks:
     shouting a wall of project pitch at the operator on every paint.
     """
     with gr.Blocks(
-        title="lerobot-bench sweep dashboard",
+        title="embodimetry sweep dashboard",
         theme=gr.themes.Default(),
     ) as demo:
-        gr.Markdown("# lerobot-bench — sweep dashboard")
+        gr.Markdown("# embodimetry — sweep dashboard")
         with gr.Accordion("Diagnostics", open=False):
             gr.Markdown(resolved_paths_banner_markdown())
 

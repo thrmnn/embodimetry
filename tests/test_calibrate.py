@@ -34,8 +34,8 @@ from scripts.calibrate import (
     write_report,
 )
 
-from lerobot_bench.envs import EnvRegistry
-from lerobot_bench.policies import PolicyRegistry
+from embodimetry.envs import EnvRegistry
+from embodimetry.policies import PolicyRegistry
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POLICIES_YAML = REPO_ROOT / "configs" / "policies.yaml"

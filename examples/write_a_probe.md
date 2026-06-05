@@ -30,7 +30,7 @@ The reference probes demonstrate two ways to inject the modified condition.
 
 ### Pattern A — monkey-patch the policy config
 
-When the variable you want to change is **on the policy config object** (anything `PreTrainedConfig` carries — inference settings, head dimensions, action-chunk size, dropout, etc.), monkey-patch `lerobot.configs.policies.PreTrainedConfig.from_pretrained` before calling `lerobot_bench.eval.run_cell_from_specs`.
+When the variable you want to change is **on the policy config object** (anything `PreTrainedConfig` carries — inference settings, head dimensions, action-chunk size, dropout, etc.), monkey-patch `lerobot.configs.policies.PreTrainedConfig.from_pretrained` before calling `embodimetry.eval.run_cell_from_specs`.
 
 ```python
 from lerobot.configs.policies import PreTrainedConfig
@@ -57,7 +57,7 @@ When the variable is **on the env spec** (`max_steps`, `success_threshold`, `gym
 
 ```python
 import dataclasses
-from lerobot_bench.envs import EnvRegistry
+from embodimetry.envs import EnvRegistry
 
 env_reg = EnvRegistry.from_yaml("configs/envs.yaml")
 base_env_spec = env_reg.get("libero_10")          # max_steps=520 (v1 default)

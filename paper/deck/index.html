@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920, initial-scale=1">
-<title>lerobot-bench v1 — does pretrained robot software actually work?</title>
+<title>embodimetry v1 — does pretrained robot software actually work?</title>
 <meta name="description" content="A reproducible benchmark of 5 pretrained robot policies × 6 simulated environments. 5,250 episodes, 25 hours, every per-episode result open.">
 <link rel="icon" href="../../docs/assets/mark.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -462,7 +462,7 @@ pre.code .v{color:var(--ink);}
 <div id="overview">
   <header class="ov-head">
     <div class="left">
-      <div class="ov-eyebrow"><span class="dot"></span>lerobot-bench · v1.0.0 · 2026</div>
+      <div class="ov-eyebrow"><span class="dot"></span>embodimetry · v1.0.0 · 2026</div>
       <h1 class="ov-h1">Does pretrained robot software <span class="em">actually</span> work?</h1>
       <div class="ov-sub">
         A reproducible benchmark of 5 pretrained robot policies × 6 simulated environments.
@@ -514,7 +514,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide active center" data-section="context" data-cap="Prelude · skippable for those already familiar with the field.">
   <div class="chrome context">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench · prelude</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · prelude</div>
     <div class="num">C1<span class="of">/</span>C5</div>
   </div>
   <div style="max-width:1500px;">
@@ -542,7 +542,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="context" data-cap="The 4 learned policies — what they are, how they work, what they were trained on.">
   <div class="chrome context">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench · prelude</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · prelude</div>
     <div class="num">C2<span class="of">/</span>C5</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -693,7 +693,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="context" data-cap="How the 4 policies trade off — at a glance.">
   <div class="chrome context">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench · prelude</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · prelude</div>
     <div class="num">C3<span class="of">/</span>C5</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -776,7 +776,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="context" data-cap="The 2 baselines — why every benchmark needs a floor.">
   <div class="chrome context">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench · prelude</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · prelude</div>
     <div class="num">C4<span class="of">/</span>C5</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -824,7 +824,7 @@ pre.code .v{color:var(--ink);}
   <div class="body" style="margin-top:24px;font-size:18px;color:var(--mute);">
     A learned policy that doesn't beat these floors is not actually learning the task — it's exploiting the env.
   </div>
-  <div class="foot"><span>src/lerobot_bench/policies.py</span><span class="src">no_op + random = 12 of 22 runnable cells (2 baselines × 6 envs)</span></div>
+  <div class="foot"><span>src/embodimetry/policies.py</span><span class="src">no_op + random = 12 of 22 runnable cells (2 baselines × 6 envs)</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -832,7 +832,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="context" data-cap="The 6 simulated environments — every preview shows actual completion.">
   <div class="chrome context">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench · prelude</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · prelude</div>
     <div class="num">C5<span class="of">/</span>C5</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -878,7 +878,7 @@ pre.code .v{color:var(--ink);}
     </div>
 
   </div>
-  <div class="foot"><span>all clips: real rollouts from results/sweep-full/videos · 256 × 256 px renders · MuJoCo</span><span class="src">src/lerobot_bench/envs.py</span></div>
+  <div class="foot"><span>all clips: real rollouts from results/sweep-full/videos · 256 × 256 px renders · MuJoCo</span><span class="src">src/embodimetry/envs.py</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -909,7 +909,7 @@ pre.code .v{color:var(--ink);}
     <div class="eyebrow" style="margin-bottom:32px;">the question</div>
     <div class="h-mega">Does pretrained<br>robot software<br><span class="em">actually</span> work?</div>
   </div>
-  <div class="foot" style="z-index:2;"><span>lerobot-bench · v1.0.0</span><span class="src">20 talk slides · background is moving</span></div>
+  <div class="foot" style="z-index:2;"><span>embodimetry · v1.0.0</span><span class="src">20 talk slides · background is moving</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -917,7 +917,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="The replication gap, in one table.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">02<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:36px;">
@@ -944,7 +944,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="What a robot policy actually is — pixels → torques.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">03<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:36px;">
@@ -998,7 +998,7 @@ pre.code .v{color:var(--ink);}
   <div class="body" style="margin-top:24px;max-width:1500px;font-size:22px;">
     Train it on demonstration videos. Ship the weights to Hugging Face. Anyone downloads and runs it. <span class="serif-it" style="color:var(--dim);">— or so the story goes.</span>
   </div>
-  <div class="foot"><span>image observation · proprioception → action chunk</span><span class="src">src/lerobot_bench/eval.py</span></div>
+  <div class="foot"><span>image observation · proprioception → action chunk</span><span class="src">src/embodimetry/eval.py</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1006,7 +1006,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="The 5×6 evaluation matrix.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">04<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1051,7 +1051,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="Same model, same task — different outcomes (live).">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">05<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1081,7 +1081,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide center dark" data-section="main" data-cap="The headline gap — paper vs measured.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">06<span class="of">/</span>22</div>
   </div>
   <div style="max-width:1620px;width:100%;">
@@ -1110,7 +1110,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="Methodology — what we verified before making the claim.">
   <div class="chrome rigor">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench · methodology</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · methodology</div>
     <div class="num">07<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1151,7 +1151,7 @@ pre.code .v{color:var(--ink);}
       </div>
     </div>
   </div>
-  <div class="foot"><span>scripts/audit_processor.py · src/lerobot_bench/stats.py · docs/MDE_TABLE.md</span><span class="src">all checks scripted &amp; rerunnable</span></div>
+  <div class="foot"><span>scripts/audit_processor.py · src/embodimetry/stats.py · docs/MDE_TABLE.md</span><span class="src">all checks scripted &amp; rerunnable</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1159,7 +1159,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="Methodology — what we have NOT yet ruled out.">
   <div class="chrome rigor">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench · methodology</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · methodology</div>
     <div class="num">08<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1203,7 +1203,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="SmolVLA across all four LIBERO suites — full chart.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">09<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1221,7 +1221,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="Where pretrained reproduces — and where it doesn't.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">10<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1251,7 +1251,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="The honest floor — random does 5.2% on one env.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">11<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1284,7 +1284,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide center" data-section="main" data-cap="The protocol — 5 seeds × 50 episodes per cell.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">12<span class="of">/</span>22</div>
   </div>
   <div style="max-width:1620px;width:100%;">
@@ -1306,7 +1306,7 @@ pre.code .v{color:var(--ink);}
       The seed triple <span class="mono ink">(env, action, policy)</span> makes parquet rows bit-reproducible.
     </div>
   </div>
-  <div class="foot"><span>src/lerobot_bench/checkpointing.py</span><span class="src">5,250 episodes total · 25 h wall</span></div>
+  <div class="foot"><span>src/embodimetry/checkpointing.py</span><span class="src">5,250 episodes total · 25 h wall</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1314,7 +1314,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="XVLA deferral — two patched + one unresolved upstream bug.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">13<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1349,7 +1349,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="The infrastructure that survives 25 hours unattended.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">14<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1396,7 +1396,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="Four artifacts shipping under MIT.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">15<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1408,13 +1408,13 @@ pre.code .v{color:var(--ink);}
       <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
       <div class="name">Hugging Face Space</div>
       <div class="desc">Public leaderboard, paired comparisons, rollout videos on click.</div>
-      <div class="url">hf.co/spaces/thrmnn/lerobot-bench</div>
+      <div class="url">hf.co/spaces/thrmnn/embodimetry</div>
     </div>
     <div class="tile">
       <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6"/></svg></div>
       <div class="name">Hub Dataset</div>
       <div class="desc">Every per-episode row. Every MP4. Queryable.</div>
-      <div class="url">hf.co/datasets/thrmnn/lerobot-bench-v1</div>
+      <div class="url">hf.co/datasets/thrmnn/embodimetry-v1</div>
     </div>
     <div class="tile">
       <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg></div>
@@ -1437,7 +1437,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="Five minutes to first verified result.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">16<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:36px;">
@@ -1445,7 +1445,7 @@ pre.code .v{color:var(--ink);}
     <h2 class="h-2">Run your own cell.</h2>
   </div>
   <div class="term">
-    <div class="line"><span class="prompt">$</span> git clone github.com/thrmnn/lerobot-bench &amp;&amp; cd lerobot-bench</div>
+    <div class="line"><span class="prompt">$</span> git clone github.com/thrmnn/lerobot-bench &amp;&amp; cd embodimetry</div>
     <div class="line"><span class="prompt">$</span> pip install -e ".[all]"</div>
     <div class="line"><span class="comment"># run one cell — 5 episodes, ~2 minutes on a GPU</span></div>
     <div class="line"><span class="prompt">$</span> python scripts/run_one.py --policy act --env aloha_transfer_cube --seed 0 --n-episodes 5</div>
@@ -1455,7 +1455,7 @@ pre.code .v{color:var(--ink);}
     <div class="line" style="color:var(--mute);">  → results/.../videos/*.mp4</div>
   </div>
   <div class="body" style="margin-top:24px;font-size:20px;">
-    Or skip straight to the leaderboard: <span class="mono ink">hf.co/spaces/thrmnn/lerobot-bench</span>
+    Or skip straight to the leaderboard: <span class="mono ink">hf.co/spaces/thrmnn/embodimetry</span>
   </div>
   <div class="foot"><span>docs/GETTING_STARTED.md · CONTRIBUTING.md</span><span class="src">python 3.12 · pip · git</span></div>
 </section>
@@ -1465,7 +1465,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="Add a policy in one PR — six lines of YAML.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">17<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:36px;">
@@ -1491,7 +1491,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="Three honest limits — the rest are in the paper.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">18<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:36px;">
@@ -1526,7 +1526,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="How we say 'different' — Wilson, bootstrap, MDE.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">19<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:36px;">
@@ -1541,7 +1541,7 @@ pre.code .v{color:var(--ink);}
   <div class="body" style="margin-top:28px;font-size:19px;">
     A stats reviewer holds <em>veto authority</em> on every numeric claim. Every chart caption is a defensible interval.
   </div>
-  <div class="foot"><span>src/lerobot_bench/stats.py · docs/MDE_TABLE.md</span><span class="src">α = 0.05 two-sided</span></div>
+  <div class="foot"><span>src/embodimetry/stats.py · docs/MDE_TABLE.md</span><span class="src">α = 0.05 two-sided</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1549,7 +1549,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="main" data-cap="v1.1 — what we'd add next.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">20<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:36px;">
@@ -1572,7 +1572,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide center" data-section="main" data-cap="Standing on open shoulders.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">21<span class="of">/</span>22</div>
   </div>
   <div style="max-width:1620px;">
@@ -1595,7 +1595,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide center dark" data-section="main" data-cap="The takeaway — the protocol is the contribution.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">22<span class="of">/</span>22</div>
   </div>
   <div style="text-align:left;max-width:1620px;">
@@ -1613,7 +1613,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="outro" data-cap="Supplementary — paper vs measured, all 5 points.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench · supplementary</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · supplementary</div>
     <div class="num">S1<span class="of">/</span>S2</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
@@ -1634,7 +1634,7 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <section class="slide" data-section="outro" data-cap="Supplementary — research extensions beyond v1.x.">
   <div class="chrome">
-    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> lerobot-bench · supplementary</div>
+    <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · supplementary</div>
     <div class="num">S2<span class="of">/</span>S2</div>
   </div>
   <div class="title-block" style="margin-top:32px;">

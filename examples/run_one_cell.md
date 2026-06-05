@@ -72,7 +72,7 @@ Useful flags: `--no-record-video` skips the MP4 render entirely;
 
 The cell appended one row **per episode** to `results/results.parquet`.
 That parquet has one row per `(policy, env, seed, episode_index)` with
-this schema (`lerobot_bench.checkpointing.RESULT_SCHEMA`):
+this schema (`embodimetry.checkpointing.RESULT_SCHEMA`):
 
 | Column | Meaning |
 |---|---|
@@ -85,7 +85,7 @@ this schema (`lerobot_bench.checkpointing.RESULT_SCHEMA`):
 | `n_steps` | steps taken before termination/truncation |
 | `wallclock_s` | episode wall-clock time |
 | `video_sha256` | SHA-256 of the rendered MP4 (`""` if no video) |
-| `code_sha` | `lerobot-bench` commit SHA |
+| `code_sha` | `embodimetry` commit SHA |
 | `lerobot_version` | pinned `lerobot` version (`0.5.1`) |
 | `timestamp_utc` | ISO-8601 run timestamp |
 

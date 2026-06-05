@@ -106,7 +106,7 @@ reverted; absolute-pose mode is not Bug 3.
 ### What to expect when reproducing
 
 Anyone reproducing the xvla rows today should expect **0% xvla**
-across all LIBERO suites until the upstream PR (lerobot-bench task #62,
+across all LIBERO suites until the upstream PR (embodimetry task #62,
 also in flight) resolves the Hub-artifact bugs end-to-end and the third
 unresolved issue is run down.
 

@@ -11,11 +11,11 @@
 
 ## 1. One-sentence finding
 
-`lerobot-bench` v1 uses **`success := final_reward >= env_spec.success_threshold`** (the reward at the last step before exit), but two of the three published references the deck compares to (`gym-aloha` AlohaTransferCube's underlying ACT paper, and the LeRobot Hub card for `lerobot/diffusion_pusht`) score success as **`any(is_success across the rollout)`** — a sticky-true metric over the whole trajectory — and the LIBERO upstream eval uses a step cap of **600** for every suite while we use lerobot 0.5.1's tighter `TASK_SUITE_MAX_STEPS = {spatial: 280, object: 280, goal: 300, libero_10: 520}`.
+`embodimetry` v1 uses **`success := final_reward >= env_spec.success_threshold`** (the reward at the last step before exit), but two of the three published references the deck compares to (`gym-aloha` AlohaTransferCube's underlying ACT paper, and the LeRobot Hub card for `lerobot/diffusion_pusht`) score success as **`any(is_success across the rollout)`** — a sticky-true metric over the whole trajectory — and the LIBERO upstream eval uses a step cap of **600** for every suite while we use lerobot 0.5.1's tighter `TASK_SUITE_MAX_STEPS = {spatial: 280, object: 280, goal: 300, libero_10: 520}`.
 
 ## 2. Where the bench rule lives
 
-`src/lerobot_bench/eval.py` ll. 1462–1520 (`_run_one_episode`):
+`src/embodimetry/eval.py` ll. 1462–1520 (`_run_one_episode`):
 
 ```python
 for _ in range(max_steps):

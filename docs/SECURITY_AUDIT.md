@@ -1,4 +1,4 @@
-# Security & Supply-Chain Audit — lerobot-bench
+# Security & Supply-Chain Audit — embodimetry
 
 **Date:** 2026-05-22
 **Auditor:** Council role — Security (CSO methodology, daily mode, 8/10 confidence gate)
@@ -7,7 +7,7 @@
 
 ## Verdict
 
-**PASS with low-risk hardening recommended.** lerobot-bench is in good shape for a
+**PASS with low-risk hardening recommended.** embodimetry is in good shape for a
 public release. No secrets are committed or in git history, all YAML loading uses
 `safe_load`, no `eval`/`exec`/`shell=True`, and every subprocess call uses list-form
 argv (no shell-injection surface). Workflow `permissions:` are mostly scoped to
@@ -33,7 +33,7 @@ applied in this PR; the rest are recommendations.
   artifacts.
 * **Exploit scenario:** Attacker compromises the `softprops` GitHub account, force-pushes
   a malicious commit and moves the `v3` tag to it. The next `v*.*.*` tag push on
-  lerobot-bench runs the trojanised action with `contents: write`, letting it tamper
+  embodimetry runs the trojanised action with `contents: write`, letting it tamper
   with the published release or exfiltrate the (OIDC-minted) tokens in the job.
 * **Impact:** Supply-chain compromise of published GitHub releases.
 * **Recommendation:** Pin to a full commit SHA with a version comment, e.g.
@@ -65,7 +65,7 @@ applied in this PR; the rest are recommendations.
 * **Category:** Supply chain — reproducibility / integrity
 * **Evidence:** `space/requirements.txt` last line —
   `git+https://github.com/thrmnn/lerobot-bench.git@feat/space-app`
-* **Description:** The deployed HF Space installs lerobot-bench from a Git **branch**
+* **Description:** The deployed HF Space installs embodimetry from a Git **branch**
   ref. A branch is mutable: any future push to `feat/space-app` silently changes the
   code the live Space runs, and the Space is not reproducible from a fixed commit.
   The file's own comment already flags this ("Pinned to a branch ref while the PR is
@@ -155,7 +155,7 @@ applied in this PR; the rest are recommendations.
   — no shell-injection surface. All YAML loading uses `yaml.safe_load` /
   `yaml.safe_dump`; no `yaml.load` without a safe loader.
 * **Network / untrusted input.** The HF Space reads only the project's own hardcoded
-  dataset (`HUB_DATASET_REPO = "thrmnn/lerobot-bench-v1"`); the parquet source
+  dataset (`HUB_DATASET_REPO = "thrmnn/embodimetry-v1"`); the parquet source
   is a constant, not user-controllable — no SSRF. The Space does no policy inference,
   loads no checkpoints, and renders results data as Gradio dataframes/markdown (not raw
   HTML), so a poisoned dataset cannot trigger XSS through an `gr.HTML` escape hatch.

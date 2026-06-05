@@ -68,7 +68,7 @@ on what the same checkpoint would score at `max_steps=600`.
 
 v1.0 `results.parquet` files were written under `v1_legacy`. The `success`
 column in those files was computed with the v1 rule and is unchanged.
-Library code in `lerobot_bench` does not recompute `success` on read, so
+Library code in `embodimetry` does not recompute `success` on read, so
 mixing v1.0 and v1.1-canonical rows in the same DataFrame requires a
 `criterion` column to disambiguate — that column is **not** added to the
 parquet schema in v1.1 (the schema bump is gated on the v1.1 re-sweep

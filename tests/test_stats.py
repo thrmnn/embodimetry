@@ -1,4 +1,4 @@
-"""Tests for ``lerobot_bench.stats``.
+"""Tests for ``embodimetry.stats``.
 
 Each function is checked against an analytical or known-reference truth
 where one exists (Wilson CI for the bootstrap, identity-pairs Wilcoxon,
@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 from scipy import stats as scipy_stats
 
-from lerobot_bench.stats import (
+from embodimetry.stats import (
     bootstrap_ci,
     bootstrap_pivotal_ci,
     cohens_h,
