@@ -33,7 +33,35 @@ import matplotlib
 # from CI runners and SSH sessions without a display.
 matplotlib.use("Agg")
 
+import matplotlib.font_manager as _fm
 import pandas as pd
+
+
+def _register_brand_fonts() -> None:
+    """Register Instrument Sans (deck/web brand font) if it's on disk.
+
+    The deck/web styles request "Instrument Sans"; matplotlib only finds it
+    if the .ttf files are on its search path. On hosts where the font is
+    installed under ``~/.local/share/fonts`` (not a matplotlib default dir)
+    this registers each face explicitly so the rendered PNG keeps the brand
+    typography instead of silently falling back to DejaVu Sans. A no-op when
+    the font is absent (e.g. minimal CI image) — the fallback still renders.
+    """
+    for font_dir in (
+        Path.home() / ".local" / "share" / "fonts" / "instrument-sans",
+        Path.home() / ".local" / "share" / "fonts",
+        Path.home() / ".fonts",
+    ):
+        if not font_dir.is_dir():
+            continue
+        for ttf in font_dir.glob("**/InstrumentSans*.ttf"):
+            try:
+                _fm.fontManager.addfont(str(ttf))
+            except (OSError, RuntimeError):
+                pass
+
+
+_register_brand_fonts()
 
 from embodimetry.figures import FIGURES, PARQUET_FREE_FIGURES, STYLES, Style, _as_style
 

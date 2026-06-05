@@ -1621,10 +1621,10 @@ pre.code .v{color:var(--ink);}
     <h2 class="h-2">Paper-reported vs measured. <span class="serif-it accent">One picture.</span></h2>
   </div>
   <div class="fig-embed" style="background:var(--bg);">
-    <img src="../figures/deck/replication_scatter.png" alt="Paper-reported vs measured success rate scatter, with Wilson 95% CI error bars; classical heads near the diagonal, SmolVLA cells below, plus the hollow ACT paper-settings probe point.">
+    <img src="../figures/deck/replication_scatter.png" alt="Paper-reported vs measured success rate scatter, with Wilson 95% CI error bars; classical heads near the diagonal, SmolVLA cells below. The ACT × aloha point sits at the norm-fixed 0.824 on the diagonal, with a hollow pre-fix annotation at 0.016 showing the jump our normalization fix produced.">
   </div>
   <div class="body" style="margin-top:8px;font-size:18px;color:var(--mute);">
-    Above the diagonal = beat the paper. Below = missed it. Grey = inside the MDE band (agrees with paper); the hollow point is ACT at paper inference settings (the v1.0.2 probe). <span class="warm">All caveats from slide 08 apply.</span>
+    Above the diagonal = beat the paper. Below = missed it. Grey = inside the MDE band (agrees with paper). The ACT × aloha point is the <span class="accent">norm-fixed 0.824</span>; the hollow point is the <em>pre-fix</em> reading (0.016) before we caught our own normalization bug (#51) — the arrow is the jump the fix produced. <span class="warm">All caveats from slide 08 apply.</span>
   </div>
   <div class="foot"><span>render-figures replication_scatter · results.parquet + configs/policies.yaml</span><span class="src">paper/figures/deck/replication_scatter.png</span></div>
 </section>

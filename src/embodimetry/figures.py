@@ -558,24 +558,36 @@ def act_norm_ablation_2x2(*, style: Style, out_dir: Path) -> list[Path]:
 # Figure 3 — paper-vs-measured replication scatter                      #
 # --------------------------------------------------------------------- #
 
-# ACT × aloha_transfer_cube at PAPER inference settings. This point is
-# NOT in results/sweep-full/results.parquet (the v1 sweep ran the Hub
-# default n_action_steps=100, which yields the 0.016 cell). The 0.764
-# value comes from the dedicated temporal-ensemble probe documented in
-# docs/PROBE_RESULTS_V1.0.1.md § "Probe 1" (RESOLVED): pooled 0.764
-# [0.708, 0.812] at temporal_ensemble_coeff=0.01, n_action_steps=1, vs.
-# paper 0.50 (Zhao et al. 2023). It is overlaid as an explicitly-labeled
-# annotation so the scatter tells the post-audit story rather than the
-# Hub-default-artifact story alone.
-_ACT_PAPER_SETTINGS_POINT: dict[str, Any] = {
+# ACT × aloha_transfer_cube pre-fix (normalization bug) point. The v1
+# canonical parquet (results/sweep-full/results.parquet) still carries the
+# BUGGY pre-#51 cell that pools to 0.016 — the un-normalized v1.0.0 reading.
+# The corrected, norm-FIXED cell (pooled 0.824 [0.772, 0.866], N=250) lives
+# in the SEPARATE rerun parquet results/sweep-full/results-act-rerun.parquet
+# (splice into the canonical parquet is a separate owner-gated step, #177).
+# replication_scatter() sources the 0.824 MAIN point from that rerun parquet
+# (see _act_aloha_rerun_rate) and keeps this 0.016 reading only as a small,
+# explicitly-labeled "pre-fix" annotation showing the jump our normalization
+# fix produced — NOT as the headline cell.
+_ACT_PREFIX_BUG_POINT: dict[str, Any] = {
     "policy": "act",
     "env": "aloha_transfer_cube",
     "paper": 0.50,
-    "measured": 0.764,
-    "lo": 0.708,
-    "hi": 0.812,
+    "measured": 0.016,
+    "lo": 0.006,
+    "hi": 0.040,
     "n": 250,
+    # Render in the muted/grey ink so it reads as a deprecated annotation,
+    # not a live measured cell competing with the 0.824 main point.
+    "inside_mde": True,
 }
+
+# Canonical norm-fixed ACT × aloha_transfer_cube value (post-#51), pooled
+# 0.824 [0.772, 0.866] at N=250. Lives in the rerun parquet; mirrors the
+# value the publish preflight + tests/test_headline_value_consistency.py
+# guard as the headline scalar.
+_ACT_ALOHA_RERUN_PATH = Path("results/sweep-full/results-act-rerun.parquet")
+_ACT_ALOHA_FIXED_RATE = 0.824
+_ACT_ALOHA_FIXED_CI: tuple[float, float] = (0.772, 0.866)
 
 # Envs whose smolvla cells are single-task (task_id=0) scope, NOT 10-task
 # suite averages — so the paper-vs-measured gap must not be read as
@@ -588,7 +600,51 @@ _SMOLVLA_SINGLE_TASK_ENVS: frozenset[str] = frozenset(
 )
 
 
-def _collect_replication_rows(df: pd.DataFrame, registry: PolicyRegistry) -> list[dict[str, Any]]:
+def _act_aloha_rerun_cell(rerun_path: Path = _ACT_ALOHA_RERUN_PATH) -> dict[str, Any] | None:
+    """Return the corrected act×aloha cell (k, n, pooled, Wilson CI) or ``None``.
+
+    Sources the norm-FIXED act×aloha_transfer_cube cell from the committed
+    rerun parquet (``results/sweep-full/results-act-rerun.parquet``) WITHOUT
+    requiring the owner-gated splice into the canonical parquet (#177). The
+    row mask mirrors ``scripts/merge_corrected_act_rows.py._act_aloha_mask``
+    (policy == "act" AND env contains "aloha") so the figure agrees with the
+    merge tool by construction. Returns ``None`` when the gitignored rerun
+    parquet is absent (fresh CI checkout) so callers fall back to whatever
+    cell is in the passed-in ``df``.
+    """
+    if not rerun_path.exists():
+        return None
+    try:
+        rerun = pd.read_parquet(rerun_path)
+    except (OSError, ValueError):
+        return None
+    if "errored" in rerun.columns:
+        rerun = rerun[~rerun["errored"].fillna(False)]
+    mask = (rerun["policy"] == "act") & rerun["env"].astype(str).str.contains("aloha")
+    sub = rerun[mask]
+    n = len(sub)
+    if n == 0:
+        return None
+    k = int(sub["success"].astype(float).sum())
+    lo, hi = wilson_ci(k, n)
+    return {"k": k, "n": n, "measured": k / n, "lo": lo, "hi": hi}
+
+
+def _collect_replication_rows(
+    df: pd.DataFrame,
+    registry: PolicyRegistry,
+    *,
+    rerun_path: Path = _ACT_ALOHA_RERUN_PATH,
+) -> list[dict[str, Any]]:
+    """Collect (paper, measured) cells, sourcing the corrected ACT cell.
+
+    For the act×aloha_transfer_cube cell specifically the MAIN point is the
+    norm-FIXED 0.824 [0.772, 0.866] reading pulled from the rerun parquet
+    (see ``_act_aloha_rerun_cell``), NOT the buggy 0.016 cell that still
+    ships in the canonical parquet. Every other cell pools straight from
+    ``df``. If the rerun parquet is absent the act cell falls back to ``df``.
+    """
+    rerun_cell = _act_aloha_rerun_cell(rerun_path)
     rows: list[dict[str, Any]] = []
     for spec in registry:
         if spec.paper_reported_success is None:
@@ -599,10 +655,16 @@ def _collect_replication_rows(df: pd.DataFrame, registry: PolicyRegistry) -> lis
             grp = df[(df["policy"] == spec.name) & (df["env"] == env)]
             if grp.empty:
                 continue
-            n = len(grp)
-            k = int(grp["success"].sum())
-            measured = k / n
-            lo, hi = wilson_ci(k, n)
+            is_act_aloha = spec.name == "act" and "aloha" in str(env)
+            if is_act_aloha and rerun_cell is not None:
+                n = rerun_cell["n"]
+                measured = rerun_cell["measured"]
+                lo, hi = rerun_cell["lo"], rerun_cell["hi"]
+            else:
+                n = len(grp)
+                k = int(grp["success"].sum())
+                measured = k / n
+                lo, hi = wilson_ci(k, n)
             rows.append(
                 {
                     "policy": spec.name,
@@ -635,14 +697,20 @@ def replication_scatter(
     those are within the noise floor of the bench and "agree with paper"
     is the right reading. Cells outside the band are colored by policy.
 
-    Two post-audit overlays (see docs/PROBE_RESULTS_V1.0.1.md):
+    ACT × aloha_transfer_cube — the norm-fix story (the headline finding):
 
-    - The ACT × aloha_transfer_cube parquet cell is the Hub-default
-      (n_action_steps=100) reading of 0.016; it is labeled "(Hub default)".
-      A second hollow point at the PAPER inference settings (measured
-      0.764 vs. paper 0.50) is overlaid from ``_ACT_PAPER_SETTINGS_POINT``
-      and labeled "(paper settings)" so the figure does not read as an
-      architecture failure.
+    - The MAIN act point plots at the norm-FIXED, Hub-default reading of
+      **0.824 [0.772, 0.866]** (paper ≈ 0.50), sourced from the corrected
+      rerun parquet (``_collect_replication_rows`` /
+      ``_act_aloha_rerun_cell``) rather than from the buggy 0.016 cell that
+      still ships in the canonical parquet (the splice into the canonical
+      parquet is owner-gated, #177). This is the architecture's true score
+      once OUR normalization bug (#51) is fixed.
+    - A small, explicitly-labeled "pre-fix (norm bug)" annotation at 0.016
+      (``_ACT_PREFIX_BUG_POINT``) is overlaid with a faint connector to the
+      main point so the jump our fix produced is visible. This is a
+      self-caught harness bug, NOT an inference-settings story: the
+      abandoned 0.764 "paper settings" point is gone.
     - smolvla × libero_* cells are annotated "(single-task)" because the
       v1 sweep ran task_id=0 only, while the paper numbers are 10-task
       suite averages — the gap is not apples-to-apples.
@@ -705,26 +773,42 @@ def replication_scatter(
             alpha=0.75,
         )
 
+    act_main_row: dict[str, Any] | None = None
     for row in rows:
         policy = str(row["policy"])
         env = str(row["env"])
         label = f"{policy}/{env}"
-        # The parquet ACT cell is the Hub default (n_action_steps=100);
-        # flag it so the overlaid paper-settings point reads as the fix.
-        if policy == "act" and env == "aloha_transfer_cube":
-            label = f"{label} (Hub default)"
+        # The ACT cell is now the norm-FIXED 0.824 reading; flag it so the
+        # overlaid pre-fix point reads as the bug we caught and fixed.
+        if policy == "act" and "aloha" in env:
+            label = f"{label} (norm-fixed)"
+            act_main_row = row
         elif policy == "smolvla_libero" and env in _SMOLVLA_SINGLE_TASK_ENVS:
             label = f"{label} (single-task)"
         _plot_point(row, label=label, hollow=False)
 
-    # Overlay the ACT paper-settings probe point (0.764 vs 0.50) iff the
-    # Hub-default ACT cell is present, so the figure tells the post-audit
-    # story. Hollow marker distinguishes it from the parquet cells.
-    has_act_cell = any(
-        str(r["policy"]) == "act" and str(r["env"]) == "aloha_transfer_cube" for r in rows
-    )
-    if has_act_cell:
-        _plot_point(_ACT_PAPER_SETTINGS_POINT, label="act/aloha (paper settings)", hollow=True)
+    # Overlay the pre-fix (normalization bug) ACT point at 0.016 with a faint
+    # connector up to the norm-fixed main point, so the figure shows the jump
+    # our fix produced (0.016 -> 0.824) rather than leaving the buggy reading
+    # off-chart. The abandoned 0.764 "paper settings" story is NOT plotted.
+    if act_main_row is not None:
+        ax.annotate(
+            "",
+            xy=(float(act_main_row["paper"]), float(act_main_row["measured"])),
+            xytext=(_ACT_PREFIX_BUG_POINT["paper"], _ACT_PREFIX_BUG_POINT["measured"]),
+            arrowprops={
+                "arrowstyle": "->",
+                "color": s["palette"]["muted"],
+                "linewidth": s["line_width"],
+                "alpha": 0.55,
+                "linestyle": (0, (3, 2)),
+            },
+        )
+        _plot_point(
+            _ACT_PREFIX_BUG_POINT,
+            label="act/aloha pre-fix (norm bug)",
+            hollow=True,
+        )
 
     ax.set_xlim(-0.02, 1.05)
     ax.set_ylim(-0.02, 1.05)
@@ -736,7 +820,7 @@ def replication_scatter(
     # saved bbox. tight_layout(rect=...) reserves the headroom.
     ax.set_title(
         "Paper-reported vs measured (N=250 each)\n"
-        "grey = inside MDE band; hollow = ACT paper settings",
+        "grey = inside MDE band; hollow = ACT pre-fix (norm bug)",
         pad=8,
     )
     ax.grid(True, linestyle=":", alpha=0.25)

@@ -341,3 +341,57 @@ def test_locator_tokens_track_registry() -> None:
     s = REGISTRY["act_aloha"]
     assert f"[{s.ci[0]:.3f}, {s.ci[1]:.3f}]" == "[0.772, 0.866]"
     assert f"{s.rate:.3f}" == "0.824"
+
+
+# --------------------------------------------------------------------- #
+# Figure DATA-LAYER guard (skips when the gitignored data is absent).    #
+#                                                                        #
+# The cross-surface tests above police TEXT scalars; this one polices the #
+# headline FIGURE's data layer so a regression of the replication-scatter #
+# ACT point back to 0.016 (buggy) or 0.764 (abandoned paper-settings red  #
+# herring) fails CI. It asserts the figure's own data collector, not       #
+# rendered pixels — pixels are a human eyeball job (flagged in the PR).    #
+# --------------------------------------------------------------------- #
+
+
+def test_replication_scatter_act_point_is_canonical() -> None:
+    """``replication_scatter``'s data collector plots ACT × aloha at 0.824.
+
+    Sources the ACT cell exactly as the figure does (via the rerun parquet,
+    no gated merge required) and asserts it lands at the canonical
+    0.824 [0.772, 0.866] — NOT the buggy 0.016 nor the abandoned 0.764. This
+    is the figure-layer twin of ``test_canonical_surfaces_agree_on_act_aloha``.
+    Skips when the gitignored ``results/`` tree is absent (Layer B contract).
+    """
+    pytest.importorskip("pandas")
+    pytest.importorskip("matplotlib")
+    import pandas as pd
+
+    from embodimetry.figures import _collect_replication_rows
+    from embodimetry.policies import PolicyRegistry
+
+    s = REGISTRY["act_aloha"]
+    rerun = _require_data(s.source)  # results/sweep-full/results-act-rerun.parquet
+    canonical = _require_data("results/sweep-full/results.parquet")
+
+    registry = PolicyRegistry.from_yaml(REPO_ROOT / "configs" / "policies.yaml")
+    df = pd.read_parquet(canonical)
+    rows = _collect_replication_rows(df, registry, rerun_path=rerun)
+
+    act = [r for r in rows if r["policy"] == "act" and "aloha" in str(r["env"])]
+    assert len(act) == 1, f"expected exactly one ACT×aloha scatter row, got {len(act)}"
+    row = act[0]
+
+    assert row["n"] == s.n, f"ACT scatter point N={row['n']}, expected {s.n}"
+    assert row["measured"] == pytest.approx(s.rate, abs=1e-3), (
+        f"ACT scatter point is {row['measured']:.4f}; the figure must plot the "
+        f"norm-fixed {s.rate} (0.016 = pre-fix bug, 0.764 = abandoned "
+        f"paper-settings red herring — neither may be the main point)."
+    )
+    assert (row["lo"], row["hi"]) == pytest.approx(s.ci, abs=1e-3), (
+        f"ACT scatter CI ({row['lo']:.3f}, {row['hi']:.3f}) must reproduce {s.ci}."
+    )
+    # The 0.016 reading survives only as the explicitly-labeled pre-fix
+    # annotation; it must never be the main measured point.
+    assert row["measured"] != pytest.approx(0.016, abs=1e-3)
+    assert row["measured"] != pytest.approx(0.764, abs=1e-3)
