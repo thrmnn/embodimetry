@@ -57,19 +57,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-# Rename transition shim: the local checkout / pytest run against the renamed
-# ``embodimetry`` package, but the deployed Space still installs the library
-# from a pre-rename pinned SHA where it is ``lerobot_bench``. Prefer the new
-# name, fall back to the old. Drop the fallback once the Space pin is bumped
-# to a post-rename SHA (see the deferred-flip follow-up).
-try:
-    from embodimetry.checkpointing import RESULT_SCHEMA
-    from embodimetry.leaderboard_filter import V1_POLICIES, filter_to_v1_policies
-    from embodimetry.stats import paired_diff_ci, wilson_ci, wilson_halfwidth_at_p
-except ModuleNotFoundError:
-    from lerobot_bench.checkpointing import RESULT_SCHEMA
-    from lerobot_bench.leaderboard_filter import V1_POLICIES, filter_to_v1_policies
-    from lerobot_bench.stats import paired_diff_ci, wilson_ci, wilson_halfwidth_at_p
+from embodimetry.checkpointing import RESULT_SCHEMA
+
+# The canonical V1_POLICIES / filter live in ``embodimetry.leaderboard_filter``
+# so the Space and the dashboard share one v1 policy gate and cannot drift.
+from embodimetry.leaderboard_filter import V1_POLICIES, filter_to_v1_policies
+from embodimetry.stats import paired_diff_ci, wilson_ci, wilson_halfwidth_at_p
 
 __all__ = ["V1_POLICIES", "filter_to_v1_policies"]
 
@@ -467,7 +460,7 @@ def render_methodology_md() -> str:
         "\n"
         "### Reproducibility pointer\n"
         "\n"
-        "Code: <https://github.com/thrmnn/lerobot-bench>. Each parquet row\n"
+        "Code: <https://github.com/thrmnn/embodimetry>. Each parquet row\n"
         "carries `code_sha`, `lerobot_version`, and `video_sha256` so any\n"
         "row can be replayed end-to-end with `python scripts/run_one.py\n"
         "--policy <p> --env <e> --seed <n>`. See the repo's `docs/RUNBOOK.md`\n"
@@ -948,7 +941,7 @@ def render_failure_panel_markdown(
     if not categories:
         return (
             "_Failure taxonomy doc not found. See_ "
-            "<https://github.com/thrmnn/lerobot-bench/blob/main/docs/FAILURE_TAXONOMY.md>."
+            "<https://github.com/thrmnn/embodimetry/blob/main/docs/FAILURE_TAXONOMY.md>."
         )
 
     lines = ["### Categories", ""]
