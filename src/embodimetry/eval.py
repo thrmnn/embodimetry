@@ -770,7 +770,7 @@ def _load_pretrained_policy(
             raise RuntimeError(
                 f"no processor JSONs at local checkpoint '{repo_id}' and no Hub "
                 "revision to recover legacy normalization buffers from"
-            )
+            ) from None
         feature_keys = (*cfg.input_features.keys(), *cfg.output_features.keys())
         dataset_stats = _recover_dataset_stats_from_safetensors(
             repo_id, revision, feature_keys=feature_keys
