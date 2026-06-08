@@ -421,10 +421,8 @@ reported as a failed lift, not omitted.
 
 \paragraph{L2 --- a competent controller, and the last 50\% of precision.}
 The scripted PushT state-feedback controller is genuinely competent ---
-its mean per-episode max-coverage is near $0.50$%
-\todo{confirm exact mean/median max-coverage from
-\texttt{results/ladder/classical\_pusht\_l2.summary.json}; not committed
-to this tree}, i.e.\ on an average rollout it pushes the block roughly
+its mean per-episode max-coverage is $0.505$ (median $0.501$),
+i.e.\ on an average rollout it pushes the block roughly
 halfway to the target footprint --- yet it
 clears the strict canonical bar ($\text{coverage}>0.95$) on only
 $0.012$~[0.004, 0.035] of episodes ($3/250$). Read against the L0
