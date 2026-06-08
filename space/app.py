@@ -99,6 +99,23 @@ LEADERBOARD_METHODOLOGY_MD = (
     '**"n/a".** A blank cell means that `(policy, env)` is not in the\n'
     "sweep matrix (env_compat dropped it pre-flight) or the cell has not\n"
     "yet been run.\n"
+    "\n"
+    "**LIBERO (4 suites).** The four LIBERO suites (`libero_spatial`,\n"
+    "`libero_object`, `libero_goal`, `libero_10`) collapse into one\n"
+    "**pooled-binomial** row per policy: `success_rate = Σsuccesses /\n"
+    "Σepisodes` over all four suites, with the Wilson 95% CI on those\n"
+    "pooled `(k, n)`. This is *not* the mean of the four per-suite rates —\n"
+    "averaging would mis-weight suites with unequal N. Switch the **LIBERO\n"
+    "view** selector to `suites` or `both` to drill into the per-suite\n"
+    "rows; their numbers are unchanged by the aggregate.\n"
+)
+
+# Labels for the LIBERO-view radio. Map the human-facing label to the
+# ``libero_view`` keyword ``compute_leaderboard_table`` accepts.
+LIBERO_VIEW_CHOICES: tuple[tuple[str, str], ...] = (
+    ("Pooled (headline)", "aggregate"),
+    ("Per-suite (drill-down)", "suites"),
+    ("Pooled + per-suite", "both"),
 )
 
 
@@ -107,23 +124,34 @@ LEADERBOARD_METHODOLOGY_MD = (
 # --------------------------------------------------------------------- #
 
 
-def refresh_leaderboard() -> tuple[pd.DataFrame, str]:
+def refresh_leaderboard(libero_view: str = "aggregate") -> tuple[pd.DataFrame, str]:
     """Drop the parquet cache and recompute the Leaderboard table.
 
     Wired to the manual Refresh button. The default behaviour of the
     Leaderboard tab is to render whatever the cache holds; this gives
     a reviewer a way to pull updated numbers after a fresh sweep.
 
+    ``libero_view`` passes through to :func:`compute_leaderboard_table`
+    ("aggregate" pooled headline, "suites" per-suite drill-down, or
+    "both").
+
     Returns ``(table_df, status_markdown)``. The status is an empty
     string on success, or a "no data" notice when the parquet is
     empty / missing.
     """
     clear_results_cache()
-    return _build_leaderboard_view()
+    return _build_leaderboard_view(libero_view)
 
 
-def _build_leaderboard_view() -> tuple[pd.DataFrame, str]:
-    """Pure helper: read parquet → leaderboard table + status string."""
+def _build_leaderboard_view(libero_view: str = "aggregate") -> tuple[pd.DataFrame, str]:
+    """Pure helper: read parquet → leaderboard table + status string.
+
+    ``libero_view`` selects the LIBERO presentation: the pooled headline
+    row ("aggregate"), per-suite drill-down ("suites"), or both. Falls
+    back to "aggregate" on an unrecognised value so a stale UI state can
+    never blank the table.
+    """
+    view: str = libero_view if libero_view in ("aggregate", "suites", "both") else "aggregate"
     try:
         df = load_results_df()
     except Exception as exc:
@@ -135,7 +163,7 @@ def _build_leaderboard_view() -> tuple[pd.DataFrame, str]:
         empty = pd.DataFrame({col: [] for col in LEADERBOARD_COLUMNS})
         return empty, NO_DATA_MARKDOWN
 
-    table = compute_leaderboard_table(df)
+    table = compute_leaderboard_table(df, libero_view=view)  # type: ignore[arg-type]
     return table, ""
 
 
@@ -401,6 +429,16 @@ def build_app() -> gr.Blocks:
                     gr.Markdown(LEADERBOARD_METHODOLOGY_MD)
 
                 lb_status = gr.Markdown("")
+                lb_libero_view = gr.Radio(
+                    choices=[label for label, _ in LIBERO_VIEW_CHOICES],
+                    value=LIBERO_VIEW_CHOICES[0][0],
+                    label="LIBERO view",
+                    info=(
+                        "Pooled = one binomial row over all four LIBERO suites "
+                        "(headline). Per-suite keeps the four suites separate."
+                    ),
+                    interactive=True,
+                )
                 refresh_btn = gr.Button("Refresh from Hub", variant="secondary")
                 lb_table = gr.Dataframe(
                     headers=list(LEADERBOARD_COLUMNS),
@@ -431,17 +469,34 @@ def build_app() -> gr.Blocks:
                     "see `paper/main.tex` § Limitations._"
                 )
 
+                # Map the radio's human label to the ``libero_view``
+                # keyword and render. Used by load, the radio change, and
+                # the refresh button so all three honour the selector.
+                _view_by_label = dict(LIBERO_VIEW_CHOICES)
+
+                def _render_for_label(label: str | None) -> tuple[pd.DataFrame, str]:
+                    return _build_leaderboard_view(_view_by_label.get(label or "", "aggregate"))
+
+                def _refresh_for_label(label: str | None) -> tuple[pd.DataFrame, str]:
+                    clear_results_cache()
+                    return _render_for_label(label)
+
                 # Default render on app load — first interaction only,
                 # not at module import. ``demo.load`` fires when the
                 # tab first paints.
                 demo.load(
-                    fn=_build_leaderboard_view,
-                    inputs=None,
+                    fn=_render_for_label,
+                    inputs=[lb_libero_view],
+                    outputs=[lb_table, lb_status],
+                )
+                lb_libero_view.change(
+                    fn=_render_for_label,
+                    inputs=[lb_libero_view],
                     outputs=[lb_table, lb_status],
                 )
                 refresh_btn.click(
-                    fn=refresh_leaderboard,
-                    inputs=None,
+                    fn=_refresh_for_label,
+                    inputs=[lb_libero_view],
                     outputs=[lb_table, lb_status],
                 )
 

@@ -52,7 +52,7 @@ import logging
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -62,9 +62,15 @@ from embodimetry.checkpointing import RESULT_SCHEMA
 # The canonical V1_POLICIES / filter live in ``embodimetry.leaderboard_filter``
 # so the Space and the dashboard share one v1 policy gate and cannot drift.
 from embodimetry.leaderboard_filter import V1_POLICIES, filter_to_v1_policies
-from embodimetry.stats import paired_diff_ci, wilson_ci, wilson_halfwidth_at_p
+from embodimetry.stats import (
+    LIBERO_SUITES,
+    paired_diff_ci,
+    pool_binomial,
+    wilson_ci,
+    wilson_halfwidth_at_p,
+)
 
-__all__ = ["V1_POLICIES", "filter_to_v1_policies"]
+__all__ = ["LIBERO_POOLED_ENV", "V1_POLICIES", "filter_to_v1_policies"]
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +104,20 @@ DEFAULT_PARQUET_URL = f"{HUB_RAW_PREFIX}/results.parquet"
 # methodology copy mentions, so changing this here without updating
 # the methodology tab would be a silent inconsistency.
 LEADERBOARD_CI = 0.95
+
+# Env label for the pooled LIBERO row. The four LIBERO suites
+# (:data:`embodimetry.stats.LIBERO_SUITES`) collapse into one pooled
+# binomial row carrying this label; the per-suite rows stay available as
+# drill-down. The "(4 suites)" suffix is load-bearing copy — a reviewer
+# must not mistake this for a fifth standalone LIBERO env.
+LIBERO_POOLED_ENV = "LIBERO (4 suites)"
+
+# Default LIBERO view for ``compute_leaderboard_table``. "aggregate" is
+# the headline: the four per-suite rows collapse into one pooled row per
+# policy. "suites" keeps the original per-suite rows. "both" shows the
+# pooled row AND the per-suite rows (additive drill-down).
+LiberoView = Literal["aggregate", "suites", "both"]
+DEFAULT_LIBERO_VIEW: LiberoView = "aggregate"
 
 # Canonical leaderboard table columns. The Gradio component is wired
 # to this exact tuple (see ``app.py``); changing the order here
@@ -217,6 +237,7 @@ def compute_leaderboard_table(
     df: pd.DataFrame,
     *,
     ci: float = LEADERBOARD_CI,
+    libero_view: LiberoView = DEFAULT_LIBERO_VIEW,
 ) -> pd.DataFrame:
     """Aggregate episode-level rows to one ``(policy, env)`` cell per row.
 
@@ -231,12 +252,31 @@ def compute_leaderboard_table(
       the table is more readable as ``rate ± half_width`` than as a
       pair of bounds.
 
-    Sorted so policies are **ranked by their overall mean success rate
-    across envs** (highest first); within each policy, rows are
-    alphabetical by env. This produces a top-to-bottom policy ranking
-    rather than a flat list of cells, which is what reviewers actually
-    read for. Deterministic — the Space renders the same order on
-    every reload.
+    **Pooled LIBERO row.** The four LIBERO suites
+    (:data:`embodimetry.stats.LIBERO_SUITES`) are collapsed per policy
+    into one :data:`LIBERO_POOLED_ENV` row whose ``(k, n)`` is the
+    **pooled binomial** ``(Σ successes, Σ episodes)`` and whose CI is the
+    Wilson interval on those pooled counts (via
+    :func:`embodimetry.stats.pool_binomial`). This is *not* the mean of
+    the four per-suite rates — averaging rates would mis-weight suites
+    with unequal ``n`` (DESIGN.md § Methodology). ``libero_view`` selects
+    what is shown:
+
+    * ``"aggregate"`` (default, headline): the four per-suite rows are
+      replaced by the single pooled row.
+    * ``"suites"``: per-suite rows only (the original behaviour); no
+      pooled row.
+    * ``"both"``: the pooled row *and* the per-suite drill-down rows.
+
+    Non-LIBERO envs and policies without LIBERO suites are untouched in
+    every view. The pooled row is a render-time derived aggregate — no
+    per-cell number changes and the canonical parquet is never written.
+
+    Sorted so policies are **ranked by their overall pooled success rate
+    across all of their episodes** (highest first); within each policy,
+    rows are alphabetical by env, with the pooled LIBERO row sorting on
+    its label. Deterministic — the Space renders the same order on every
+    reload.
 
     Empty input returns an empty frame with :data:`LEADERBOARD_COLUMNS`
     so the Gradio table component doesn't choke on a missing column
@@ -255,37 +295,110 @@ def compute_leaderboard_table(
         if n == 0:
             continue
         successes = int(cell["success"].sum())
-        rate = successes / n
-        lo, hi = wilson_ci(successes, n, ci=ci)
-        half = (hi - lo) / 2.0
-        rows.append(
-            {
-                "policy": str(policy),
-                "env": str(env),
-                "n_episodes": n,
-                "n_successes": successes,
-                "success_rate": float(rate),
-                "ci_half_width": float(half),
-                "ci_low": float(lo),
-                "ci_high": float(hi),
-            }
-        )
+        rows.append(_leaderboard_row(str(policy), str(env), successes, n, ci))
 
-    out = pd.DataFrame(rows, columns=list(LEADERBOARD_COLUMNS))
-    # Rank policies by their overall mean success rate (descending),
-    # then sort envs alphabetically within each policy. A separate
-    # ``_policy_mean`` column drives the sort and is dropped before
-    # return so the public column set stays stable.
-    policy_means = out.groupby("policy")["success_rate"].mean()
-    out["_policy_mean"] = out["policy"].map(policy_means)
+    per_cell = pd.DataFrame(rows, columns=list(LEADERBOARD_COLUMNS))
+    out = _apply_libero_pooling(per_cell, ci=ci, libero_view=libero_view)
+
+    # Rank policies by their overall *pooled* success rate (episode-
+    # weighted across every env the policy ran), descending; then sort
+    # envs alphabetically within each policy. Pooling the rank key keeps
+    # the ordering consistent with the pooled-row philosophy — a policy
+    # with one huge-N env and one tiny-N env is ranked on its true
+    # per-episode rate, not the unweighted mean of its cells. Computed
+    # from the *per-cell* frame (never the pooled view) so the rank is
+    # independent of ``libero_view``. The ``_policy_rank`` helper column
+    # is dropped before return so the public column set stays stable.
+    cell_sums = per_cell.groupby("policy", sort=False)[["n_successes", "n_episodes"]].sum()
+    policy_rank = cell_sums["n_successes"] / cell_sums["n_episodes"]
+    out["_policy_rank"] = out["policy"].map(policy_rank)
     out = out.sort_values(
-        ["_policy_mean", "policy", "env"],
+        ["_policy_rank", "policy", "env"],
         ascending=[False, True, True],
         kind="stable",
         ignore_index=True,
     )
-    out = out.drop(columns=["_policy_mean"])
+    out = out.drop(columns=["_policy_rank"])
     return out
+
+
+def _leaderboard_row(
+    policy: str,
+    env: str,
+    successes: int,
+    n: int,
+    ci: float,
+) -> dict[str, object]:
+    """Build one leaderboard row dict (Wilson CI on the cell's ``(k, n)``)."""
+    lo, hi = wilson_ci(successes, n, ci=ci)
+    return {
+        "policy": policy,
+        "env": env,
+        "n_episodes": n,
+        "n_successes": successes,
+        "success_rate": float(successes / n),
+        "ci_half_width": float((hi - lo) / 2.0),
+        "ci_low": float(lo),
+        "ci_high": float(hi),
+    }
+
+
+def _apply_libero_pooling(
+    per_cell: pd.DataFrame,
+    *,
+    ci: float,
+    libero_view: LiberoView,
+) -> pd.DataFrame:
+    """Insert / replace the pooled LIBERO row per policy per ``libero_view``.
+
+    ``per_cell`` is the one-row-per-``(policy, env)`` frame. For each
+    policy that has at least one LIBERO suite row, a pooled
+    :data:`LIBERO_POOLED_ENV` row is computed via
+    :func:`embodimetry.stats.pool_binomial` over that policy's LIBERO
+    suite ``(k, n)`` pairs. The per-suite rows are then kept or dropped
+    according to ``libero_view`` (drill-down preserved in ``"both"`` /
+    ``"suites"``). Non-LIBERO rows pass through unchanged.
+    """
+    if libero_view not in ("aggregate", "suites", "both"):
+        raise ValueError(
+            f"libero_view must be one of 'aggregate'/'suites'/'both', got {libero_view!r}"
+        )
+    if per_cell.empty or libero_view == "suites":
+        return per_cell
+
+    suite_set = set(LIBERO_SUITES)
+    is_suite = per_cell["env"].isin(suite_set)
+    suite_rows = per_cell[is_suite]
+    if suite_rows.empty:
+        return per_cell
+
+    pooled_rows: list[dict[str, object]] = []
+    for policy, cells in suite_rows.groupby("policy", sort=False):
+        pooled = pool_binomial(
+            cells["n_successes"].tolist(),
+            cells["n_episodes"].tolist(),
+            ci=ci,
+        )
+        pooled_rows.append(
+            {
+                "policy": str(policy),
+                "env": LIBERO_POOLED_ENV,
+                "n_episodes": pooled.n_episodes,
+                "n_successes": pooled.n_successes,
+                "success_rate": float(pooled.success_rate),
+                "ci_half_width": float(pooled.ci_half_width),
+                "ci_low": float(pooled.ci_low),
+                "ci_high": float(pooled.ci_high),
+            }
+        )
+
+    pooled_df = pd.DataFrame(pooled_rows, columns=list(LEADERBOARD_COLUMNS))
+    if libero_view == "aggregate":
+        # Replace per-suite rows with the pooled row.
+        kept = per_cell[~is_suite]
+        return pd.concat([kept, pooled_df], ignore_index=True)
+    # libero_view == "both": pooled row plus the per-suite drill-down.
+    return pd.concat([per_cell, pooled_df], ignore_index=True)
 
 
 # --------------------------------------------------------------------- #

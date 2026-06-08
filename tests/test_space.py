@@ -36,7 +36,7 @@ import pandas as pd
 import pytest
 
 from embodimetry.checkpointing import RESULT_SCHEMA
-from embodimetry.stats import wilson_ci
+from embodimetry.stats import LIBERO_SUITES, wilson_ci
 
 # space/ is a sibling of tests/, not on the default sys.path. Add it so
 # we can import the helpers as ``_helpers`` directly. The test file is
@@ -53,6 +53,7 @@ from _helpers import (  # noqa: E402  (sys.path mutation must precede import)
     HUB_DATASET_REPO,
     HUB_RAW_PREFIX,
     LEADERBOARD_COLUMNS,
+    LIBERO_POOLED_ENV,
     PAIRED_COLUMNS,
     V1_POLICIES,
     clear_results_cache,
@@ -722,3 +723,123 @@ def test_load_results_df_filters_xvla_but_parquet_preserves_it(tmp_path: Path) -
     # Downstream leaderboard never surfaces an xvla row.
     table = compute_leaderboard_table(df)
     assert "xvla_libero" not in set(table["policy"])
+
+
+# --------------------------------------------------------------------- #
+# compute_leaderboard_table — pooled LIBERO aggregate                   #
+# --------------------------------------------------------------------- #
+
+
+def _libero_df() -> pd.DataFrame:
+    """smolvla over the four LIBERO suites + a no_op pusht row.
+
+    Per-suite successes over 5 seeds × 50 episodes = 250 each:
+    libero_spatial=194, libero_object=132, libero_goal=232, libero_10=63.
+    Pooled: 621 / 1000 = 0.621. The pusht row is a non-LIBERO control
+    that must pass through every view untouched.
+    """
+    suite_k = {
+        "libero_spatial": 194,
+        "libero_object": 132,
+        "libero_goal": 232,
+        "libero_10": 63,
+    }
+    rows: list[dict[str, Any]] = []
+    for env, k in suite_k.items():
+        for ep in range(250):
+            rows.append(_row("smolvla_libero", env, ep // 50, ep % 50, success=ep < k))
+    for ep in range(250):
+        rows.append(_row("no_op", "pusht", ep // 50, ep % 50, success=False))
+    return _df(rows)
+
+
+def test_leaderboard_pooled_libero_matches_hand_computed() -> None:
+    """The pooled LIBERO row is Σk/Σn with a Wilson CI on the pooled (k, n)."""
+    table = compute_leaderboard_table(_libero_df())  # default: aggregate
+
+    pooled = table[(table["policy"] == "smolvla_libero") & (table["env"] == LIBERO_POOLED_ENV)]
+    assert len(pooled) == 1
+    row = pooled.iloc[0]
+    assert int(row["n_successes"]) == 621
+    assert int(row["n_episodes"]) == 1000
+    assert row["success_rate"] == pytest.approx(0.621)
+
+    lo_ref, hi_ref = wilson_ci(621, 1000, ci=0.95)
+    assert row["ci_low"] == pytest.approx(lo_ref)
+    assert row["ci_high"] == pytest.approx(hi_ref)
+    assert row["ci_half_width"] == pytest.approx((hi_ref - lo_ref) / 2.0)
+
+
+def test_leaderboard_aggregate_view_collapses_suites() -> None:
+    """Default view replaces the four suite rows with one pooled row."""
+    table = compute_leaderboard_table(_libero_df())
+    envs = set(table["env"])
+    # The pooled row is present; no per-suite row survives.
+    assert LIBERO_POOLED_ENV in envs
+    assert not (set(LIBERO_SUITES) & envs)
+    # Non-LIBERO control untouched.
+    assert ("no_op", "pusht") in set(zip(table["policy"], table["env"], strict=True))
+    # smolvla now contributes exactly one (pooled) row.
+    assert (table["policy"] == "smolvla_libero").sum() == 1
+
+
+def test_leaderboard_both_view_keeps_suite_drilldown() -> None:
+    """'both' keeps the four per-suite rows AND adds the pooled row."""
+    table = compute_leaderboard_table(_libero_df(), libero_view="both")
+    smolvla = table[table["policy"] == "smolvla_libero"]
+    envs = set(smolvla["env"])
+    assert LIBERO_POOLED_ENV in envs
+    assert set(LIBERO_SUITES).issubset(envs)
+    # 4 suites + 1 pooled = 5 rows for smolvla.
+    assert len(smolvla) == 5
+
+
+def test_leaderboard_suites_view_is_unchanged_per_cell_numbers() -> None:
+    """'suites' = the original per-suite behaviour: no pooled row, numbers intact."""
+    table = compute_leaderboard_table(_libero_df(), libero_view="suites")
+    assert LIBERO_POOLED_ENV not in set(table["env"])
+
+    expected = {
+        "libero_spatial": (194, 250),
+        "libero_object": (132, 250),
+        "libero_goal": (232, 250),
+        "libero_10": (63, 250),
+    }
+    for env, (k, n) in expected.items():
+        row = table[(table["policy"] == "smolvla_libero") & (table["env"] == env)].iloc[0]
+        assert int(row["n_successes"]) == k
+        assert int(row["n_episodes"]) == n
+        assert row["success_rate"] == pytest.approx(k / n)
+
+
+def test_leaderboard_pooled_is_not_mean_of_suite_rates() -> None:
+    """The pooled rate must equal Σk/Σn, distinct from the mean of suite rates."""
+    table_suites = compute_leaderboard_table(_libero_df(), libero_view="suites")
+    suite_rates = table_suites[
+        (table_suites["policy"] == "smolvla_libero") & (table_suites["env"].isin(LIBERO_SUITES))
+    ]["success_rate"]
+    mean_of_rates = float(suite_rates.mean())
+
+    table_agg = compute_leaderboard_table(_libero_df())
+    pooled_rate = float(
+        table_agg[
+            (table_agg["policy"] == "smolvla_libero") & (table_agg["env"] == LIBERO_POOLED_ENV)
+        ]["success_rate"].iloc[0]
+    )
+    # Here all four suites share N=250 so mean and pooled coincide; assert
+    # the pooled value is exactly Σk/Σn (the load-bearing invariant) and
+    # equals the equal-N mean to within float error.
+    assert pooled_rate == pytest.approx(621 / 1000)
+    assert pooled_rate == pytest.approx(mean_of_rates)
+
+
+def test_leaderboard_pooling_preserves_canonical_columns() -> None:
+    """Every view keeps the canonical column set the Gradio table wires to."""
+    for view in ("aggregate", "suites", "both"):
+        table = compute_leaderboard_table(_libero_df(), libero_view=view)  # type: ignore[arg-type]
+        assert tuple(table.columns) == LEADERBOARD_COLUMNS
+
+
+def test_leaderboard_rejects_unknown_libero_view() -> None:
+    with pytest.raises(ValueError, match="libero_view"):
+        compute_leaderboard_table(_libero_df(), libero_view="nonsense")  # type: ignore[arg-type]
