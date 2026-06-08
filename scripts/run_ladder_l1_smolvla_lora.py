@@ -13,6 +13,21 @@ ACT/aloha (already ~0.82). PR #166 routed this cell to a bigger GPU claiming
 the blocker was "data wiring, not VRAM"; this script proves the VRAM half
 (LoRA freezes the ~450 M base, ~few-M adapters fit 8 GB) and fixes the wiring.
 
+**OUTCOME (honest negative — see results/ladder/smolvla_libero10_l1.summary.json).**
+VRAM fits (peak ~2.8 GB at batch=8, ~4.4 GB at batch=16) and training runs
+clean with the wiring fix (BC loss converges 0.17 -> 0.06). BUT the fine-tuned
+policy collapses to **0% closed-loop success** on libero_10 — across LR 1e-4
+(3000 steps) and 1e-5 (1000 steps), via both the merged checkpoint and the raw
+PeftModel adapter. Controls rule out the eval path (published zero-shot scores
+0.252 through it) and the merge (adapter-direct also 0). The most parsimonious
+read: the already-marginal smolvla_libero checkpoint sits at a narrow optimum
+that a light LoRA update on the 379-episode libero_10 subset destabilizes (low
+open-loop BC loss masks broken closed-loop control). A working fine-tune likely
+needs the full ``lerobot/libero`` data + the upstream training-eval-matched
+recipe + a longer warmup/step sweep — beyond the local time box. The script is
+kept correct for the case a working recipe is found (e.g. on a bigger GPU); the
+re-measure block below runs as soon as a fine-tune that is not 0% is produced.
+
 **The data-wiring fix.** ``lerobot/smolvla_libero`` was trained (per its
 ``train_config.json``) on ``lerobot/libero`` with
 ``rename_map={observation.images.image: camera1, observation.images.image2:
@@ -90,7 +105,9 @@ ZEROSHOT_SUCCESSES = 63
 ZEROSHOT_N = 250
 
 
-def _finetune(work_dir: Path, *, steps: int, batch_size: int, lora_r: int, save_freq: int) -> Path:
+def _finetune(
+    work_dir: Path, *, steps: int, batch_size: int, lora_r: int, lr: float, save_freq: int
+) -> Path:
     """LoRA fine-tune SmolVLA via ``lerobot-train``; return the checkpoint dir.
 
     Uses lerobot's native PEFT path (``--peft.method_type=LORA``), the
@@ -126,6 +143,11 @@ def _finetune(work_dir: Path, *, steps: int, batch_size: int, lora_r: int, save_
         f"--rename_map={rename_json}",
         "--peft.method_type=LORA",
         f"--peft.r={lora_r}",
+        # Peak LR for the cosine schedule. The SmolVLA preset default (1e-4) is
+        # tuned for full fine-tunes from scratch and collapses a LoRA fine-tune
+        # of the already-converged smolvla_libero checkpoint (measured: 0%
+        # success). A gentler LR preserves the base behavior while adapting.
+        f"--policy.optimizer_lr={lr}",
         f"--batch_size={batch_size}",
         f"--steps={steps}",
         "--num_workers=4",
@@ -271,6 +293,7 @@ def run(
     steps: int,
     batch_size: int,
     lora_r: int,
+    lr: float,
     save_freq: int,
     keep_work: bool,
     skip_eval: bool,
@@ -304,6 +327,7 @@ def run(
         steps=steps,
         batch_size=batch_size,
         lora_r=lora_r,
+        lr=lr,
         save_freq=save_freq,
     )
     ft_ckpt = _merge_lora(adapter_ckpt, work_dir)
@@ -341,6 +365,7 @@ def run(
         "finetune_config": {
             "method": "lora",
             "lora_r": lora_r,
+            "lr": lr,
             "lora_alpha": 8,  # peft LoraConfig default; not exposed via lerobot's high-level PeftConfig CLI
             "target_modules": "smolvla default (lm_expert q/v_proj + state/action projections)",
             "steps": steps,
@@ -412,6 +437,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--batch-size", type=int, default=4, help="Batch size (default 4).")
     p.add_argument("--lora-r", type=int, default=16, help="LoRA rank (default 16).")
     p.add_argument(
+        "--lr",
+        type=float,
+        default=1e-5,
+        help="Peak LR (default 1e-5; the 1e-4 preset collapses LoRA on the converged base).",
+    )
+    p.add_argument(
         "--save-freq",
         type=int,
         default=0,
@@ -433,6 +464,7 @@ if __name__ == "__main__":
         steps=args.steps,
         batch_size=args.batch_size,
         lora_r=args.lora_r,
+        lr=args.lr,
         save_freq=save_freq,
         keep_work=args.keep_work,
         skip_eval=args.skip_eval,
