@@ -14,6 +14,7 @@ import pytest
 from scipy import stats as scipy_stats
 
 from embodimetry.stats import (
+    LIBERO_SUITES,
     bootstrap_ci,
     bootstrap_pivotal_ci,
     cohens_h,
@@ -22,6 +23,7 @@ from embodimetry.stats import (
     paired_delta_bootstrap,
     paired_diff_ci,
     paired_wilcoxon,
+    pool_binomial,
     wilson_ci,
     wilson_halfwidth_at_p,
 )
@@ -667,3 +669,87 @@ def test_holm_bonferroni_caps_adjusted_at_one() -> None:
     adjusted, reject = holm_bonferroni(p_raw, alpha=0.05)
     assert np.all(adjusted == 1.0)
     assert not reject.any()
+
+
+# --------------------------------------------------------------------- #
+# pool_binomial                                                         #
+# --------------------------------------------------------------------- #
+
+
+def test_libero_suites_constant_is_the_four_task_suites() -> None:
+    """The pooled-LIBERO surfaces key on this exact, ordered set."""
+    assert LIBERO_SUITES == (
+        "libero_spatial",
+        "libero_object",
+        "libero_goal",
+        "libero_10",
+    )
+
+
+def test_pool_binomial_hand_computed_smolvla_libero() -> None:
+    """Pooled (k, n) + Wilson CI match the hand-computed LIBERO example.
+
+    smolvla_libero per-suite successes over 4 × 250-episode suites:
+    libero_spatial=194, libero_object=132, libero_goal=232, libero_10=63.
+    Pooled k = 194+132+232+63 = 621 over n = 1000, rate = 0.621. The CI
+    is the Wilson interval on (621, 1000) — *not* the mean of the four
+    per-suite rates.
+    """
+    successes = [194, 132, 232, 63]
+    n_trials = [250, 250, 250, 250]
+    pooled = pool_binomial(successes, n_trials)
+
+    assert pooled.n_successes == 621
+    assert pooled.n_episodes == 1000
+    assert pooled.success_rate == pytest.approx(0.621)
+
+    lo_ref, hi_ref = wilson_ci(621, 1000, ci=0.95)
+    assert pooled.ci_low == pytest.approx(lo_ref)
+    assert pooled.ci_high == pytest.approx(hi_ref)
+    assert pooled.ci_half_width == pytest.approx((hi_ref - lo_ref) / 2.0)
+
+
+def test_pool_binomial_is_not_mean_of_rates_under_unequal_n() -> None:
+    """Pooling must weight by N, not average the per-cell rates.
+
+    Two cells: 1/100 (0.01) and 9/10 (0.90). The unweighted mean of the
+    rates is 0.455; the *pooled* rate is 10/110 ≈ 0.0909. The pooled
+    estimator must follow the episode counts, not the rate average.
+    """
+    pooled = pool_binomial([1, 9], [100, 10])
+    assert pooled.n_successes == 10
+    assert pooled.n_episodes == 110
+    assert pooled.success_rate == pytest.approx(10 / 110)
+    # And emphatically not the mean-of-rates value.
+    assert abs(pooled.success_rate - 0.455) > 0.3
+
+
+def test_pool_binomial_single_cell_equals_wilson_ci() -> None:
+    """A one-cell pool is just that cell's Wilson interval."""
+    pooled = pool_binomial([42], [100])
+    lo_ref, hi_ref = wilson_ci(42, 100, ci=0.95)
+    assert pooled.success_rate == pytest.approx(0.42)
+    assert pooled.ci_low == pytest.approx(lo_ref)
+    assert pooled.ci_high == pytest.approx(hi_ref)
+
+
+def test_pool_binomial_ci_level_passthrough() -> None:
+    """A 99% pooled CI is wider than the 95% one on the same counts."""
+    p95 = pool_binomial([60], [100], ci=0.95)
+    p99 = pool_binomial([60], [100], ci=0.99)
+    assert p99.ci_half_width > p95.ci_half_width
+
+
+def test_pool_binomial_rejects_bad_inputs() -> None:
+    with pytest.raises(ValueError, match="align"):
+        pool_binomial([1, 2], [10])
+    with pytest.raises(ValueError, match="non-empty"):
+        pool_binomial([], [])
+    with pytest.raises(ValueError, match="k_i must be <= n_i"):
+        pool_binomial([11], [10])
+    with pytest.raises(ValueError, match="non-negative"):
+        pool_binomial([-1], [10])
+    with pytest.raises(ValueError, match="pooled n must be positive"):
+        pool_binomial([0], [0])
+    with pytest.raises(ValueError, match="ci must be in"):
+        pool_binomial([1], [10], ci=1.0)

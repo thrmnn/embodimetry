@@ -36,6 +36,118 @@ class BootstrapResult:
 
 
 @dataclass(frozen=True)
+class PooledCell:
+    """Pooled-binomial summary for a set of cells collapsed into one row.
+
+    The pooled rate is ``n_successes / n_episodes`` over the *summed*
+    counts, NOT the mean of the per-cell rates: averaging rates would
+    mis-weight cells with unequal ``n`` (DESIGN.md § Methodology). The
+    CI is the Wilson score interval on the pooled ``(k, n)``.
+    """
+
+    n_episodes: int
+    n_successes: int
+    success_rate: float
+    ci_low: float
+    ci_high: float
+    ci_half_width: float
+    ci: float
+
+
+# Canonical LIBERO suite env keys. The four task suites that collapse
+# into one pooled "LIBERO" row on the leaderboard (the per-suite rows
+# stay available as drill-down). Order mirrors the leaderboard's env
+# ordering in ``embodimetry.figures._ENV_ORDER`` so any surface that
+# pools these stays consistent with the per-suite display order.
+LIBERO_SUITES: tuple[str, ...] = (
+    "libero_spatial",
+    "libero_object",
+    "libero_goal",
+    "libero_10",
+)
+
+
+def pool_binomial(
+    successes: list[int] | tuple[int, ...] | NDArray[np.integer],
+    n_trials: list[int] | tuple[int, ...] | NDArray[np.integer],
+    *,
+    ci: float = 0.95,
+) -> PooledCell:
+    """Pool several binomial cells into one cell with a Wilson CI.
+
+    For a policy spanning K cells (e.g. its four LIBERO suites), the
+    pooled success rate is
+
+    .. math::
+
+        \\hat p_{\\text{pool}} = \\frac{\\sum_i k_i}{\\sum_i n_i}
+
+    where ``k_i`` / ``n_i`` are the per-cell successes / episode counts.
+    This is the maximum-likelihood estimate of the common Bernoulli rate
+    under the (deliberate) modelling choice that the pooled row reports
+    "success per episode across the whole LIBERO benchmark", weighting
+    each episode equally. **Do not** average the per-cell rates — that
+    weights each suite equally regardless of ``n`` and is the classic
+    pooling error the methodology warns against.
+
+    The CI is :func:`wilson_ci` on the pooled ``(Σk, Σn)``. Wilson is the
+    same closed-form interval the per-cell leaderboard rows use, so the
+    pooled row and its constituent rows are directly comparable.
+
+    Note on dependence: the four LIBERO suites are *disjoint* episode
+    sets (different task suites), so summing their counts and treating
+    the union as one Bernoulli sample is exactly the pooled estimator —
+    there is no double-counting and no pairing to respect (unlike a
+    paired cross-cell Δ, which this is not).
+
+    Args:
+        successes: per-cell success counts ``k_i`` (length K).
+        n_trials: per-cell episode counts ``n_i`` (length K), aligned
+            with ``successes``. Each must satisfy ``0 <= k_i <= n_i``.
+        ci: confidence level in ``(0, 1)`` (default 0.95).
+
+    Returns:
+        A :class:`PooledCell` with the pooled ``(k, n)``, rate, and
+        Wilson CI bounds + half-width.
+
+    Raises:
+        ValueError: mismatched lengths, empty input, any ``k_i`` outside
+            ``[0, n_i]``, a non-positive pooled ``n``, or invalid ``ci``.
+    """
+    k_arr = np.asarray(successes, dtype=np.int64)
+    n_arr = np.asarray(n_trials, dtype=np.int64)
+    if k_arr.shape != n_arr.shape:
+        raise ValueError(f"successes and n_trials must align; got {k_arr.shape} vs {n_arr.shape}")
+    if k_arr.ndim != 1:
+        raise ValueError(f"inputs must be 1-D, got shape {k_arr.shape}")
+    if k_arr.size == 0:
+        raise ValueError("inputs must be non-empty")
+    if np.any(k_arr < 0) or np.any(n_arr < 0):
+        raise ValueError("successes and n_trials must be non-negative")
+    if np.any(k_arr > n_arr):
+        bad = [(int(k), int(n)) for k, n in zip(k_arr, n_arr, strict=True) if k > n]
+        raise ValueError(f"each k_i must be <= n_i; offending (k, n): {bad}")
+    if not 0.0 < ci < 1.0:
+        raise ValueError(f"ci must be in (0, 1), got {ci}")
+
+    pooled_k = int(k_arr.sum())
+    pooled_n = int(n_arr.sum())
+    if pooled_n <= 0:
+        raise ValueError("pooled n must be positive (all cells empty)")
+
+    lo, hi = wilson_ci(pooled_k, pooled_n, ci=ci)
+    return PooledCell(
+        n_episodes=pooled_n,
+        n_successes=pooled_k,
+        success_rate=pooled_k / pooled_n,
+        ci_low=lo,
+        ci_high=hi,
+        ci_half_width=(hi - lo) / 2.0,
+        ci=ci,
+    )
+
+
+@dataclass(frozen=True)
 class WilcoxonResult:
     """Paired Wilcoxon signed-rank test result.
 
