@@ -2344,7 +2344,21 @@ def build_env_card_markdown(
     except KeyError:
         return f"_Unknown env `{env_name}`._"
 
-    ctx = _ENV_CONTEXT.get(env_name, {})
+    ctx = _ENV_CONTEXT.get(env_name)
+    if ctx is None:
+        # Per-task expansion specs (``<suite>_t<N>``) share their base
+        # suite's task/observation/source semantics, differing only in
+        # which task instance they pin -- reuse the base suite's prose so
+        # the card stays informative instead of degrading to placeholders.
+        m = re.match(r"^(.+)_t(\d+)$", env_name)
+        base_ctx = _ENV_CONTEXT.get(m.group(1)) if m else None
+        if base_ctx is not None:
+            ctx = dict(base_ctx)
+            ctx["task"] = (
+                f"Task {m.group(2)} of the {m.group(1)} suite. {base_ctx.get('task', '')}"
+            ).strip()
+        else:
+            ctx = {}
     task = ctx.get("task", STAT_PLACEHOLDER)
     obs = ctx.get("obs", STAT_PLACEHOLDER)
     discriminates = ctx.get("discriminates", STAT_PLACEHOLDER)
