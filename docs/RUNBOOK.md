@@ -232,12 +232,17 @@ CI runs the same boot test on every push to `space/**` via
 ## Verify reproducibility of a published cell
 
 ```bash
-# Pulls the manifest from the published dataset, picks one
-# (policy, env, seed, episode_index), reruns, compares success.
-python scripts/verify_repro.py \
-  --dataset thrmnn/embodimetry-v1 \
-  --sweep YYYYMMDD \
-  --policy diffusion_policy --env pusht --seed 0 --episode 0
+# Fetch the published reference parquet once (skip if you already have it):
+huggingface-cli download thrmnn/embodimetry-v1 \
+  --repo-type dataset --local-dir results/sweep-full
+
+# Re-run one (policy, env, seed) cell and compare its per-episode
+# success + n_steps against the reference, bit-for-bit:
+python scripts/reproduce_cell.py \
+  --policy diffusion_policy --env pusht --seed 0
+
+# Confirm the cell exists in the reference without re-running it (no torch):
+python scripts/reproduce_cell.py --policy act --env pusht --seed 0 --dry-run
 ```
 
 Bit-equality is guaranteed only at cell boundaries. Within-cell episode
