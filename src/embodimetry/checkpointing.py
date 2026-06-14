@@ -302,7 +302,8 @@ def append_cell_rows(parquet_path: Path, new_rows: pd.DataFrame) -> int:
 
     Raises :class:`ValueError` if ``new_rows`` is missing a required
     column, carries an unknown extra, or if any row would duplicate an
-    existing ``(policy, env, seed, episode_index)`` tuple.
+    existing ``(policy, env, seed, episode_index)`` tuple -- including
+    duplicates *within* ``new_rows`` itself.
     """
     actual = set(new_rows.columns)
     missing_required = sorted(set(REQUIRED_COLUMNS) - actual)
@@ -341,6 +342,7 @@ def append_cell_rows(parquet_path: Path, new_rows: pd.DataFrame) -> int:
             )
         }
         duplicates: list[tuple[str, str, int, int]] = []
+        seen: set[tuple[str, str, int, int]] = set()
         for p, e, s, i in zip(
             new_rows["policy"],
             new_rows["env"],
@@ -349,8 +351,9 @@ def append_cell_rows(parquet_path: Path, new_rows: pd.DataFrame) -> int:
             strict=True,
         ):
             key = (str(p), str(e), int(s), int(i))
-            if key in existing_keys:
+            if key in existing_keys or key in seen:
                 duplicates.append(key)
+            seen.add(key)
         if duplicates:
             raise ValueError(f"duplicate (policy, env, seed, episode_index) keys: {duplicates}")
 

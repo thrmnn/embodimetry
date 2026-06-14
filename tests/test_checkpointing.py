@@ -469,21 +469,23 @@ def test_append_failure_leaves_existing_parquet_intact(
     assert len(df) == 3
 
 
-def test_append_cell_rows_does_not_dedup_within_a_single_batch(tmp_path: Path) -> None:
-    """Documents current behavior: the dup guard only checks against the
-    on-disk frame, NOT for duplicates *within* the same ``new_rows`` batch.
+def test_append_cell_rows_rejects_intra_batch_duplicate(tmp_path: Path) -> None:
+    """Two rows sharing a key *within one batch* are rejected.
 
-    Two identical ``(policy, env, seed, episode_index)`` rows inside one
-    call are both written. This pins observed behavior; see the test
-    report for the flagged gap (intra-batch duplicates are not rejected).
+    The dup guard must catch duplicates within ``new_rows`` itself, not
+    just collisions against the on-disk frame: neither row is on disk, so
+    a per-disk-only check would let both pass and silently violate the
+    uniqueness invariant.
     """
     path = tmp_path / "r.parquet"
     dup_batch = _df([_row("A", "env", 0, 0), _row("A", "env", 0, 0)])
-    total = append_cell_rows(path, dup_batch)
-    assert total == 2
-    df = load_results(path)
-    assert len(df) == 2
-    assert list(df["episode_index"]) == [0, 0]
+    with pytest.raises(
+        ValueError, match=r"duplicate \(policy, env, seed, episode_index\) keys"
+    ) as exc:
+        append_cell_rows(path, dup_batch)
+    assert "('A', 'env', 0, 0)" in str(exc.value)
+    # Nothing was written: the guard runs before any tmp swap.
+    assert not path.exists()
 
 
 # --------------------------------------------------------------------- #
