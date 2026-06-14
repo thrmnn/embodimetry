@@ -788,3 +788,131 @@ def test_default_run_subprocess_normal_exit_passes_through(tmp_path: Path) -> No
     assert outcome.returncode == 3
     assert "hi" in outcome.stdout
     assert "boom" in outcome.stderr
+
+
+# --------------------------------------------------------------------- #
+# Completion-time integrity reconciliation                              #
+# --------------------------------------------------------------------- #
+
+
+def _result_row(policy: str, env: str, seed: int, ep: int, code_sha: str = "abc") -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "policy": policy,
+        "env": env,
+        "seed": seed,
+        "episode_index": ep,
+        "success": True,
+        "return_": 1.0,
+        "n_steps": 10,
+        "wallclock_s": 0.5,
+        "video_sha256": "",
+        "code_sha": code_sha,
+        "lerobot_version": "0.5.1",
+        "timestamp_utc": "2026-05-01T00:00:00Z",
+        "errored": False,
+        "eval_run_id": "",
+    }
+    return base
+
+
+def _entry(
+    policy: str, env: str, seed: int, status: str, n_episodes: int = 2
+) -> rs.CellManifestEntry:
+    return rs.CellManifestEntry(
+        policy=policy, env=env, seed_idx=seed, n_episodes=n_episodes, status=status
+    )
+
+
+def _manifest(entries: list[rs.CellManifestEntry]) -> rs.SweepManifest:
+    m = rs.SweepManifest(
+        started_utc="2026-05-01T00:00:00+00:00",
+        code_sha="abc",
+        lerobot_version="0.5.1",
+        config_path="cfg.yaml",
+    )
+    m.cells = entries
+    return m
+
+
+def test_reconcile_stamps_n_episodes_attempted_on_completed(tmp_path: Path) -> None:
+    path = tmp_path / "results.parquet"
+    pd.DataFrame(
+        [_result_row("p", "e", 0, i) for i in range(2)],
+        columns=list(RESULT_SCHEMA),
+    ).to_parquet(path, index=False)
+    manifest = _manifest([_entry("p", "e", 0, rs.STATUS_COMPLETED, n_episodes=2)])
+
+    rs._reconcile_completion(manifest, results_path=path)
+
+    assert manifest.cells[0].n_episodes_attempted == 2
+
+
+def test_reconcile_warns_on_underfilled_cell(tmp_path: Path, caplog: Any) -> None:
+    path = tmp_path / "results.parquet"
+    pd.DataFrame(
+        [_result_row("p", "e", 0, 0)],  # only 1 of the planned 2
+        columns=list(RESULT_SCHEMA),
+    ).to_parquet(path, index=False)
+    manifest = _manifest([_entry("p", "e", 0, rs.STATUS_COMPLETED, n_episodes=2)])
+
+    with caplog.at_level("WARNING", logger="run-sweep"):
+        rs._reconcile_completion(manifest, results_path=path)
+
+    assert manifest.cells[0].n_episodes_attempted == 1
+    assert any("under-filled" in r.message for r in caplog.records)
+
+
+def test_reconcile_warns_on_unaccounted_pending(tmp_path: Path, caplog: Any) -> None:
+    path = tmp_path / "results.parquet"
+    pd.DataFrame(
+        [_result_row("p", "e", 0, i) for i in range(2)],
+        columns=list(RESULT_SCHEMA),
+    ).to_parquet(path, index=False)
+    manifest = _manifest(
+        [
+            _entry("p", "e", 0, rs.STATUS_COMPLETED),
+            _entry("p", "e", 1, rs.STATUS_PENDING),
+        ]
+    )
+
+    with caplog.at_level("WARNING", logger="run-sweep"):
+        rs._reconcile_completion(manifest, results_path=path)
+
+    assert any("unaccounted" in r.message for r in caplog.records)
+
+
+def test_reconcile_warns_on_mixed_code_sha(tmp_path: Path, caplog: Any) -> None:
+    path = tmp_path / "results.parquet"
+    pd.DataFrame(
+        [
+            _result_row("p", "e", 0, 0, code_sha="sha1"),
+            _result_row("p", "e", 0, 1, code_sha="sha2"),
+        ],
+        columns=list(RESULT_SCHEMA),
+    ).to_parquet(path, index=False)
+    manifest = _manifest([_entry("p", "e", 0, rs.STATUS_COMPLETED)])
+
+    with caplog.at_level("WARNING", logger="run-sweep"):
+        rs._reconcile_completion(manifest, results_path=path)
+
+    assert any("multiple code_sha" in r.message for r in caplog.records)
+
+
+def test_reconcile_clean_sweep_no_warnings(tmp_path: Path, caplog: Any) -> None:
+    path = tmp_path / "results.parquet"
+    pd.DataFrame(
+        [_result_row("p", "e", 0, i) for i in range(2)],
+        columns=list(RESULT_SCHEMA),
+    ).to_parquet(path, index=False)
+    manifest = _manifest([_entry("p", "e", 0, rs.STATUS_COMPLETED, n_episodes=2)])
+
+    with caplog.at_level("WARNING", logger="run-sweep"):
+        rs._reconcile_completion(manifest, results_path=path)
+
+    assert not any("INTEGRITY" in r.message for r in caplog.records)
+
+
+def test_reconcile_missing_parquet_does_not_raise(tmp_path: Path) -> None:
+    manifest = _manifest([_entry("p", "e", 0, rs.STATUS_SKIPPED)])
+    rs._reconcile_completion(manifest, results_path=tmp_path / "nope.parquet")
+    assert manifest.cells[0].n_episodes_attempted is None
