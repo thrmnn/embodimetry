@@ -583,6 +583,25 @@ def _preflight(
                     ),
                 )
 
+    # Provenance-integrity gate: the published parquet must be replayable
+    # from a single code revision, and that revision must match the manifest.
+    # A --resume across a moved git HEAD silently splits rows across two
+    # code_sha; nothing downstream notices, so the "one code_sha" provenance
+    # claim would be quietly false. A resume at the SAME code_sha (multiple
+    # eval_run_ids, one code_sha) is the legitimate case and only warns.
+    if _provenance_guard_enabled:
+        warn = _eval_run_id_warning(df)
+        if warn is not None:
+            logger.warning(warn)
+        prov_error = _provenance_integrity_error(df, manifest)
+        if prov_error is not None:
+            return _PreflightResult(
+                n_cells=0,
+                n_episodes=0,
+                referenced_video_shas=(),
+                error=prov_error,
+            )
+
     # Coverage gate (#165): the published dataset must carry every REQUIRED
     # (policy, env) cell -- otherwise an entire policy or env can silently
     # vanish from the leaderboard and still publish "clean". The REQUIRED
@@ -655,6 +674,96 @@ def _preflight(
         n_episodes=n_episodes,
         referenced_video_shas=referenced_shas,
         error=None,
+    )
+
+
+def _distinct_code_shas(df: Any) -> dict[str, int]:
+    """Return ``{code_sha: row_count}`` for every distinct code_sha in ``df``.
+
+    Pure, read-only. Empty dict when the column is absent (an older parquet
+    predating the ``code_sha`` field) -- the provenance guard treats that as
+    "nothing to check" rather than a failure, since the gate's job is to
+    catch a SPLIT, and a column-less frame cannot be split.
+    """
+    if "code_sha" not in getattr(df, "columns", ()):
+        return {}
+    counts = df["code_sha"].astype(str).value_counts()
+    return {str(sha): int(n) for sha, n in counts.items()}
+
+
+# Module-level on/off switch for the provenance-integrity guard, mirroring
+# :data:`_required_coverage_pairs_for_preflight`. Production is always True.
+# The legacy publish suites build deliberately code_sha-inconsistent fixtures
+# to exercise OTHER gates; ``tests/conftest.py`` flips this to False for those
+# modules only (the dedicated provenance suite drives it for real).
+_provenance_guard_enabled: bool = True
+
+
+def _provenance_integrity_error(df: Any, manifest: Any) -> str | None:
+    """Check that the parquet is replayable from a single code revision.
+
+    A sweep resumed after a crash/restart at a moved git HEAD silently
+    stitches rows from two different ``code_sha`` into one parquet (each
+    ``run_one`` subprocess stamps the LIVE HEAD). The published dataset's
+    "bit-for-bit replayable from one code_sha" provenance claim would then
+    be quietly false, and nothing else at publish time notices.
+
+    Returns the exit-3 message on a violation, else ``None``:
+      * >1 distinct ``code_sha`` in the parquet -> hard fail (the dangerous
+        split). Lists each sha + its row count.
+      * the single ``code_sha`` disagreeing with the manifest's recorded
+        ``code_sha`` (compared on the common 8-char prefix, to tolerate
+        short/long sha forms) -> hard fail.
+
+    ``eval_run_id`` multiplicity is NOT an error -- a resume at the SAME
+    code_sha legitimately mints a fresh ``eval_run_id`` per invocation. The
+    caller surfaces that as a non-fatal warning.
+    """
+    shas = _distinct_code_shas(df)
+    if len(shas) > 1:
+        breakdown = ", ".join(f"{sha} ({n} row(s))" for sha, n in sorted(shas.items()))
+        return (
+            f"parquet spans {len(shas)} distinct code_sha values -- it is NOT "
+            f"replayable from a single code revision (likely a --resume across a "
+            f"moved git HEAD): {breakdown}. Re-run the affected cells at one HEAD, "
+            "or split the publish per code_sha, before publishing."
+        )
+    if not shas:
+        return None
+
+    parquet_sha = next(iter(shas))
+    manifest_sha = manifest.get("code_sha") if isinstance(manifest, dict) else None
+    if not manifest_sha:
+        return None
+
+    n = 8
+    if str(parquet_sha)[:n] != str(manifest_sha)[:n]:
+        return (
+            f"parquet code_sha {parquet_sha!r} disagrees with the manifest's "
+            f"recorded code_sha {manifest_sha!r} (compared on first {n} chars): the "
+            "parquet was produced by different code than the manifest claims. "
+            "Re-run the sweep so the manifest and rows share one code_sha."
+        )
+    return None
+
+
+def _eval_run_id_warning(df: Any) -> str | None:
+    """Non-fatal note: surface a resume (multiple eval_run_ids, one code_sha).
+
+    A resume at the SAME code_sha mints a fresh ``eval_run_id`` per
+    invocation -- legitimate, but worth telling the operator so they know a
+    resume happened. Returns the message to log, or ``None`` when there is at
+    most one ``eval_run_id``.
+    """
+    if "eval_run_id" not in getattr(df, "columns", ()):
+        return None
+    ids = sorted({str(x) for x in df["eval_run_id"].tolist() if str(x)})
+    if len(ids) <= 1:
+        return None
+    return (
+        f"parquet carries {len(ids)} distinct eval_run_id values "
+        f"(a --resume at the same code_sha): {ids}. This is allowed; surfaced "
+        "so the resume is visible in the publish log."
     )
 
 

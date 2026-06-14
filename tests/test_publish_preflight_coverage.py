@@ -53,6 +53,9 @@ _TEST_REQUIRED: frozenset[tuple[str, str]] = frozenset(
 # --------------------------------------------------------------------- #
 
 
+_MANIFEST_CODE_SHA = "abc12345def"
+
+
 def _row(
     *,
     policy: str,
@@ -60,8 +63,15 @@ def _row(
     seed: int = 0,
     episode_index: int = 0,
     success: bool = True,
+    code_sha: str = _MANIFEST_CODE_SHA,
+    eval_run_id: str = "test-run",
 ) -> dict[str, Any]:
-    """One RESULT_SCHEMA row. video_sha256 empty so the video gate is a no-op."""
+    """One RESULT_SCHEMA row. video_sha256 empty so the video gate is a no-op.
+
+    ``code_sha`` defaults to :data:`_MANIFEST_CODE_SHA` so a default-built
+    parquet agrees with the manifests the helpers below write -- the
+    provenance-integrity gate is therefore a no-op for the coverage tests.
+    """
     return {
         "policy": policy,
         "env": env,
@@ -72,11 +82,11 @@ def _row(
         "n_steps": 10,
         "wallclock_s": 0.05,
         "video_sha256": "",
-        "code_sha": "deadbeef",
+        "code_sha": code_sha,
         "lerobot_version": "0.5.1",
         "timestamp_utc": "2026-05-01T00:00:00+00:00",
         "errored": False,
-        "eval_run_id": "test-run",
+        "eval_run_id": eval_run_id,
     }
 
 
@@ -101,7 +111,7 @@ def _build_sweep_dir(tmp_path: Path, pairs: list[tuple[str, str]]) -> dict[str, 
             {
                 "started_utc": "2026-05-03T00:00:00+00:00",
                 "finished_utc": "2026-05-03T01:00:00+00:00",
-                "code_sha": "abc",
+                "code_sha": _MANIFEST_CODE_SHA,
                 "lerobot_version": "0.5.1",
                 "config_path": "configs/sweep_full.yaml",
                 "cells": [],
@@ -341,7 +351,7 @@ def _build_sweep_dir_for_config(
             {
                 "started_utc": "2026-06-01T00:00:00+00:00",
                 "finished_utc": "2026-06-01T03:00:00+00:00",
-                "code_sha": "abc",
+                "code_sha": _MANIFEST_CODE_SHA,
                 "lerobot_version": "0.5.1",
                 "config_path": config_path,
                 "cells": [],
@@ -461,3 +471,122 @@ def test_publish_preflight_missing_config_path_clear_error(tmp_path: Path) -> No
     res = _preflight(paths)
     assert res.error is not None
     assert "config_path" in res.error
+
+
+# --------------------------------------------------------------------- #
+# Provenance-integrity gate: the published parquet must be replayable     #
+# from a single code revision, and that revision must match the manifest. #
+# A --resume across a moved git HEAD silently splits rows across two      #
+# code_sha; a resume at the SAME code_sha (multiple eval_run_ids) is OK.  #
+# --------------------------------------------------------------------- #
+
+
+def _build_sweep_dir_rows(
+    tmp_path: Path,
+    rows: list[dict[str, Any]],
+    *,
+    manifest_code_sha: str = _MANIFEST_CODE_SHA,
+) -> dict[str, Path]:
+    """Build a sweep dir from explicit RESULT_SCHEMA rows + a manifest sha.
+
+    Lets the provenance tests vary ``code_sha`` / ``eval_run_id`` per row and
+    set the manifest's recorded ``code_sha`` independently.
+    """
+    sweep_dir = tmp_path / "sweep-prov"
+    sweep_dir.mkdir(parents=True)
+    (sweep_dir / "videos").mkdir()
+
+    df = pd.DataFrame(rows, columns=list(RESULT_SCHEMA))
+    results_path = sweep_dir / "results.parquet"
+    _atomic_write_parquet(results_path, df)
+
+    manifest_path = sweep_dir / "sweep_manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "started_utc": "2026-06-13T00:00:00+00:00",
+                "finished_utc": "2026-06-14T00:00:00+00:00",
+                "code_sha": manifest_code_sha,
+                "lerobot_version": "0.5.1",
+                "config_path": "configs/sweep_full.yaml",
+                "cells": [],
+            }
+        )
+    )
+    return {
+        "results_path": results_path,
+        "manifest_path": manifest_path,
+        "videos_dir": sweep_dir / "videos",
+    }
+
+
+def test_provenance_single_code_sha_matching_manifest_passes(
+    tmp_path: Path, _fixed_required: frozenset[tuple[str, str]]
+) -> None:
+    """(a) one code_sha, equal to the manifest's -> provenance gate passes."""
+    rows = [_row(policy=p, env=e) for p, e in sorted(_fixed_required)]
+    paths = _build_sweep_dir_rows(tmp_path, rows)
+    result = _preflight(paths)
+    assert result.error is None, result.error
+
+
+def test_provenance_two_distinct_code_shas_fails(
+    tmp_path: Path, _fixed_required: frozenset[tuple[str, str]]
+) -> None:
+    """(b) two distinct code_sha in the parquet -> exit-3 with both shas + counts."""
+    pairs = sorted(_fixed_required)
+    rows = [_row(policy=p, env=e) for p, e in pairs]
+    # Move half the rows onto a second code_sha -- the dangerous resume split.
+    second_sha = "feedface999"
+    for r in rows[: len(rows) // 2 or 1]:
+        r["code_sha"] = second_sha
+    paths = _build_sweep_dir_rows(tmp_path, rows)
+    result = _preflight(paths)
+    assert result.error is not None
+    assert "distinct code_sha" in result.error
+    assert _MANIFEST_CODE_SHA in result.error
+    assert second_sha in result.error
+    assert "row(s)" in result.error
+
+
+def test_provenance_single_code_sha_disagrees_with_manifest_fails(
+    tmp_path: Path, _fixed_required: frozenset[tuple[str, str]]
+) -> None:
+    """(c) one code_sha that DISAGREES with the manifest's code_sha -> exit-3."""
+    rows = [_row(policy=p, env=e, code_sha="aaaa1111bbbb") for p, e in sorted(_fixed_required)]
+    paths = _build_sweep_dir_rows(tmp_path, rows, manifest_code_sha="cccc2222dddd")
+    result = _preflight(paths)
+    assert result.error is not None
+    assert "disagrees with the manifest" in result.error
+    assert "aaaa1111" in result.error
+    assert "cccc2222" in result.error
+
+
+def test_provenance_manifest_sha_prefix_match_passes(
+    tmp_path: Path, _fixed_required: frozenset[tuple[str, str]]
+) -> None:
+    """A short/long sha form is tolerated: comparison is on the 8-char prefix."""
+    full = "10156cf001120ebc522eb98b811f73d565fb3dbf"
+    rows = [_row(policy=p, env=e, code_sha=full) for p, e in sorted(_fixed_required)]
+    # Manifest records only the short form -- same first 8 chars.
+    paths = _build_sweep_dir_rows(tmp_path, rows, manifest_code_sha="10156cf0")
+    result = _preflight(paths)
+    assert result.error is None, result.error
+
+
+def test_provenance_multiple_eval_run_ids_same_code_sha_passes(
+    tmp_path: Path,
+    _fixed_required: frozenset[tuple[str, str]],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """(d) one code_sha but multiple eval_run_ids (resume-at-same-code) -> passes + warns."""
+    pairs = sorted(_fixed_required)
+    rows = [_row(policy=p, env=e) for p, e in pairs]
+    # Stamp two eval_run_ids (a resume re-mints one per invocation) at one sha.
+    for i, r in enumerate(rows):
+        r["eval_run_id"] = "run-a" if i % 2 == 0 else "run-b"
+    paths = _build_sweep_dir_rows(tmp_path, rows)
+    with caplog.at_level("WARNING"):
+        result = _preflight(paths)
+    assert result.error is None, result.error
+    assert any("eval_run_id" in rec.message for rec in caplog.records)
