@@ -1453,6 +1453,15 @@ def env_dashboard_logs_dir() -> Path:
 # seeds each == 110 seed-entries). Kept as constants so the header
 # badge has a stable denominator even before the manifest is on disk.
 #
+# These are the V1 floor only — they scope the v1 leaderboard and must
+# stay at the v1 values. They are NOT a hard cap: compute_mission_kpis()
+# derives its denominator from the live manifest whenever the manifest is
+# larger (see the ``cells_total if cells_total >= V1_RUNNABLE_CELLS``
+# logic), so a v1.1 LIBERO sweep (40 cells = 4 suites x 10 tasks for
+# smolvla_libero; see configs/sweep_v11_libero.yaml) already reports
+# ``N/40`` rather than clamping to 22. Only update these literals when the
+# v1 *published* scope itself changes.
+#
 # ``V1_POLICIES`` is imported at module top from
 # ``embodimetry.leaderboard_filter`` (shared with the Gradio Space).
 # xvla_libero is intentionally absent: deferred to v1.1 (PR #76 — two
