@@ -239,6 +239,11 @@ def _v1_sweep_envs() -> tuple[tuple[str, ...], bool]:
     that file is missing/malformed or doesn't yield a clean non-empty
     list of env-name strings, ``used_fallback=True`` and the caller falls
     back to the union of ``env_compat`` across the v1 policies.
+
+    This is the LEGACY (v1, ``sweep_full.yaml``-pinned) source. The
+    config-aware path -- :func:`_required_coverage_pairs_from_config` --
+    supersedes it for any manifest that records its own ``config_path``;
+    this helper only feeds the no-manifest fallback.
     """
     try:
         data = yaml.safe_load(_SWEEP_FULL_YAML.read_text())
@@ -250,6 +255,68 @@ def _v1_sweep_envs() -> tuple[tuple[str, ...], bool]:
     if not isinstance(envs, list) or not envs or not all(isinstance(e, str) for e in envs):
         return (), True
     return tuple(envs), False
+
+
+def _resolve_config_path(config_path: str) -> Path:
+    """Resolve a manifest's ``config_path`` to an existing file.
+
+    Manifests record ``config_path`` as written at sweep time -- usually
+    a repo-relative string like ``configs/sweep_v11_libero.yaml`` but
+    occasionally an absolute path from the launching host. We accept the
+    string verbatim if it exists, else re-anchor its basename under
+    ``_REPO_ROOT / "configs"`` so a manifest produced on another box
+    still resolves to the same config shipped in this checkout.
+    """
+    p = Path(config_path)
+    if p.is_file():
+        return p
+    candidate = _REPO_ROOT / config_path
+    if candidate.is_file():
+        return candidate
+    return _REPO_ROOT / "configs" / p.name
+
+
+def _required_coverage_pairs_from_config(config_path: str) -> frozenset[tuple[str, str]]:
+    """Derive REQUIRED ``(policy, env)`` pairs from the sweep's OWN config.
+
+    This is the config-aware replacement for the ``sweep_full.yaml``-pinned
+    :func:`_required_coverage_pairs`. We load the exact sweep config the
+    manifest points at, expand it through the orchestrator's own
+    :func:`scripts.run_sweep.expand_cells` (so the publish gate and the
+    sweep planner can never disagree on what a config means), and keep the
+    distinct ``(policy, env)`` of every cell that is both *compatible* and
+    *runnable* -- i.e. cells the sweep actually intended to produce data
+    for. Pairs are intersected with :data:`V1_POLICIES` because the
+    published parquet is itself filtered to those policies; a deferred
+    policy (xvla, pi0) named in a config never becomes a coverage
+    requirement.
+
+    Works for both the legacy v1 sweep (``sweep_full.yaml``) and the v1.1
+    LIBERO sweep (``sweep_v11_libero.yaml`` -- smolvla_libero x 40 envs).
+
+    Raises ``OSError`` / ``ValueError`` on an unreadable / malformed
+    config or registry; the caller in :func:`_preflight` turns that into
+    an exit-3 message.
+    """
+    # Local import: keeps the AST contract (no heavy top-level deps) and
+    # avoids a publish<->sweep import cycle at module load.
+    from embodimetry.envs import EnvRegistry
+    from scripts.run_sweep import expand_cells, load_sweep_config
+
+    resolved = _resolve_config_path(config_path)
+    config = load_sweep_config(resolved)
+    policy_registry = PolicyRegistry.from_yaml(config.policies_yaml)
+    env_registry = EnvRegistry.from_yaml(config.envs_yaml)
+    cells = expand_cells(
+        config,
+        policy_registry=policy_registry,
+        env_registry=env_registry,
+    )
+    return frozenset(
+        (cell.policy, cell.env)
+        for cell in cells
+        if cell.compatible and cell.runnable and cell.policy in V1_POLICIES
+    )
 
 
 def _required_coverage_pairs(
@@ -307,10 +374,43 @@ def _default_required_coverage_pairs() -> frozenset[tuple[str, str]]:
 # (``monkeypatch.setattr(publish_results, "_required_coverage_pairs_for_preflight", ...)``)
 # swap in a synthetic REQUIRED set so they can exercise the
 # missing-cell / extra-cell branches without depending on the live
-# configs. Production always uses the registry-derived default.
-_required_coverage_pairs_for_preflight: Callable[[], frozenset[tuple[str, str]]] = (
-    _default_required_coverage_pairs
-)
+# configs.
+#
+# ``None`` is the production sentinel: when it is None, :func:`_preflight`
+# derives the REQUIRED set from the *manifest's own* ``config_path``
+# (config-aware path -- handles sweep_full.yaml AND sweep_v11_libero.yaml).
+# A non-None override short-circuits that and is used verbatim, which is
+# how the test suite pins a synthetic REQUIRED set.
+_required_coverage_pairs_for_preflight: Callable[[], frozenset[tuple[str, str]]] | None = None
+
+
+def _resolve_required_pairs(manifest: Any) -> frozenset[tuple[str, str]]:
+    """Pick the REQUIRED coverage set for this publish.
+
+    Precedence:
+      1. A test-injected :data:`_required_coverage_pairs_for_preflight`
+         override (non-None) -- used verbatim.
+      2. The manifest's own ``config_path`` -> config-aware derivation
+         (:func:`_required_coverage_pairs_from_config`). This is the
+         production path and is what makes the gate work for the v1.1
+         LIBERO sweep as well as the legacy v1 sweep.
+
+    Raises ``KeyError`` (clear message) when an older manifest predates
+    the ``config_path`` field, so the operator knows the gate cannot run
+    without re-anchoring the config.
+    """
+    override = _required_coverage_pairs_for_preflight
+    if override is not None:
+        return override()
+
+    config_path = manifest.get("config_path") if isinstance(manifest, dict) else None
+    if not config_path:
+        raise KeyError(
+            "manifest lacks 'config_path'; cannot derive the REQUIRED (policy, env) "
+            "coverage set. Re-run the sweep with a current run_sweep.py (which records "
+            "config_path), or pass an explicit config via the manifest."
+        )
+    return _required_coverage_pairs_from_config(str(config_path))
 
 
 def _preflight(
@@ -422,20 +522,82 @@ def _preflight(
                 ),
             )
 
-    # Coverage gate (#165): the published v1 dataset must carry every
-    # REQUIRED (policy, env) cell -- otherwise an entire policy or env can
-    # silently vanish from the leaderboard and still publish "clean". The
-    # REQUIRED set is derived from the runnable v1 policies x the sweep's
-    # env axis (see _required_coverage_pairs). Pairs present in the data
-    # but NOT required are OPTIONAL and allowed.
-    try:
-        required_pairs = _required_coverage_pairs_for_preflight()
-    except (OSError, ValueError) as exc:
+    # Manifest must exist + parse BEFORE the coverage gate -- the gate now
+    # derives the REQUIRED (policy, env) set from the manifest's own
+    # ``config_path`` (config-aware: works for sweep_full.yaml AND
+    # sweep_v11_libero.yaml), so we need its contents in hand here.
+    if not manifest_path.exists():
         return _PreflightResult(
             n_cells=0,
             n_episodes=0,
             referenced_video_shas=(),
-            error=f"policy registry unreadable for coverage check: {_POLICIES_YAML}: {exc}",
+            error=f"manifest not found: {manifest_path}",
+        )
+    try:
+        manifest = json.loads(manifest_path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        return _PreflightResult(
+            n_cells=0,
+            n_episodes=0,
+            referenced_video_shas=(),
+            error=f"manifest unreadable: {manifest_path}: {exc}",
+        )
+
+    # Completion gate: never publish a half-done sweep. A manifest with no
+    # ``finished_utc``, or any non-terminal cell (status not in
+    # completed/skipped/failed), means the run is still in flight or died
+    # mid-sweep. ``skipped`` is terminal (incompatible / non-runnable /
+    # pre-resumed); ``failed`` is terminal too -- a failed cell is a
+    # surfaced gap, and the act×aloha + coverage gates above already catch
+    # a *missing* required cell. We only block the ambiguous in-flight
+    # states (``pending``/``running``) and a never-finalized manifest.
+    if isinstance(manifest, dict):
+        if not manifest.get("finished_utc"):
+            return _PreflightResult(
+                n_cells=0,
+                n_episodes=0,
+                referenced_video_shas=(),
+                error=(
+                    "manifest has no finished_utc: refusing to publish a sweep that "
+                    "did not finalize (run/finish the sweep before publishing)"
+                ),
+            )
+        cells = manifest.get("cells")
+        if isinstance(cells, list):
+            unfinished = sorted(
+                {
+                    str(c.get("status"))
+                    for c in cells
+                    if isinstance(c, dict)
+                    and str(c.get("status")) not in {"completed", "skipped", "failed"}
+                }
+            )
+            if unfinished:
+                return _PreflightResult(
+                    n_cells=0,
+                    n_episodes=0,
+                    referenced_video_shas=(),
+                    error=(
+                        f"manifest has cells in non-terminal state(s) {unfinished}: "
+                        "refusing to publish an in-flight sweep"
+                    ),
+                )
+
+    # Coverage gate (#165): the published dataset must carry every REQUIRED
+    # (policy, env) cell -- otherwise an entire policy or env can silently
+    # vanish from the leaderboard and still publish "clean". The REQUIRED
+    # set is config-aware: derived from the sweep's own ``config_path``
+    # (see _required_coverage_pairs_from_config). A test-injected override
+    # short-circuits to a synthetic set. Pairs present in the data but NOT
+    # required are OPTIONAL and allowed.
+    try:
+        required_pairs = _resolve_required_pairs(manifest)
+    except (OSError, ValueError, KeyError) as exc:
+        return _PreflightResult(
+            n_cells=0,
+            n_episodes=0,
+            referenced_video_shas=(),
+            error=f"could not derive REQUIRED coverage set: {exc}",
         )
     present_pairs = {
         (str(p), str(e)) for p, e in df[["policy", "env"]].drop_duplicates().itertuples(index=False)
@@ -449,26 +611,9 @@ def _preflight(
             referenced_video_shas=(),
             error=(
                 f"missing REQUIRED (policy, env) cells (first {len(shown)} of "
-                f"{len(missing_pairs)}): {shown}; a v1 publish must cover every "
+                f"{len(missing_pairs)}): {shown}; a publish must cover every "
                 "runnable v1 policy x its sweep envs"
             ),
-        )
-
-    if not manifest_path.exists():
-        return _PreflightResult(
-            n_cells=0,
-            n_episodes=0,
-            referenced_video_shas=(),
-            error=f"manifest not found: {manifest_path}",
-        )
-    try:
-        json.loads(manifest_path.read_text())
-    except (json.JSONDecodeError, OSError) as exc:
-        return _PreflightResult(
-            n_cells=0,
-            n_episodes=0,
-            referenced_video_shas=(),
-            error=f"manifest unreadable: {manifest_path}: {exc}",
         )
 
     n_cells = df[["policy", "env", "seed"]].drop_duplicates().shape[0] if len(df) else 0

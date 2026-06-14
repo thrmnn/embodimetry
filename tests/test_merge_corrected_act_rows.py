@@ -15,6 +15,8 @@ No torch, no network: pure pandas fixtures on tmp_path.
 
 from __future__ import annotations
 
+import json
+
 import pandas as pd
 import pytest
 from scripts import merge_corrected_act_rows as mod
@@ -201,7 +203,18 @@ def test_preflight_rejects_stale_accepts_merged(tmp_path) -> None:
     from scripts import publish_results as pr
 
     manifest = tmp_path / "sweep_manifest.json"
-    manifest.write_text("{}")
+    # A finalized manifest: the publish completion gate rejects a sweep with
+    # no finished_utc, and this test exercises the stale-rows gate, not that.
+    manifest.write_text(
+        json.dumps(
+            {
+                "started_utc": "2026-05-03T00:00:00+00:00",
+                "finished_utc": "2026-05-03T01:00:00+00:00",
+                "config_path": "configs/sweep_full.yaml",
+                "cells": [],
+            }
+        )
+    )
 
     stale_path = tmp_path / "results.parquet"
     _write(stale_path, _canonical_df())
