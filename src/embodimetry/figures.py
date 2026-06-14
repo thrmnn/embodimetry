@@ -879,13 +879,13 @@ def replication_scatter(
     ax.set_xlim(-0.02, 1.05)
     ax.set_ylim(-0.02, 1.05)
     ax.set_xlabel("paper-reported success")
-    ax.set_ylabel("measured success (N=250 per cell)")
+    ax.set_ylabel("measured success")
     # Two-line title + generous pad; combined with the top-margin reserve
     # in subplots_adjust below this keeps the title from clipping at the
     # tight paper figsize (3.5x2.5in) where a one-line title overran the
     # saved bbox. tight_layout(rect=...) reserves the headroom.
     ax.set_title(
-        "Paper-reported vs measured (N=250 each)\n"
+        "Paper-reported vs measured success\n"
         "grey = inside MDE band; hollow = ACT pre-fix (norm bug)",
         pad=8,
     )
