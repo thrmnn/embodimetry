@@ -48,13 +48,20 @@ _POLICY_ORDER: tuple[str, ...] = (
     "no_op",
     "random",
 )
-_ENV_ORDER: tuple[str, ...] = (
-    "pusht",
-    "aloha_transfer_cube",
+# pusht + aloha first, then each LIBERO suite in base (t0) → _t1.._t9
+# task order so forest_plot() sorts deterministically by suite then task
+# index for v1.1's 40 LIBERO envs (was 6 envs in v1.0; the 36 _tN envs
+# previously fell to rank 99 and sorted non-deterministically).
+_LIBERO_SUITES: tuple[str, ...] = (
     "libero_spatial",
     "libero_object",
     "libero_goal",
     "libero_10",
+)
+_ENV_ORDER: tuple[str, ...] = (
+    "pusht",
+    "aloha_transfer_cube",
+    *(suite if t == 0 else f"{suite}_t{t}" for suite in _LIBERO_SUITES for t in range(10)),
 )
 
 # Minimum-detectable-effect band half-width at p=0.5, N=250 (DESIGN.md
@@ -235,12 +242,13 @@ def forest_plot(df: pd.DataFrame, *, style: Style, out_dir: Path) -> list[Path]:
 
     s = apply_style(style)
     # The forest plot's row count drives height: a fixed figsize cramps
-    # all 17 labels into 2.5 inches. Scale height to keep ~0.22 in/row
-    # at all styles, capped at 3x the style's default height so the deck
-    # still fits a slide.
+    # the per-cell labels into the style's default height. Scale height to
+    # keep ~0.22 in/row at all styles so v1.1's 23+ rows aren't cramped,
+    # capped at 8x the style's default height so a pathological row count
+    # can't produce an unbounded canvas.
     base_w, base_h = s["figsize"]
     per_row = 0.22 if style == "paper" else 0.35
-    height = max(base_h, min(3.0 * base_h, per_row * len(cells) + 1.0))
+    height = max(base_h, min(8.0 * base_h, per_row * len(cells) + 1.0))
     fig, ax = plt.subplots(figsize=(base_w, height))
 
     color_map = _policy_color_map(style)
