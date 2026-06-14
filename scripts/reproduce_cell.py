@@ -375,7 +375,14 @@ def reproduce(
         )
         return 2
 
-    ref_df = pd.read_parquet(reference)
+    try:
+        ref_df = pd.read_parquet(reference)
+    except (OSError, ValueError, KeyError) as exc:
+        print(
+            f"ERROR: failed to read reference parquet {reference}: {exc}",
+            file=sys.stderr,
+        )
+        return 3
     try:
         ref_cell = select_cell(ref_df, policy=policy, env=env, seed=seed)
     except KeyError as exc:
@@ -432,8 +439,15 @@ def reproduce(
             )
             return 3
 
-        rep_df = pd.read_parquet(out_parquet)
-        rep_cell = select_cell(rep_df, policy=policy, env=env, seed=seed)
+        try:
+            rep_df = pd.read_parquet(out_parquet)
+            rep_cell = select_cell(rep_df, policy=policy, env=env, seed=seed)
+        except (OSError, ValueError, KeyError) as exc:
+            print(
+                f"ERROR: failed to read the re-run parquet {out_parquet}: {exc}",
+                file=sys.stderr,
+            )
+            return 3
         result = compare_cells(ref_cell, rep_cell)
 
     print(format_verdict(cell_key, result))

@@ -511,7 +511,10 @@ def run_calibration(
         # Persist after every cell so a crash leaves the partial report
         # on disk. write_report is idempotent (timestamp prefix is fixed).
         partial = replace(report_skeleton, cells=tuple(cells + skipped_cells))
-        write_report(partial, out_dir)
+        try:
+            write_report(partial, out_dir)
+        except (OSError, ValueError) as exc:
+            logger.error("failed to persist partial report to %s: %s", out_dir, exc)
 
     cells.extend(skipped_cells)
     report = replace(report_skeleton, cells=tuple(cells))
