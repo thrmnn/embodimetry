@@ -493,14 +493,16 @@ def _preflight(
             )
             if not expected.exists():
                 missing.append(str(expected))
-            if len(missing) >= 5:  # cap message length
-                break
         if missing:
+            sample = missing[:5]
             return _PreflightResult(
                 n_cells=n_cells,
                 n_episodes=n_episodes,
                 referenced_video_shas=referenced_shas,
-                error=(f"video_sha256 references missing MP4s (first {len(missing)}): {missing}"),
+                error=(
+                    f"video_sha256 references missing MP4s: {len(missing)} missing "
+                    f"(showing first {len(sample)}): {sample}"
+                ),
             )
 
     return _PreflightResult(

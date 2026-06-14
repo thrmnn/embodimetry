@@ -630,13 +630,13 @@ def write_manifest(manifest: SweepManifest, path: Path) -> None:
     try:
         tmp_path.write_text(json.dumps(manifest.to_json(), indent=2, sort_keys=False) + "\n")
         os.replace(tmp_path, path)
-    except Exception:
+    except Exception as exc:
         if tmp_path.exists():
             try:
                 tmp_path.unlink()
             except OSError:
                 logger.warning("failed to clean up tmp manifest at %s", tmp_path)
-        raise
+        raise RuntimeError(f"failed to write manifest to {path}: {exc}") from exc
 
 
 # --------------------------------------------------------------------- #
