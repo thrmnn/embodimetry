@@ -51,3 +51,8 @@ def _disable_publish_coverage_gate_for_legacy_tests(
         "_required_coverage_pairs_for_preflight",
         lambda: frozenset(),
     )
+    # The provenance-integrity guard (single code_sha; parquet sha == manifest
+    # sha) also trips these legacy fixtures, which intentionally pair a
+    # ``deadbeef`` row code_sha with an ``abc`` manifest code_sha to exercise
+    # the OTHER gates. The dedicated provenance suite drives the guard for real.
+    monkeypatch.setattr(publish_results, "_provenance_guard_enabled", False)
