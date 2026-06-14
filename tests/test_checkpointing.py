@@ -373,6 +373,119 @@ def test_atomicity_simulated(tmp_path: Path) -> None:
     assert list(df["episode_index"]) == [0, 1, 2]
 
 
+def test_atomic_write_failure_cleans_up_tmp_and_reraises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A write error deletes the tmp sibling and re-raises (no stale tmp).
+
+    Exercises the except branch of ``_atomic_write_parquet``: if
+    ``to_parquet`` raises mid-write, the half-written ``.tmp.parquet``
+    must be removed so it cannot shadow a future write, and the original
+    exception must propagate.
+    """
+    import embodimetry.checkpointing as cp
+
+    path = tmp_path / "r.parquet"
+    tmp_sibling = path.with_suffix(".tmp.parquet")
+
+    real_to_parquet = pd.DataFrame.to_parquet
+
+    def boom(self: pd.DataFrame, where: Any, *args: Any, **kwargs: Any) -> None:
+        # Create the tmp file (as a real write would begin to) then fail,
+        # so we can assert the except branch unlinks it.
+        Path(where).write_bytes(b"partial")
+        raise OSError("disk full")
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", boom, raising=True)
+    try:
+        rows = _df([_row("A", "env", 0, i) for i in range(3)])
+        with pytest.raises(OSError, match="disk full"):
+            cp._atomic_write_parquet(path, rows)
+    finally:
+        monkeypatch.setattr(pd.DataFrame, "to_parquet", real_to_parquet, raising=True)
+
+    # Stale tmp cleaned up; final file never created.
+    assert not tmp_sibling.exists()
+    assert not path.exists()
+
+
+def test_atomic_write_failure_with_no_tmp_file_still_reraises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If the write fails before any tmp file lands, the error still propagates.
+
+    Covers the except branch where ``tmp_path.exists()`` is False (nothing
+    to clean up) -- the exception must still re-raise unchanged.
+    """
+    import embodimetry.checkpointing as cp
+
+    path = tmp_path / "r.parquet"
+    real_to_parquet = pd.DataFrame.to_parquet
+
+    def boom(self: pd.DataFrame, where: Any, *args: Any, **kwargs: Any) -> None:
+        raise ValueError("encoder rejected schema")
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", boom, raising=True)
+    try:
+        rows = _df([_row("A", "env", 0, i) for i in range(2)])
+        with pytest.raises(ValueError, match="encoder rejected schema"):
+            cp._atomic_write_parquet(path, rows)
+    finally:
+        monkeypatch.setattr(pd.DataFrame, "to_parquet", real_to_parquet, raising=True)
+
+    assert not path.with_suffix(".tmp.parquet").exists()
+    assert not path.exists()
+
+
+def test_append_failure_leaves_existing_parquet_intact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failed append never corrupts the already-committed parquet.
+
+    The os.replace is the only mutation of the final path; if the write
+    to the tmp sibling fails, the previously committed rows survive
+    byte-for-byte.
+    """
+
+    path = tmp_path / "r.parquet"
+    append_cell_rows(path, _df([_row("A", "env", 0, i) for i in range(3)]))
+    bytes_before = path.read_bytes()
+
+    real_to_parquet = pd.DataFrame.to_parquet
+
+    def boom(self: pd.DataFrame, where: Any, *args: Any, **kwargs: Any) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", boom, raising=True)
+    try:
+        with pytest.raises(OSError, match="disk full"):
+            append_cell_rows(path, _df([_row("B", "env", 0, i) for i in range(2)]))
+    finally:
+        monkeypatch.setattr(pd.DataFrame, "to_parquet", real_to_parquet, raising=True)
+
+    assert path.read_bytes() == bytes_before
+    df = load_results(path)
+    assert set(df["policy"]) == {"A"}
+    assert len(df) == 3
+
+
+def test_append_cell_rows_does_not_dedup_within_a_single_batch(tmp_path: Path) -> None:
+    """Documents current behavior: the dup guard only checks against the
+    on-disk frame, NOT for duplicates *within* the same ``new_rows`` batch.
+
+    Two identical ``(policy, env, seed, episode_index)`` rows inside one
+    call are both written. This pins observed behavior; see the test
+    report for the flagged gap (intra-batch duplicates are not rejected).
+    """
+    path = tmp_path / "r.parquet"
+    dup_batch = _df([_row("A", "env", 0, 0), _row("A", "env", 0, 0)])
+    total = append_cell_rows(path, dup_batch)
+    assert total == 2
+    df = load_results(path)
+    assert len(df) == 2
+    assert list(df["episode_index"]) == [0, 0]
+
+
 # --------------------------------------------------------------------- #
 # Schema-asymmetry guard: REQUIRED strict, OPTIONAL backfilled           #
 # --------------------------------------------------------------------- #
