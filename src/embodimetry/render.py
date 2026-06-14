@@ -300,6 +300,8 @@ def render_episode(
             cases the file is removed before raising.
     """
     _validate_frames(frames)
+    if size <= 0:
+        raise ValueError(f"size must be positive, got {size}")
     if size % 2 != 0:
         raise ValueError(f"size must be even (yuv420p chroma), got {size}")
     if fps is not None and fps <= 0:
