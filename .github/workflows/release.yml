@@ -37,6 +37,7 @@ jobs:
 
       - name: Verify VERSION matches package + tag
         run: |
+          set -o pipefail
           file_v=$(cat VERSION)
           pkg_v=$(grep -oP '__version__ = "\K[^"]+' src/embodimetry/__version__.py)
           toml_v=$(grep -oP '^version = "\K[^"]+' pyproject.toml | head -1)
@@ -92,6 +93,6 @@ jobs:
         with:
           name: dist
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
         with:
           repository-url: https://test.pypi.org/legacy/
