@@ -196,6 +196,114 @@ def test_replication_scatter_greyscale_for_inside_MDE() -> None:
     assert abs(rows[1]["measured"] - rows[1]["paper"]) >= MDE_BAND
 
 
+def _smolvla_registry() -> PolicyRegistry:
+    """Registry whose smolvla_libero paper rate keys on the suite name."""
+    return PolicyRegistry(
+        {
+            "smolvla_libero": PolicySpec(
+                name="smolvla_libero",
+                is_baseline=False,
+                env_compat=("libero_spatial",),
+                repo_id="x",
+                revision_sha="y",
+                paper_reported_success={"libero_spatial": 0.90},
+            ),
+        }
+    )
+
+
+def _smolvla_cell(env: str, n_success: int, n_total: int) -> list[dict[str, object]]:
+    """Per-episode rows for one smolvla_libero task cell with exactly n_success hits."""
+    return [
+        {
+            "policy": "smolvla_libero",
+            "env": env,
+            "seed": ep // 50,
+            "episode_index": ep % 50,
+            "success": ep < n_success,
+        }
+        for ep in range(n_total)
+    ]
+
+
+def test_collect_replication_pools_all_10_libero_tasks() -> None:
+    rows_data: list[dict[str, object]] = []
+    # Task 0 rate is deliberately distinct from the pooled rate: task 0 is
+    # 5/50 = 0.10, tasks 1-9 are 45/50 = 0.90 each -> pooled = 410/500 = 0.82.
+    rows_data += _smolvla_cell("libero_spatial", n_success=5, n_total=50)
+    for t in range(1, 10):
+        rows_data += _smolvla_cell(f"libero_spatial_t{t}", n_success=45, n_total=50)
+    df = pd.DataFrame(rows_data)
+
+    rows = fig_mod._collect_replication_rows(df, _smolvla_registry())
+    assert len(rows) == 1
+    row = rows[0]
+
+    total_k = sum(int(r["success"]) for r in rows_data)
+    total_n = len(rows_data)
+    assert total_n == 500
+    assert row["n"] == total_n
+    assert row["measured"] == pytest.approx(total_k / total_n)
+    # The pooled rate must differ from the task-0-only rate (the old bug).
+    task0_rate = 5 / 50
+    assert abs(row["measured"] - task0_rate) > 0.5
+    assert row["n_tasks_present"] == 10
+    assert row["n_tasks_expected"] == 10
+
+
+def test_collect_replication_partial_libero_coverage() -> None:
+    rows_data: list[dict[str, object]] = []
+    rows_data += _smolvla_cell("libero_spatial", n_success=5, n_total=50)
+    rows_data += _smolvla_cell("libero_spatial_t1", n_success=45, n_total=50)
+    rows_data += _smolvla_cell("libero_spatial_t2", n_success=45, n_total=50)
+    df = pd.DataFrame(rows_data)
+
+    rows = fig_mod._collect_replication_rows(df, _smolvla_registry())
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["n_tasks_present"] == 3
+    assert row["n_tasks_expected"] == 10
+    assert row["n"] == 150
+    assert row["measured"] == pytest.approx((5 + 45 + 45) / 150)
+
+
+def test_collect_replication_non_smolvla_cell_unchanged() -> None:
+    df = pd.DataFrame(
+        [
+            {
+                "policy": "diffusion_policy",
+                "env": "pusht",
+                "seed": ep // 50,
+                "episode_index": ep % 50,
+                "success": ep < 100,
+            }
+            for ep in range(250)
+        ]
+    )
+    registry = PolicyRegistry(
+        {
+            "diffusion_policy": PolicySpec(
+                name="diffusion_policy",
+                is_baseline=False,
+                env_compat=("pusht",),
+                repo_id="x",
+                revision_sha="y",
+                paper_reported_success={"pusht": 0.62},
+            ),
+        }
+    )
+    rows = fig_mod._collect_replication_rows(df, registry)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["policy"] == "diffusion_policy"
+    assert row["env"] == "pusht"
+    assert row["n"] == 250
+    assert row["measured"] == pytest.approx(100 / 250)
+    # The new branch must not attach coverage fields to non-smolvla rows.
+    assert row["n_tasks_present"] is None
+    assert row["n_tasks_expected"] is None
+
+
 def test_cli_renders_all_9_with_defaults(tmp_path: Path) -> None:
     df = _synthetic_df()
     results_path = tmp_path / "results.parquet"

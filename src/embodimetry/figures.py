@@ -34,7 +34,7 @@ import pandas as pd
 from matplotlib.figure import Figure
 
 from embodimetry.policies import PolicyRegistry
-from embodimetry.stats import wilson_ci, wilson_halfwidth_at_p
+from embodimetry.stats import LIBERO_SUITES, pool_binomial, wilson_ci, wilson_halfwidth_at_p
 
 Style = Literal["paper", "deck", "web"]
 
@@ -597,16 +597,6 @@ _ACT_ALOHA_RERUN_PATH = Path("results/sweep-full/results-act-rerun.parquet")
 _ACT_ALOHA_FIXED_RATE = 0.824
 _ACT_ALOHA_FIXED_CI: tuple[float, float] = (0.772, 0.866)
 
-# Envs whose smolvla cells are single-task (task_id=0) scope, NOT 10-task
-# suite averages — so the paper-vs-measured gap must not be read as
-# apples-to-apples. The paper numbers in policies.yaml are 10-task suite
-# averages; the v1 sweep ran task 0 only (docs/PROBE_RESULTS_V1.0.1.md
-# § "Probe 2": "single-task vs. paper's 10-task average" caveat, deferred
-# to v1.1).
-_SMOLVLA_SINGLE_TASK_ENVS: frozenset[str] = frozenset(
-    {"libero_spatial", "libero_object", "libero_goal", "libero_10"}
-)
-
 
 def _act_aloha_rerun_cell(rerun_path: Path = _ACT_ALOHA_RERUN_PATH) -> dict[str, Any] | None:
     """Return the corrected act×aloha cell (k, n, pooled, Wilson CI) or ``None``.
@@ -651,6 +641,17 @@ def _collect_replication_rows(
     (see ``_act_aloha_rerun_cell``), NOT the buggy 0.016 cell that still
     ships in the canonical parquet. Every other cell pools straight from
     ``df``. If the rerun parquet is absent the act cell falls back to ``df``.
+
+    smolvla_libero × LIBERO suite cells are special-cased: the paper numbers
+    in ``policies.yaml`` are 10-task suite averages, but the v1.1 sweep emits
+    40 per-task env keys (``{suite}`` = task 0, ``{suite}_t1``..``_t9`` =
+    tasks 1-9). The bare-suite mask of the generic path matches ONLY task 0,
+    so comparing that single-task rate to the 10-task paper average is not
+    apples-to-apples. Here we instead pool ALL present member cells for the
+    suite via :func:`embodimetry.stats.pool_binomial` (each task suite is a
+    disjoint episode set — exactly the pooled estimator, no pairing) and
+    record ``n_tasks_present`` / ``n_tasks_expected`` so the figure can
+    annotate partial coverage instead of silently overstating it.
     """
     rerun_cell = _act_aloha_rerun_cell(rerun_path)
     rows: list[dict[str, Any]] = []
@@ -659,6 +660,11 @@ def _collect_replication_rows(
             continue
         for env, paper_rate in spec.paper_reported_success.items():
             if paper_rate is None:
+                continue
+            if spec.name == "smolvla_libero" and env in LIBERO_SUITES:
+                pooled_row = _smolvla_libero_suite_row(df, env, float(paper_rate))
+                if pooled_row is not None:
+                    rows.append(pooled_row)
                 continue
             grp = df[(df["policy"] == spec.name) & (df["env"] == env)]
             if grp.empty:
@@ -683,9 +689,52 @@ def _collect_replication_rows(
                     "hi": hi,
                     "n": n,
                     "inside_mde": abs(measured - float(paper_rate)) < MDE_BAND,
+                    "n_tasks_present": None,
+                    "n_tasks_expected": None,
                 }
             )
     return rows
+
+
+def _smolvla_libero_suite_row(
+    df: pd.DataFrame, suite: str, paper_rate: float
+) -> dict[str, Any] | None:
+    """Pool the per-task smolvla_libero cells of one LIBERO suite into one row.
+
+    The suite spans up to 10 task slots: ``suite`` (task 0) and
+    ``f"{suite}_t{t}"`` for ``t`` in 1..9. We pool whichever member cells are
+    present in ``df`` via :func:`embodimetry.stats.pool_binomial` (Σk / Σn over
+    disjoint task episode sets) so the measured point is a true 10-task rate,
+    directly comparable to the 10-task paper average. Returns ``None`` only when
+    no member cell exists at all. The returned ``n_tasks_present`` lets the
+    figure annotate partial coverage (``< 10`` task slots present).
+    """
+    member_envs = [suite, *(f"{suite}_t{t}" for t in range(1, 10))]
+    successes: list[int] = []
+    n_trials: list[int] = []
+    n_tasks_present = 0
+    for member in member_envs:
+        grp = df[(df["policy"] == "smolvla_libero") & (df["env"] == member)]
+        if grp.empty:
+            continue
+        successes.append(int(grp["success"].sum()))
+        n_trials.append(len(grp))
+        n_tasks_present += 1
+    if n_tasks_present == 0:
+        return None
+    pooled = pool_binomial(successes, n_trials)
+    return {
+        "policy": "smolvla_libero",
+        "env": suite,
+        "paper": paper_rate,
+        "measured": pooled.success_rate,
+        "lo": pooled.ci_low,
+        "hi": pooled.ci_high,
+        "n": pooled.n_episodes,
+        "inside_mde": abs(pooled.success_rate - paper_rate) < MDE_BAND,
+        "n_tasks_present": n_tasks_present,
+        "n_tasks_expected": 10,
+    }
 
 
 def replication_scatter(
@@ -719,9 +768,13 @@ def replication_scatter(
       main point so the jump our fix produced is visible. This is a
       self-caught harness bug, NOT an inference-settings story: the
       abandoned 0.764 "paper settings" point is gone.
-    - smolvla × libero_* cells are annotated "(single-task)" because the
-      v1 sweep ran task_id=0 only, while the paper numbers are 10-task
-      suite averages — the gap is not apples-to-apples.
+    - smolvla × libero_* cells pool ALL present per-task cells of each LIBERO
+      suite (``{suite}`` = task 0, ``{suite}_t1``..``_t9`` = tasks 1-9) via
+      :func:`embodimetry.stats.pool_binomial`, so the measured point is a true
+      10-task rate comparable to the paper's 10-task average. Cells with all
+      10 task slots present are annotated "(10-task pooled)"; partial coverage
+      is annotated "(partial: k/10 tasks)" so the figure never silently
+      overstates coverage.
 
     xvla rows are filtered upstream (deferred from leaderboard, PR #82).
     See ``configs/policies.yaml`` comments for per-cell citations (Zhao
@@ -791,8 +844,13 @@ def replication_scatter(
         if policy == "act" and "aloha" in env:
             label = f"{label} (norm-fixed)"
             act_main_row = row
-        elif policy == "smolvla_libero" and env in _SMOLVLA_SINGLE_TASK_ENVS:
-            label = f"{label} (single-task)"
+        elif policy == "smolvla_libero" and row.get("n_tasks_present") is not None:
+            n_present = int(row["n_tasks_present"])
+            n_expected = int(row.get("n_tasks_expected") or 10)
+            if n_present >= n_expected:
+                label = f"{label} (10-task pooled)"
+            else:
+                label = f"{label} (partial: {n_present}/{n_expected} tasks)"
         _plot_point(row, label=label, hollow=False)
 
     # Overlay the pre-fix (normalization bug) ACT point at 0.016 with a faint
