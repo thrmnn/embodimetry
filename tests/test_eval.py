@@ -31,6 +31,7 @@ from embodimetry.eval import (
     _patch_xvla_postprocessor,
     _patch_xvla_preprocessor,
     _RandomPolicy,
+    _run_one_episode,
     load_env,
     load_policy,
     run_cell,
@@ -2173,3 +2174,83 @@ def test_seed_everything_matches_documented_seeding_contract() -> None:
     assert base_seed_formula.replace(" ", "") == _CONTRACT_FORMULA.replace(" ", ""), (
         f"base_seed formula is '{base_seed_formula}', contract says '{_CONTRACT_FORMULA}'"
     )
+
+
+# --------------------------------------------------------------------- #
+# sticky_is_success accumulation (success_metric='sticky_is_success')   #
+# --------------------------------------------------------------------- #
+
+
+class _InfoEnv:
+    """Env that emits a configurable per-step ``info`` dict.
+
+    ``info_per_step`` is a list of the dicts returned by ``step``; the
+    rollout terminates once it is exhausted. Lets a test drive both the
+    present-``is_success`` branch and the missing-key branch of the
+    sticky accumulator in ``_run_one_episode``.
+    """
+
+    def __init__(self, info_per_step: list[dict[str, Any]]) -> None:
+        self._info_per_step = info_per_step
+        self._i = 0
+
+    def reset(self, *, seed: int) -> tuple[dict[str, Any], dict[str, Any]]:
+        self._i = 0
+        return {"obs": np.zeros(4, dtype=np.float32)}, {}
+
+    def step(
+        self, action: NDArray[Any]
+    ) -> tuple[dict[str, Any], float, bool, bool, dict[str, Any]]:
+        info = self._info_per_step[self._i]
+        self._i += 1
+        terminated = self._i >= len(self._info_per_step)
+        return {"obs": np.zeros(4, dtype=np.float32)}, 0.0, terminated, False, info
+
+    def render(self) -> NDArray[np.uint8]:
+        return np.zeros((64, 64, 3), dtype=np.uint8)
+
+    def close(self) -> None:
+        return None
+
+
+def _run_sticky(info_per_step: list[dict[str, Any]]) -> EpisodeResult:
+    env = _InfoEnv(info_per_step)
+    return _run_one_episode(
+        policy=MockPolicy(),
+        env=env,
+        episode_index=0,
+        episode_seed=0,
+        max_steps=10,
+        success_threshold=0.5,
+        success_metric="sticky_is_success",
+        record_video=False,
+    )
+
+
+def test_sticky_is_success_true_when_flag_present_and_true() -> None:
+    result = _run_sticky([{"is_success": False}, {"is_success": True}])
+    assert result.success is True
+
+
+def test_sticky_is_success_accumulates_across_decay() -> None:
+    """Once is_success fires it stays counted even if a later step decays."""
+    result = _run_sticky([{"is_success": True}, {"is_success": False}])
+    assert result.success is True
+
+
+def test_sticky_is_success_false_when_key_always_missing() -> None:
+    """Missing-key branch: info never carries is_success -> stays False."""
+    result = _run_sticky([{}, {"other": 1}, {}])
+    assert result.success is False
+
+
+def test_sticky_is_success_false_when_flag_present_but_false() -> None:
+    result = _run_sticky([{"is_success": False}, {"is_success": False}])
+    assert result.success is False
+
+
+def test_sticky_is_success_accepts_int_and_numpy_bool_truthy() -> None:
+    """is_success may arrive as int 1 or np.bool_ (gym envs vary)."""
+    assert _run_sticky([{"is_success": 1}]).success is True
+    assert _run_sticky([{"is_success": np.bool_(True)}]).success is True
+    assert _run_sticky([{"is_success": 0}]).success is False
