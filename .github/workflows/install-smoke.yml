@@ -45,6 +45,7 @@ jobs:
 
       - name: Install wheel into a clean venv (no deps)
         run: |
+          set -euo pipefail
           python -m venv /tmp/install-venv
           . /tmp/install-venv/bin/activate
           pip install --upgrade pip
@@ -53,6 +54,7 @@ jobs:
 
       - name: Import smoke
         run: |
+          set -euo pipefail
           . /tmp/install-venv/bin/activate
           # Run from /tmp so we import the installed package, not ./src.
           cd /tmp
@@ -60,6 +62,7 @@ jobs:
 
       - name: CLI entrypoint smoke (--version / --help)
         run: |
+          set -euo pipefail
           . /tmp/install-venv/bin/activate
           cd /tmp
           embodimetry --version
