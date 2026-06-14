@@ -309,3 +309,155 @@ def test_live_required_set_is_sane() -> None:
     assert not any(p == "xvla_libero" for p, _ in pairs)
     # pi0 family deferred -> never required.
     assert not any(p.startswith("pi0") or p.startswith("pi05") for p, _ in pairs)
+
+
+# --------------------------------------------------------------------- #
+# Config-aware gate (#task7): the REQUIRED set is derived from the        #
+# MANIFEST's own config_path, not a hardcoded sweep_full.yaml. This is    #
+# what unblocks publishing the v1.1 LIBERO sweep.                         #
+# --------------------------------------------------------------------- #
+
+
+def _build_sweep_dir_for_config(
+    tmp_path: Path, *, config_path: str, present_pairs: list[tuple[str, str]]
+) -> dict[str, Path]:
+    """Like ``_build_sweep_dir`` but the manifest points at ``config_path``.
+
+    No coverage-gate override is installed, so the production config-aware
+    derivation runs for real against ``config_path``.
+    """
+    sweep_dir = tmp_path / "sweep-cfg"
+    sweep_dir.mkdir(parents=True)
+    (sweep_dir / "videos").mkdir()
+
+    rows = [_row(policy=p, env=e) for p, e in present_pairs]
+    df = pd.DataFrame(rows, columns=list(RESULT_SCHEMA))
+    results_path = sweep_dir / "results.parquet"
+    _atomic_write_parquet(results_path, df)
+
+    manifest_path = sweep_dir / "sweep_manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "started_utc": "2026-06-01T00:00:00+00:00",
+                "finished_utc": "2026-06-01T03:00:00+00:00",
+                "code_sha": "abc",
+                "lerobot_version": "0.5.1",
+                "config_path": config_path,
+                "cells": [],
+            }
+        )
+    )
+    return {
+        "results_path": results_path,
+        "manifest_path": manifest_path,
+        "videos_dir": sweep_dir / "videos",
+    }
+
+
+def test_publish_preflight_coverage(tmp_path: Path) -> None:
+    """Config-aware coverage gate for the v1.1 LIBERO sweep (no override).
+
+    The gate must derive its REQUIRED (policy, env) set from the manifest's
+    config_path (here the real ``configs/sweep_v11_libero.yaml`` -> 40
+    smolvla_libero x LIBERO-task cells). A complete parquet passes; dropping
+    a single (policy, env, seed) pair fails with exit 3 naming the gap.
+    """
+    required = pr._required_coverage_pairs_from_config("configs/sweep_v11_libero.yaml")
+    assert len(required) == 40
+    required_sorted = sorted(required)
+
+    # Full coverage -> passes.
+    paths = _build_sweep_dir_for_config(
+        tmp_path / "ok",
+        config_path="configs/sweep_v11_libero.yaml",
+        present_pairs=required_sorted,
+    )
+    ok = _preflight(paths)
+    assert ok.error is None, ok.error
+
+    # Drop one required pair -> exit-3, naming the missing env.
+    dropped = required_sorted[0]
+    paths_missing = _build_sweep_dir_for_config(
+        tmp_path / "missing",
+        config_path="configs/sweep_v11_libero.yaml",
+        present_pairs=required_sorted[1:],
+    )
+    rc = pr.main(
+        [
+            "--results-path",
+            str(paths_missing["results_path"]),
+            "--manifest-path",
+            str(paths_missing["manifest_path"]),
+            "--videos-dir",
+            str(paths_missing["videos_dir"]),
+            "--skip-videos",
+            "--dry-run",
+        ]
+    )
+    assert rc == 3
+    res = _preflight(paths_missing)
+    assert res.error is not None
+    assert "missing REQUIRED" in res.error
+    assert dropped[1] in res.error
+
+
+def test_publish_preflight_coverage_legacy_full_config(tmp_path: Path) -> None:
+    """The same config-aware path also handles the legacy sweep_full.yaml."""
+    required = sorted(pr._required_coverage_pairs_from_config("configs/sweep_full.yaml"))
+    paths = _build_sweep_dir_for_config(
+        tmp_path,
+        config_path="configs/sweep_full.yaml",
+        present_pairs=required,
+    )
+    assert _preflight(paths).error is None
+
+
+def test_publish_preflight_rejects_unfinished_manifest(tmp_path: Path) -> None:
+    """A manifest with no finished_utc is rejected (don't publish a half-done sweep)."""
+    required = sorted(pr._required_coverage_pairs_from_config("configs/sweep_v11_libero.yaml"))
+    paths = _build_sweep_dir_for_config(
+        tmp_path,
+        config_path="configs/sweep_v11_libero.yaml",
+        present_pairs=required,
+    )
+    manifest = json.loads(paths["manifest_path"].read_text())
+    del manifest["finished_utc"]
+    paths["manifest_path"].write_text(json.dumps(manifest))
+    res = _preflight(paths)
+    assert res.error is not None
+    assert "finished_utc" in res.error
+
+
+def test_publish_preflight_rejects_pending_cells(tmp_path: Path) -> None:
+    """A manifest with a non-terminal (pending) cell is rejected as in-flight."""
+    required = sorted(pr._required_coverage_pairs_from_config("configs/sweep_v11_libero.yaml"))
+    paths = _build_sweep_dir_for_config(
+        tmp_path,
+        config_path="configs/sweep_v11_libero.yaml",
+        present_pairs=required,
+    )
+    manifest = json.loads(paths["manifest_path"].read_text())
+    manifest["cells"] = [
+        {"policy": "smolvla_libero", "env": "libero_10", "seed_idx": 0, "status": "pending"}
+    ]
+    paths["manifest_path"].write_text(json.dumps(manifest))
+    res = _preflight(paths)
+    assert res.error is not None
+    assert "non-terminal" in res.error
+
+
+def test_publish_preflight_missing_config_path_clear_error(tmp_path: Path) -> None:
+    """An older manifest lacking config_path fails with a clear, actionable message."""
+    required = sorted(pr._required_coverage_pairs_from_config("configs/sweep_v11_libero.yaml"))
+    paths = _build_sweep_dir_for_config(
+        tmp_path,
+        config_path="configs/sweep_v11_libero.yaml",
+        present_pairs=required,
+    )
+    manifest = json.loads(paths["manifest_path"].read_text())
+    del manifest["config_path"]
+    paths["manifest_path"].write_text(json.dumps(manifest))
+    res = _preflight(paths)
+    assert res.error is not None
+    assert "config_path" in res.error
