@@ -65,6 +65,22 @@ Success is the per-env standard reward threshold from `lerobot.envs.<env>.config
 
 **Per-env success thresholds.** Verified at Day 0 — read from `lerobot.envs.<env>.config.SUCCESS_REWARD` if it exists in v0.5.1, otherwise hardcoded in `envs.py` as: PushT 0.95 reward (coverage threshold), Aloha 1.0 (task-complete flag), Libero 1.0 (task-complete flag). Decided after a 5-min check in Day 0.
 
+> **Bench rule vs. canonical rule (read this).** The bench default (`v1_legacy`)
+> reduces a rollout to a boolean with `success := final_reward >= success_threshold`
+> — the *last step's* reward against the threshold above. The canonical/paper rule
+> is a **sticky** reduction over the whole episode: `any(info["is_success"])` for
+> PushT/LIBERO, and `any(reward == 4)` for `aloha_transfer_cube` (only a completed
+> transfer counts; reward levels 1-3 are sub-goals). Canonical LIBERO also runs at
+> `max_steps=600` for every suite, vs. the lerobot defaults the v1 sweep used. These
+> diverge only on episodes that hit the step cap: under `v1_legacy` PushT/Aloha
+> **over-count** cap-hit sub-goal rollouts, while LIBERO **under-counts** truncated
+> rollouts that would have succeeded with more steps (so the v1 `libero_10` number is
+> a lower bound). The canonical rule is opt-in via `--canonical` on
+> `scripts/run_sweep.py` / `scripts/run_one.py`; the published v1 leaderboard is
+> entirely `v1_legacy`. Full per-env table and verbatim source citations:
+> [`docs/CANONICAL_CRITERIA.md`](CANONICAL_CRITERIA.md) and
+> [`docs/SUCCESS_CRITERION_AUDIT.md`](SUCCESS_CRITERION_AUDIT.md).
+
 **Confidence intervals.** For each cell, success rate = `successes / (seeds × episodes_per_seed)`. The per-cell success-rate 95% CI is the closed-form Wilson score interval over the flat list of `5 × n_episodes_per_seed` binary outcomes per cell (where `n_episodes_per_seed` is 50 for non-downscoped cells, may be lower per the auto-downscope rule below). Comparisons across cells report Δsuccess + 95% CI from a paired percentile bootstrap (10,000 resamples). In the executed v1 sweep two cells were auto-downscoped to 25 episodes/seed (N=125): `diffusion_policy × pusht` (published) and `xvla × libero_10` (excluded from publish — its downscope was dispatch-time only); every other cell ran the full 50 episodes/seed (N=250).
 
 **Compute budget rule (auto-downscope).** Total per-cell wall-time budget is 3 hours. After Day 0 calibration produces per-policy `mean_ms_per_step`, episodes-per-seed for each cell = `min(50, floor(3 * 3600 / (5 * env_max_steps * mean_s_per_step)))`. If a policy's per-cell minimum (e.g., 5 episodes/seed × 5 seeds = 25 episodes total per cell) still exceeds 3 hours, the policy is dropped from v1, not silently truncated.
