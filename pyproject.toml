@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "embodimetry"
 version = "1.0.2"
-description = "Public multi-policy benchmark for pretrained LeRobot policies on PushT, Aloha, and Libero sim envs."
+description = "Reproducible multi-policy measurement contract for embodied-AI policies on shared LeRobot sim envs (PushT, Aloha, LIBERO), with Wilson/bootstrap CIs and a hand-labeled failure taxonomy."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
