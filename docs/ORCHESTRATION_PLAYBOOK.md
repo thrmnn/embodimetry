@@ -11,7 +11,10 @@ hypotheticals; they tie to a moment this session.
 isolation, disjoint file ownership, serial merge into strict `main`). This
 doc is the *catalog*: which named workflow to reach for, in what phase of
 work, and the ordered phases each one runs. Treat it as the project's
-operating manual.
+operating manual. `docs/AGENT_TEAM.md` is the companion: *who* is on the
+team (the specialized subagent roster) and the three end-to-end operating
+loops (backlog autofix, sweep liveness, PR merge train) that compose the
+workflows below.
 
 ---
 
