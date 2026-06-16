@@ -105,6 +105,11 @@ For anyone running, resuming, or publishing the full benchmark sweep.
   catalog of reusable multi-agent workflows (council, repro-audit, gpu-task,
   prepublish-gate, …) grouped by phase of work, each with its proven phases
   and the real failure it exists to prevent.
+- [`AGENT_TEAM.md`](AGENT_TEAM.md) — the specialized subagent roster (which
+  agent owns which files and when to pick it) and the three operating loops the
+  autonomous build runs: backlog discovery → CI-gated autofix, long-sweep
+  liveness + crash recovery, and the PR merge train — plus the standing
+  "do NOT autonomously" guardrails.
 - [`MONITORING.md`](MONITORING.md) — the operator dashboard (progress, RAM
   watchdog, and the Failures tab that pre-distinguishes timeouts before labels).
 

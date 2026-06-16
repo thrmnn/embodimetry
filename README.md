@@ -11,7 +11,7 @@ A public, reproducible **instrument** that scores every robot-policy paradigm �
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![Version 1.0.2](https://img.shields.io/badge/version-1.0.2-informational.svg)](CITATION.cff)
 [![HF Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-thrmnn%2Fembodimetry--v1-blue)](https://huggingface.co/datasets/thrmnn/embodimetry-v1)
-[![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Dashboard-live-orange)](https://huggingface.co/spaces/thrmnn/embodimetry)
+[![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Dashboard-deploying-orange)](https://huggingface.co/spaces/thrmnn/embodimetry)
 
 **Quick links:** [Get started](docs/GETTING_STARTED.md) · [Reproduce](docs/REPRODUCE.md) · [FAQ](docs/FAQ.md) · [Development](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md)
 
@@ -21,10 +21,11 @@ A public, reproducible **instrument** that scores every robot-policy paradigm �
 
 <div align="center">
 
-### ▶ Live dashboard — [huggingface.co/spaces/thrmnn/embodimetry](https://huggingface.co/spaces/thrmnn/embodimetry)
+### ▶ Dashboard *(deploying)* — [huggingface.co/spaces/thrmnn/embodimetry](https://huggingface.co/spaces/thrmnn/embodimetry)
 
 The public leaderboard, paired comparisons, rollout browser, and failure taxonomy — no install, no GPU, no login.
 Backed by the open dataset [`thrmnn/embodimetry-v1`](https://huggingface.co/datasets/thrmnn/embodimetry-v1): every per-episode outcome and every rollout MP4, queryable by `(policy, env, seed, episode)`.
+*The Space and dataset go public with the v1 release; both links above are the canonical destinations once published.*
 
 </div>
 
