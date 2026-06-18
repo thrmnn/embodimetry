@@ -101,3 +101,6 @@ tmp/
 # Runtime calibration/sweep logs (live in results/ for the report; raw logs are local-only)
 logs/
 .claude/scheduled_tasks.lock
+
+# Personal Claude Code layer (machine-specific perms/hooks)
+.claude/settings.local.json
