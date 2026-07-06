@@ -3,8 +3,8 @@ message: "If you use embodimetry in your research, please cite this repository. 
 title: "embodimetry: a multi-policy reproducible evaluation suite for pretrained LeRobot policies"
 abstract: "A public, reproducible benchmark of pretrained LeRobot manipulation policies across PushT, Aloha, and LIBERO sim environments, with a multi-seed contract, Wilson and bootstrap confidence intervals, MDE bounds, paired comparisons, and a failure taxonomy."
 type: software
-version: 1.0.0
-date-released: 2026-05-26
+version: 1.0.2
+date-released: 2026-06-02
 license: MIT
 repository-code: "https://github.com/thrmnn/embodimetry"
 url: "https://github.com/thrmnn/embodimetry"

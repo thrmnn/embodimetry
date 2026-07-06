@@ -136,8 +136,8 @@ want the *why* behind the project or are preparing a release.
   and what to expect.
 - [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) — the supply-chain and code-level
   security audit of `main`, with findings and hardening recommendations.
-- [`../RELEASE.md`](../RELEASE.md) — the ordered v1.0.0 release checklist and
-  ship runbook.
+- [`SHIP_READINESS.md`](SHIP_READINESS.md) — the living ship-readiness
+  scorecard and roadmap to GA.
 - [`COMMS_PLAN.md`](COMMS_PLAN.md) — the launch comms sequence (arXiv → living
   leaderboard → thread → one-researcher outreach), the one figure/sentence that
   travels, and the owner-gated steps; sequenced so the in-flight gradient never
