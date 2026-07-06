@@ -787,11 +787,31 @@ a wash. (3)~\emph{LIBERO step caps:} v1 inherited lerobot caps shorter than
 canonical LIBERO's 600~\cite{liu2023libero}; a cap=600 probe on
 \texttt{libero\_10} reads 0.256~[0.206, 0.314] vs.\ 0.252 (within
 half-width, policy- not cap-bottlenecked), other suites pending v1.1. No
-patch rewrites a parquet row. We rely on label-free failure signals
+patch rewrites a parquet row. Alongside label-free failure signals
 (episode-length and cap-hit distributions, plus every failed-episode MP4)
-rather than a labeled taxonomy, which is specified but deferred to v1.1.
+we hand-label a small set of failed rollouts into the canonical six-mode
+taxonomy (Figure~\ref{fig:failure-taxonomy}); a parquet-joined,
+randomly-sampled per-policy taxonomy is deferred to v1.1.
 XVLA ran on LIBERO but is deferred from v1 over an unresolved
 Hub-artifact wiring bug (\texttt{docs/DEFERRED\_POLICIES.md}).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.78\linewidth]{figures/paper/failure_taxonomy.pdf}
+  \caption{Failure modes of $N{=}6$ hand-labeled failed rollouts,
+  assigned by visual inspection of the shipped showcase artifacts
+  (\texttt{docs/assets/failure-taxonomy-labels.csv}) into the canonical
+  six-mode scheme (\S\ref{sec:methods}; \texttt{docs/FAILURE\_TAXONOMY.md}).
+  The labeled failures are timeout (3; PushT mis-orientation and a
+  LIBERO-10 long-horizon stall), gripper slip (2; ACT reaches the Aloha
+  cube but never secures a stable grasp), and drift (1; the random
+  baseline never contacts the object). Trajectory overshoot, wrong-object,
+  and premature-release have zero labeled rollouts in this sample and are
+  shown as empty bars rather than dropped. This is a curated, non-random
+  set, not a per-policy distribution over all failures; XVLA is excluded
+  (wiring bug, not a policy mode).}
+  \label{fig:failure-taxonomy}
+\end{figure}
 
 % ---------------------------------------------------------------- %
 % Discussion                                                       %
