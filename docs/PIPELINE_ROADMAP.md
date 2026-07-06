@@ -1,20 +1,22 @@
 # Pipeline Roadmap — beyond v1.0
 
-**Status:** draft · 2026-05-29 (post-v1.0.2 cascade) · target reviewer: maintainer
-**Companion:** the deck at `paper/deck/` (slides 07, 08, 20) and `docs/DEFERRED_POLICIES.md`.
+**Status:** draft · 2026-07-06 (post council-review/bulletproofing pass) · target reviewer: maintainer
+**Companion:** the deck at `paper/deck/` (slides 07, 08, 20), `docs/DEFERRED_POLICIES.md`, and `docs/SHIP_READINESS.md` (the living ship-readiness scorecard — check it for the current composite score before trusting this doc's staleness).
 
 This document plans how `embodimetry` evolves past the v1.0 sweep. It is organised so that **methodology robustness comes first** — the deck's "replication gap" claim is only as good as the assumptions behind it, and several of those assumptions are not yet verified to the standard we want for a public benchmark.
 
 ---
 
-## Current focus / critical path (as of v1.0.2)
+## Current focus / critical path (as of 2026-07-06)
 
-**THE critical path is the publish chain** — pushing the Hub dataset + Space so the public-facing surfaces (README, site, deck, paper dataset citation, upstream-issue repro links) stop pointing at dead 401 links. Everything else (v1.1 coverage, upstream PR, the V3 distribution moment) is gated behind this single chain going live. The paper builds clean (4 body + 1 refs page, audit numbers baked in) and the public surfaces are content-ready; they are hard-blocked only on the Hub artifacts existing.
+**THE critical path is still the publish chain, but Step 1 is done and Step 2 hit a real, previously-undetected blocker.** The Hub **dataset repo** `thrmnn/embodimetry-v1` now exists (created 2026-07-06, public, currently empty). Running `make publish SWEEP=results/sweep-full DRY_RUN=1` against it aborted correctly: `results/sweep-full/results.parquet` spans **13 distinct `code_sha` values**, and 7 of the 22 cells mix two-to-three different code revisions *within the same cell* (e.g. `act`×`aloha_transfer_cube` has 200 episodes from one commit and 50 from another). This is exactly the guard added in #200-203 doing its job — the dataset's "bit-for-bit replayable from one code revision" claim is not currently true for those 7 cells. Most of the involved commits cluster in a ~26-hour window (2026-05-21/22, likely unrelated commits landing on `main` mid-sweep), except one outlier from 2026-05-12. **Needs a decision**: either confirm none of the clustered commits touched eval-affecting code and relax the guard to per-cell granularity, or re-run just those 7 cells at current `HEAD` before publishing — not resolved here.
+
+Separately: the paper itself was found to compile to **11 pages**, not the "4 body + 1 refs page" this doc previously claimed — the draft has roughly doubled since the last compression pass (2026-05-26) through real feature work, with `paper/main.pdf` gitignored by design so nothing surfaced the drift until a review pass rebuilt it. See `paper/dag/proposal.md` / `paper/dag/targets.md` for the compress-vs-accept decision this blocks.
 
 **Ordered steps (see `## Publish runbook` below for exact commands):**
 
-1. Create the Hub **dataset** repo `thrmnn/embodimetry-v1` + upload its card (`docs/HUB_DATASET_README.md` → dataset `README.md`). *Gates everything downstream.*
-2. **Publish** artifacts from `results/sweep-full/` (parquet + manifest + 5247 videos) with `scripts/publish_results.py`.
+1. ~~Create the Hub **dataset** repo `thrmnn/embodimetry-v1`~~ **Done 2026-07-06** — repo exists, public, empty.
+2. **Publish** artifacts from `results/sweep-full/` (parquet + manifest + 5247 videos) with `scripts/publish_results.py` — **blocked** on the code_sha integrity decision above; dry-run correctly aborts, nothing has been pushed.
 3. Create + **deploy the Space** `thrmnn/embodimetry` (renders non-empty only after step 2 lands the parquet).
 4. **README URL unblock** — drop the dataset-TODO comment once the parquet is live.
 5. **v1.0.2 git tag + GitHub release** (release.yml auto-creates the release on tag push).
@@ -23,7 +25,7 @@ This document plans how `embodimetry` evolves past the v1.0 sweep. It is organis
 
 - **Gated on user (author-side, one-time):** arXiv submission + category lock (fills the README/deck/site arXiv links + BibTeX); driving any interactive HF auth. The publish chain itself is runnable now (`huggingface-cli whoami` = `thrmnn`, write token live).
 - **Gated on external resources:** §1.4 independent replication (external lab), §1.5 cross-hardware probe (second GPU, e.g. RTX A6000), the full v1.1 10-task LIBERO sweep (multi-day GPU), XVLA bug-3 (upstream `huggingface/lerobot#3674` + open-ended debug), pi-family quantization if no quantized Hub checkpoint exists.
-- **Autonomous-doable now:** the publish chain (steps 1–5, via `make publish` / `make space-deploy`); §1.6 negative-control probe (cheap, local GPU) or its waiver; flipping CLAIM_AUDIT / SUCCESS_CRITERION `Status: Open` headers to closed; the #125 probe-override→config refactor; the v1.1 calibration probe to size the 10-task sweep; a `device_map="auto"` load spike for pi-family.
+- **Autonomous-doable now:** step 3-5 of the publish chain once step 2's code_sha decision is made (`make space-deploy`, README unblock, tag+release); §1.6 negative-control probe (cheap, local GPU) or its waiver; flipping CLAIM_AUDIT / SUCCESS_CRITERION `Status: Open` headers to closed; the #125 probe-override→config refactor; the v1.1 calibration probe to size the 10-task sweep; a `device_map="auto"` load spike for pi-family. Step 2 itself (`make publish`) is **not** autonomous-doable as-is — it needs the code_sha integrity decision above first.
 
 **Numbering (resolved):** the version triple (`VERSION` / `__version__` / `pyproject`) reads `1.0.2`, and the `[1.0.2]` CHANGELOG section is dated and complete — that is what the tag references. The L1/L2 capability-ladder rungs in `[Unreleased]` ship as **v1.1.0**, not folded into the v1.0.2 tag. release.yml gates on `tag == VERSION`, so push `v1.0.2`.
 
