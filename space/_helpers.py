@@ -279,13 +279,17 @@ def compute_leaderboard_table(
     #
     # HETEROGENEITY CAVEAT (Simpson's-paradox guard): this per-policy mean
     # is an UNWEIGHTED mean across that policy's env cells. For a policy
-    # spanning the four LIBERO suites (libero_spatial/object/goal/_10),
-    # those suites differ in difficulty, so the pooled mean can rank
-    # policies in an order that flips within individual suites. It drives
-    # *row ordering only* — never read it as a headline "policy score".
-    # The per-cell success_rate + Wilson CI columns are the reportable
-    # quantities; the suites are kept as separate ``env`` rows precisely so
-    # the heterogeneity stays visible rather than being averaged away.
+    # spanning the LIBERO suites (libero_spatial/object/goal/_10), those
+    # suites differ in difficulty, so the pooled mean can rank policies in
+    # an order that flips within individual suites. v1.1 widens this further:
+    # each suite expands into 10 per-task env rows (libero_<suite>_t1..t9
+    # alongside the bare task-0 ``env``; see configs/sweep_v11_libero.yaml),
+    # so a "LIBERO" group is up to 40 cells, not 4 — the unweighted mean then
+    # spans even more heterogeneous difficulty. It drives *row ordering only*
+    # — never read it as a headline "policy score". The per-cell success_rate
+    # + Wilson CI columns are the reportable quantities; every suite/task is
+    # kept as a separate ``env`` row precisely so the heterogeneity stays
+    # visible rather than being averaged away.
     policy_means = out.groupby("policy")["success_rate"].mean()
     out["_policy_mean"] = out["policy"].map(policy_means)
     out = out.sort_values(
@@ -392,6 +396,11 @@ def episode_metadata(row: pd.Series) -> dict[str, object]:
     "did this episode succeed and at what cost" alongside the playback
     without scrolling. Renamed for human-readable display; the
     underlying parquet column names mirror RESULT_SCHEMA.
+
+    ``env`` is passed through verbatim as a string, so this transparently
+    handles the v1.1 per-task LIBERO variants (the bare task-0 names
+    ``libero_<suite>`` plus ``libero_<suite>_t1..t9``; see
+    configs/sweep_v11_libero.yaml) with no special-casing.
     """
     return {
         "policy": str(row.get("policy", "")),
@@ -967,8 +976,8 @@ def render_failure_panel_markdown(
     if counts.empty:
         lines.append(
             "_No failure labels yet. Use the local dashboard to label_ "
-            "_rollouts; this panel will populate once `labels.json` files_ "
-            "_exist in the published dataset._"
+            "_rollouts; this panel will populate once the published_ "
+            "_`results.parquet` carries a `failure_label` column._"
         )
     else:
         n_labels = int(counts["count"].sum())
@@ -994,9 +1003,12 @@ def render_v1_status(manifest: dict[str, Any] | None = None) -> str:
     expected path on the live Space.
     """
     if manifest is None:
-        return (
-            "**v1** · 5 policies × 6 envs · 18 published cells · xvla + Pi0 family deferred to v1.1"
-        )
+        # Deliberately no hardcoded published-cell count here. v1 published
+        # 18 cells, but v1.1 adds 36 per-task LIBERO envs (libero_<suite>_t1..t9,
+        # see configs/sweep_v11_libero.yaml), which would make any literal count
+        # stale the moment that data lands. The live badge has no dataframe in
+        # scope to derive a count from, so we state the scope shape only.
+        return "**v1** · 5 policies × 6 envs · xvla + Pi0 family deferred to v1.1"
 
     cells = manifest.get("cells", [])
     by_status: dict[str, int] = {}

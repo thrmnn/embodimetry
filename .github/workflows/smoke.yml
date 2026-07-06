@@ -29,6 +29,7 @@ jobs:
 
       - name: Install (no extras — same lerobot pin path real users hit)
         run: |
+          set -euo pipefail
           python -m venv /tmp/smoke-venv
           . /tmp/smoke-venv/bin/activate
           pip install --upgrade pip
@@ -36,11 +37,13 @@ jobs:
 
       - name: Import smoke
         run: |
+          set -euo pipefail
           . /tmp/smoke-venv/bin/activate
           python -c "import embodimetry; print('embodimetry', embodimetry.__version__)"
 
       - name: CLI smoke (--version)
         run: |
+          set -euo pipefail
           . /tmp/smoke-venv/bin/activate
           # The CLI module may not exist yet during pre-alpha; tolerate that
           # gracefully and surface the failure mode in the log.

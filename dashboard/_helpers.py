@@ -1453,6 +1453,15 @@ def env_dashboard_logs_dir() -> Path:
 # seeds each == 110 seed-entries). Kept as constants so the header
 # badge has a stable denominator even before the manifest is on disk.
 #
+# These are the V1 floor only — they scope the v1 leaderboard and must
+# stay at the v1 values. They are NOT a hard cap: compute_mission_kpis()
+# derives its denominator from the live manifest whenever the manifest is
+# larger (see the ``cells_total if cells_total >= V1_RUNNABLE_CELLS``
+# logic), so a v1.1 LIBERO sweep (40 cells = 4 suites x 10 tasks for
+# smolvla_libero; see configs/sweep_v11_libero.yaml) already reports
+# ``N/40`` rather than clamping to 22. Only update these literals when the
+# v1 *published* scope itself changes.
+#
 # ``V1_POLICIES`` is imported at module top from
 # ``embodimetry.leaderboard_filter`` (shared with the Gradio Space).
 # xvla_libero is intentionally absent: deferred to v1.1 (PR #76 — two
@@ -2344,7 +2353,21 @@ def build_env_card_markdown(
     except KeyError:
         return f"_Unknown env `{env_name}`._"
 
-    ctx = _ENV_CONTEXT.get(env_name, {})
+    ctx = _ENV_CONTEXT.get(env_name)
+    if ctx is None:
+        # Per-task expansion specs (``<suite>_t<N>``) share their base
+        # suite's task/observation/source semantics, differing only in
+        # which task instance they pin -- reuse the base suite's prose so
+        # the card stays informative instead of degrading to placeholders.
+        m = re.match(r"^(.+)_t(\d+)$", env_name)
+        base_ctx = _ENV_CONTEXT.get(m.group(1)) if m else None
+        if base_ctx is not None:
+            ctx = dict(base_ctx)
+            ctx["task"] = (
+                f"Task {m.group(2)} of the {m.group(1)} suite. {base_ctx.get('task', '')}"
+            ).strip()
+        else:
+            ctx = {}
     task = ctx.get("task", STAT_PLACEHOLDER)
     obs = ctx.get("obs", STAT_PLACEHOLDER)
     discriminates = ctx.get("discriminates", STAT_PLACEHOLDER)

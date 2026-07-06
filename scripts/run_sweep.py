@@ -78,6 +78,7 @@ import yaml
 
 from embodimetry.checkpointing import (
     CellKey,
+    cells_with_mixed_code_sha,
     drop_partial_cells,
     load_results,
     plan_resume,
@@ -589,6 +590,11 @@ class CellManifestEntry:
     finished_utc: str | None = None
     stderr_tail: str = ""
     skip_reason: str = ""
+    # Episodes actually present in the parquet for this cell, stamped at
+    # sweep completion. ``None`` until reconciliation runs. Lets a reader
+    # spot an under-filled cell (rows < n_episodes) without re-reading the
+    # parquet -- e.g. a mid-cell death the resume hasn't yet re-run.
+    n_episodes_attempted: int | None = None
 
     def to_json(self) -> dict[str, Any]:
         return asdict(self)
@@ -630,13 +636,13 @@ def write_manifest(manifest: SweepManifest, path: Path) -> None:
     try:
         tmp_path.write_text(json.dumps(manifest.to_json(), indent=2, sort_keys=False) + "\n")
         os.replace(tmp_path, path)
-    except Exception:
+    except Exception as exc:
         if tmp_path.exists():
             try:
                 tmp_path.unlink()
             except OSError:
                 logger.warning("failed to clean up tmp manifest at %s", tmp_path)
-        raise
+        raise RuntimeError(f"failed to write manifest to {path}: {exc}") from exc
 
 
 # --------------------------------------------------------------------- #
@@ -955,6 +961,121 @@ class _DispatchTally:
     n_completed: int
     n_failed: int
     interrupted_at: PlannedCell | None = None  # set only on KeyboardInterrupt
+
+
+def _reconcile_completion(
+    manifest: SweepManifest,
+    *,
+    results_path: Path,
+) -> None:
+    """Completion-time result-integrity audit (round-3 findings).
+
+    A sweep that lost cells to crash/OOM, or whose parquet rows span
+    multiple code revisions, must not read as "complete and valid". This
+    runs once after all cells are dispatched and **reports/warns only** --
+    it never raises and never changes the exit code, so a partially-failed
+    sweep still finishes cleanly with its findings on the record.
+
+    Three checks:
+
+    1. **Status reconciliation** -- the per-status cell counts in the
+       manifest must sum to the planned cell count. ``completed + failed +
+       skipped + pending`` should equal ``len(cells)``; any pending cells
+       after dispatch (only legitimate after a SIGINT) or an arithmetic
+       gap is flagged loudly.
+    2. **Single ``code_sha`` per cell** -- each completed ``(policy, env,
+       seed)`` cell's rows must share one ``code_sha`` (bit-repro
+       invariant); a cell stitched across resumes at different HEADs is
+       flagged via :func:`cells_with_mixed_code_sha`.
+    3. **Episodes attempted per cell** -- stamps ``n_episodes_attempted``
+       on each completed entry from the parquet row count, so an
+       under-filled cell (rows < planned ``n_episodes``) is detectable
+       from the manifest alone.
+    """
+    counts: dict[str, int] = {
+        STATUS_COMPLETED: 0,
+        STATUS_FAILED: 0,
+        STATUS_SKIPPED: 0,
+        STATUS_PENDING: 0,
+    }
+    for entry in manifest.cells:
+        counts[entry.status] = counts.get(entry.status, 0) + 1
+
+    n_planned = len(manifest.cells)
+    n_completed = counts.get(STATUS_COMPLETED, 0)
+    n_failed = counts.get(STATUS_FAILED, 0)
+    n_skipped = counts.get(STATUS_SKIPPED, 0)
+    n_pending = counts.get(STATUS_PENDING, 0)
+
+    logger.info(
+        "[reconcile] completed=%d/%d failed=%d skipped=%d pending=%d",
+        n_completed,
+        n_planned,
+        n_failed,
+        n_skipped,
+        n_pending,
+    )
+
+    accounted = n_completed + n_failed + n_skipped
+    if accounted != n_planned:
+        logger.warning(
+            "[reconcile] INTEGRITY: completed+failed+skipped=%d != planned=%d "
+            "(%d cell(s) unaccounted, e.g. left pending after dispatch). "
+            "The sweep is NOT complete -- resume before treating as valid.",
+            accounted,
+            n_planned,
+            n_planned - accounted,
+        )
+
+    # Per-cell parquet audits. Read once; tolerate a missing/empty/invalid
+    # parquet (nothing to reconcile -- e.g. a dry run or pre-flight abort).
+    try:
+        df = load_results(results_path)
+    except (ValueError, OSError) as exc:
+        logger.warning("[reconcile] could not read %s for audit: %s", results_path, exc)
+        return
+    if df.empty:
+        return
+
+    # Stamp n_episodes_attempted per completed cell + flag under-fill.
+    row_counts = df.groupby(["policy", "env", "seed"]).size()
+    n_underfilled = 0
+    for entry in manifest.cells:
+        if entry.status != STATUS_COMPLETED:
+            continue
+        key = (entry.policy, entry.env, entry.seed_idx)
+        attempted = int(row_counts.get(key, 0))
+        entry.n_episodes_attempted = attempted
+        if attempted < entry.n_episodes:
+            n_underfilled += 1
+            logger.warning(
+                "[reconcile] INTEGRITY: cell %s/%s/seed%d completed with %d/%d "
+                "episode rows (under-filled).",
+                entry.policy,
+                entry.env,
+                entry.seed_idx,
+                attempted,
+                entry.n_episodes,
+            )
+
+    total_rows = len(df)
+    logger.info(
+        "[reconcile] parquet rows=%d across %d cell(s); under-filled=%d",
+        total_rows,
+        len(row_counts),
+        n_underfilled,
+    )
+
+    mixed = cells_with_mixed_code_sha(df)
+    if mixed:
+        shown = sorted(mixed.items())[:10]
+        logger.warning(
+            "[reconcile] INTEGRITY: %d cell(s) span multiple code_sha values "
+            "(bit-repro invariant violated -- stitched across resumes at "
+            "different HEADs): %s",
+            len(mixed),
+            shown,
+        )
 
 
 def _dispatch_serial(
@@ -1433,7 +1554,10 @@ def run_sweep(
             log_message=log,
         )
 
-    # All cells dispatched.
+    # All cells dispatched. Reconcile result integrity (report/warn only;
+    # mutates manifest entries with n_episodes_attempted) before the final
+    # write so the persisted manifest carries the audit's stamps.
+    _reconcile_completion(manifest, results_path=config.results_path)
     manifest = replace(manifest, finished_utc=_now_utc())
     write_manifest(manifest, manifest_path)
 

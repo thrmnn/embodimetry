@@ -170,6 +170,15 @@ def test_render_episode_rejects_odd_size(tmp_path: Path) -> None:
         render_episode(_make_frames(t=4), tmp_path / "ep.mp4", size=255)
 
 
+def test_render_episode_rejects_nonpositive_size(tmp_path: Path) -> None:
+    # size == 0 satisfies the evenness check (0 % 2 == 0) but would fail
+    # downstream in ffmpeg with an obscure error; reject it up front.
+    with pytest.raises(ValueError, match="size must be positive"):
+        render_episode(_make_frames(t=4), tmp_path / "ep.mp4", size=0)
+    with pytest.raises(ValueError, match="size must be positive"):
+        render_episode(_make_frames(t=4), tmp_path / "ep.mp4", size=-2)
+
+
 def test_render_episode_rejects_nonpositive_fps(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="fps"):
         render_episode(_make_frames(t=4), tmp_path / "ep.mp4", fps=0)
@@ -227,6 +236,16 @@ def test_render_thumbnail_strip_rejects_empty(tmp_path: Path) -> None:
     empty = np.empty((0, 64, 64, 3), dtype=np.uint8)
     with pytest.raises(ValueError, match="at least one timestep"):
         render_thumbnail_strip(empty, tmp_path / "thumbs.png")
+
+
+def test_render_thumbnail_strip_rejects_nonpositive_n_thumbs(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="n_thumbs must be positive"):
+        render_thumbnail_strip(_make_frames(t=4), tmp_path / "thumbs.png", n_thumbs=0)
+
+
+def test_render_thumbnail_strip_rejects_nonpositive_thumb_size(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="thumb_size must be positive"):
+        render_thumbnail_strip(_make_frames(t=4), tmp_path / "thumbs.png", thumb_size=0)
 
 
 # --------------------------------------------------------------------- #

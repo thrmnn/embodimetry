@@ -239,6 +239,11 @@ def _v1_sweep_envs() -> tuple[tuple[str, ...], bool]:
     that file is missing/malformed or doesn't yield a clean non-empty
     list of env-name strings, ``used_fallback=True`` and the caller falls
     back to the union of ``env_compat`` across the v1 policies.
+
+    This is the LEGACY (v1, ``sweep_full.yaml``-pinned) source. The
+    config-aware path -- :func:`_required_coverage_pairs_from_config` --
+    supersedes it for any manifest that records its own ``config_path``;
+    this helper only feeds the no-manifest fallback.
     """
     try:
         data = yaml.safe_load(_SWEEP_FULL_YAML.read_text())
@@ -250,6 +255,68 @@ def _v1_sweep_envs() -> tuple[tuple[str, ...], bool]:
     if not isinstance(envs, list) or not envs or not all(isinstance(e, str) for e in envs):
         return (), True
     return tuple(envs), False
+
+
+def _resolve_config_path(config_path: str) -> Path:
+    """Resolve a manifest's ``config_path`` to an existing file.
+
+    Manifests record ``config_path`` as written at sweep time -- usually
+    a repo-relative string like ``configs/sweep_v11_libero.yaml`` but
+    occasionally an absolute path from the launching host. We accept the
+    string verbatim if it exists, else re-anchor its basename under
+    ``_REPO_ROOT / "configs"`` so a manifest produced on another box
+    still resolves to the same config shipped in this checkout.
+    """
+    p = Path(config_path)
+    if p.is_file():
+        return p
+    candidate = _REPO_ROOT / config_path
+    if candidate.is_file():
+        return candidate
+    return _REPO_ROOT / "configs" / p.name
+
+
+def _required_coverage_pairs_from_config(config_path: str) -> frozenset[tuple[str, str]]:
+    """Derive REQUIRED ``(policy, env)`` pairs from the sweep's OWN config.
+
+    This is the config-aware replacement for the ``sweep_full.yaml``-pinned
+    :func:`_required_coverage_pairs`. We load the exact sweep config the
+    manifest points at, expand it through the orchestrator's own
+    :func:`scripts.run_sweep.expand_cells` (so the publish gate and the
+    sweep planner can never disagree on what a config means), and keep the
+    distinct ``(policy, env)`` of every cell that is both *compatible* and
+    *runnable* -- i.e. cells the sweep actually intended to produce data
+    for. Pairs are intersected with :data:`V1_POLICIES` because the
+    published parquet is itself filtered to those policies; a deferred
+    policy (xvla, pi0) named in a config never becomes a coverage
+    requirement.
+
+    Works for both the legacy v1 sweep (``sweep_full.yaml``) and the v1.1
+    LIBERO sweep (``sweep_v11_libero.yaml`` -- smolvla_libero x 40 envs).
+
+    Raises ``OSError`` / ``ValueError`` on an unreadable / malformed
+    config or registry; the caller in :func:`_preflight` turns that into
+    an exit-3 message.
+    """
+    # Local import: keeps the AST contract (no heavy top-level deps) and
+    # avoids a publish<->sweep import cycle at module load.
+    from embodimetry.envs import EnvRegistry
+    from scripts.run_sweep import expand_cells, load_sweep_config
+
+    resolved = _resolve_config_path(config_path)
+    config = load_sweep_config(resolved)
+    policy_registry = PolicyRegistry.from_yaml(config.policies_yaml)
+    env_registry = EnvRegistry.from_yaml(config.envs_yaml)
+    cells = expand_cells(
+        config,
+        policy_registry=policy_registry,
+        env_registry=env_registry,
+    )
+    return frozenset(
+        (cell.policy, cell.env)
+        for cell in cells
+        if cell.compatible and cell.runnable and cell.policy in V1_POLICIES
+    )
 
 
 def _required_coverage_pairs(
@@ -307,10 +374,43 @@ def _default_required_coverage_pairs() -> frozenset[tuple[str, str]]:
 # (``monkeypatch.setattr(publish_results, "_required_coverage_pairs_for_preflight", ...)``)
 # swap in a synthetic REQUIRED set so they can exercise the
 # missing-cell / extra-cell branches without depending on the live
-# configs. Production always uses the registry-derived default.
-_required_coverage_pairs_for_preflight: Callable[[], frozenset[tuple[str, str]]] = (
-    _default_required_coverage_pairs
-)
+# configs.
+#
+# ``None`` is the production sentinel: when it is None, :func:`_preflight`
+# derives the REQUIRED set from the *manifest's own* ``config_path``
+# (config-aware path -- handles sweep_full.yaml AND sweep_v11_libero.yaml).
+# A non-None override short-circuits that and is used verbatim, which is
+# how the test suite pins a synthetic REQUIRED set.
+_required_coverage_pairs_for_preflight: Callable[[], frozenset[tuple[str, str]]] | None = None
+
+
+def _resolve_required_pairs(manifest: Any) -> frozenset[tuple[str, str]]:
+    """Pick the REQUIRED coverage set for this publish.
+
+    Precedence:
+      1. A test-injected :data:`_required_coverage_pairs_for_preflight`
+         override (non-None) -- used verbatim.
+      2. The manifest's own ``config_path`` -> config-aware derivation
+         (:func:`_required_coverage_pairs_from_config`). This is the
+         production path and is what makes the gate work for the v1.1
+         LIBERO sweep as well as the legacy v1 sweep.
+
+    Raises ``KeyError`` (clear message) when an older manifest predates
+    the ``config_path`` field, so the operator knows the gate cannot run
+    without re-anchoring the config.
+    """
+    override = _required_coverage_pairs_for_preflight
+    if override is not None:
+        return override()
+
+    config_path = manifest.get("config_path") if isinstance(manifest, dict) else None
+    if not config_path:
+        raise KeyError(
+            "manifest lacks 'config_path'; cannot derive the REQUIRED (policy, env) "
+            "coverage set. Re-run the sweep with a current run_sweep.py (which records "
+            "config_path), or pass an explicit config via the manifest."
+        )
+    return _required_coverage_pairs_from_config(str(config_path))
 
 
 def _preflight(
@@ -422,20 +522,101 @@ def _preflight(
                 ),
             )
 
-    # Coverage gate (#165): the published v1 dataset must carry every
-    # REQUIRED (policy, env) cell -- otherwise an entire policy or env can
-    # silently vanish from the leaderboard and still publish "clean". The
-    # REQUIRED set is derived from the runnable v1 policies x the sweep's
-    # env axis (see _required_coverage_pairs). Pairs present in the data
-    # but NOT required are OPTIONAL and allowed.
-    try:
-        required_pairs = _required_coverage_pairs_for_preflight()
-    except (OSError, ValueError) as exc:
+    # Manifest must exist + parse BEFORE the coverage gate -- the gate now
+    # derives the REQUIRED (policy, env) set from the manifest's own
+    # ``config_path`` (config-aware: works for sweep_full.yaml AND
+    # sweep_v11_libero.yaml), so we need its contents in hand here.
+    if not manifest_path.exists():
         return _PreflightResult(
             n_cells=0,
             n_episodes=0,
             referenced_video_shas=(),
-            error=f"policy registry unreadable for coverage check: {_POLICIES_YAML}: {exc}",
+            error=f"manifest not found: {manifest_path}",
+        )
+    try:
+        manifest = json.loads(manifest_path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        return _PreflightResult(
+            n_cells=0,
+            n_episodes=0,
+            referenced_video_shas=(),
+            error=f"manifest unreadable: {manifest_path}: {exc}",
+        )
+
+    # Completion gate: never publish a half-done sweep. A manifest with no
+    # ``finished_utc``, or any non-terminal cell (status not in
+    # completed/skipped/failed), means the run is still in flight or died
+    # mid-sweep. ``skipped`` is terminal (incompatible / non-runnable /
+    # pre-resumed); ``failed`` is terminal too -- a failed cell is a
+    # surfaced gap, and the act×aloha + coverage gates above already catch
+    # a *missing* required cell. We only block the ambiguous in-flight
+    # states (``pending``/``running``) and a never-finalized manifest.
+    if isinstance(manifest, dict):
+        if not manifest.get("finished_utc"):
+            return _PreflightResult(
+                n_cells=0,
+                n_episodes=0,
+                referenced_video_shas=(),
+                error=(
+                    "manifest has no finished_utc: refusing to publish a sweep that "
+                    "did not finalize (run/finish the sweep before publishing)"
+                ),
+            )
+        cells = manifest.get("cells")
+        if isinstance(cells, list):
+            unfinished = sorted(
+                {
+                    str(c.get("status"))
+                    for c in cells
+                    if isinstance(c, dict)
+                    and str(c.get("status")) not in {"completed", "skipped", "failed"}
+                }
+            )
+            if unfinished:
+                return _PreflightResult(
+                    n_cells=0,
+                    n_episodes=0,
+                    referenced_video_shas=(),
+                    error=(
+                        f"manifest has cells in non-terminal state(s) {unfinished}: "
+                        "refusing to publish an in-flight sweep"
+                    ),
+                )
+
+    # Provenance-integrity gate: the published parquet must be replayable
+    # from a single code revision, and that revision must match the manifest.
+    # A --resume across a moved git HEAD silently splits rows across two
+    # code_sha; nothing downstream notices, so the "one code_sha" provenance
+    # claim would be quietly false. A resume at the SAME code_sha (multiple
+    # eval_run_ids, one code_sha) is the legitimate case and only warns.
+    if _provenance_guard_enabled:
+        warn = _eval_run_id_warning(df)
+        if warn is not None:
+            logger.warning(warn)
+        prov_error = _provenance_integrity_error(df, manifest)
+        if prov_error is not None:
+            return _PreflightResult(
+                n_cells=0,
+                n_episodes=0,
+                referenced_video_shas=(),
+                error=prov_error,
+            )
+
+    # Coverage gate (#165): the published dataset must carry every REQUIRED
+    # (policy, env) cell -- otherwise an entire policy or env can silently
+    # vanish from the leaderboard and still publish "clean". The REQUIRED
+    # set is config-aware: derived from the sweep's own ``config_path``
+    # (see _required_coverage_pairs_from_config). A test-injected override
+    # short-circuits to a synthetic set. Pairs present in the data but NOT
+    # required are OPTIONAL and allowed.
+    try:
+        required_pairs = _resolve_required_pairs(manifest)
+    except (OSError, ValueError, KeyError) as exc:
+        return _PreflightResult(
+            n_cells=0,
+            n_episodes=0,
+            referenced_video_shas=(),
+            error=f"could not derive REQUIRED coverage set: {exc}",
         )
     present_pairs = {
         (str(p), str(e)) for p, e in df[["policy", "env"]].drop_duplicates().itertuples(index=False)
@@ -449,26 +630,9 @@ def _preflight(
             referenced_video_shas=(),
             error=(
                 f"missing REQUIRED (policy, env) cells (first {len(shown)} of "
-                f"{len(missing_pairs)}): {shown}; a v1 publish must cover every "
+                f"{len(missing_pairs)}): {shown}; a publish must cover every "
                 "runnable v1 policy x its sweep envs"
             ),
-        )
-
-    if not manifest_path.exists():
-        return _PreflightResult(
-            n_cells=0,
-            n_episodes=0,
-            referenced_video_shas=(),
-            error=f"manifest not found: {manifest_path}",
-        )
-    try:
-        json.loads(manifest_path.read_text())
-    except (json.JSONDecodeError, OSError) as exc:
-        return _PreflightResult(
-            n_cells=0,
-            n_episodes=0,
-            referenced_video_shas=(),
-            error=f"manifest unreadable: {manifest_path}: {exc}",
         )
 
     n_cells = df[["policy", "env", "seed"]].drop_duplicates().shape[0] if len(df) else 0
@@ -493,14 +657,16 @@ def _preflight(
             )
             if not expected.exists():
                 missing.append(str(expected))
-            if len(missing) >= 5:  # cap message length
-                break
         if missing:
+            sample = missing[:5]
             return _PreflightResult(
                 n_cells=n_cells,
                 n_episodes=n_episodes,
                 referenced_video_shas=referenced_shas,
-                error=(f"video_sha256 references missing MP4s (first {len(missing)}): {missing}"),
+                error=(
+                    f"video_sha256 references missing MP4s: {len(missing)} missing "
+                    f"(showing first {len(sample)}): {sample}"
+                ),
             )
 
     return _PreflightResult(
@@ -508,6 +674,96 @@ def _preflight(
         n_episodes=n_episodes,
         referenced_video_shas=referenced_shas,
         error=None,
+    )
+
+
+def _distinct_code_shas(df: Any) -> dict[str, int]:
+    """Return ``{code_sha: row_count}`` for every distinct code_sha in ``df``.
+
+    Pure, read-only. Empty dict when the column is absent (an older parquet
+    predating the ``code_sha`` field) -- the provenance guard treats that as
+    "nothing to check" rather than a failure, since the gate's job is to
+    catch a SPLIT, and a column-less frame cannot be split.
+    """
+    if "code_sha" not in getattr(df, "columns", ()):
+        return {}
+    counts = df["code_sha"].astype(str).value_counts()
+    return {str(sha): int(n) for sha, n in counts.items()}
+
+
+# Module-level on/off switch for the provenance-integrity guard, mirroring
+# :data:`_required_coverage_pairs_for_preflight`. Production is always True.
+# The legacy publish suites build deliberately code_sha-inconsistent fixtures
+# to exercise OTHER gates; ``tests/conftest.py`` flips this to False for those
+# modules only (the dedicated provenance suite drives it for real).
+_provenance_guard_enabled: bool = True
+
+
+def _provenance_integrity_error(df: Any, manifest: Any) -> str | None:
+    """Check that the parquet is replayable from a single code revision.
+
+    A sweep resumed after a crash/restart at a moved git HEAD silently
+    stitches rows from two different ``code_sha`` into one parquet (each
+    ``run_one`` subprocess stamps the LIVE HEAD). The published dataset's
+    "bit-for-bit replayable from one code_sha" provenance claim would then
+    be quietly false, and nothing else at publish time notices.
+
+    Returns the exit-3 message on a violation, else ``None``:
+      * >1 distinct ``code_sha`` in the parquet -> hard fail (the dangerous
+        split). Lists each sha + its row count.
+      * the single ``code_sha`` disagreeing with the manifest's recorded
+        ``code_sha`` (compared on the common 8-char prefix, to tolerate
+        short/long sha forms) -> hard fail.
+
+    ``eval_run_id`` multiplicity is NOT an error -- a resume at the SAME
+    code_sha legitimately mints a fresh ``eval_run_id`` per invocation. The
+    caller surfaces that as a non-fatal warning.
+    """
+    shas = _distinct_code_shas(df)
+    if len(shas) > 1:
+        breakdown = ", ".join(f"{sha} ({n} row(s))" for sha, n in sorted(shas.items()))
+        return (
+            f"parquet spans {len(shas)} distinct code_sha values -- it is NOT "
+            f"replayable from a single code revision (likely a --resume across a "
+            f"moved git HEAD): {breakdown}. Re-run the affected cells at one HEAD, "
+            "or split the publish per code_sha, before publishing."
+        )
+    if not shas:
+        return None
+
+    parquet_sha = next(iter(shas))
+    manifest_sha = manifest.get("code_sha") if isinstance(manifest, dict) else None
+    if not manifest_sha:
+        return None
+
+    n = 8
+    if str(parquet_sha)[:n] != str(manifest_sha)[:n]:
+        return (
+            f"parquet code_sha {parquet_sha!r} disagrees with the manifest's "
+            f"recorded code_sha {manifest_sha!r} (compared on first {n} chars): the "
+            "parquet was produced by different code than the manifest claims. "
+            "Re-run the sweep so the manifest and rows share one code_sha."
+        )
+    return None
+
+
+def _eval_run_id_warning(df: Any) -> str | None:
+    """Non-fatal note: surface a resume (multiple eval_run_ids, one code_sha).
+
+    A resume at the SAME code_sha mints a fresh ``eval_run_id`` per
+    invocation -- legitimate, but worth telling the operator so they know a
+    resume happened. Returns the message to log, or ``None`` when there is at
+    most one ``eval_run_id``.
+    """
+    if "eval_run_id" not in getattr(df, "columns", ()):
+        return None
+    ids = sorted({str(x) for x in df["eval_run_id"].tolist() if str(x)})
+    if len(ids) <= 1:
+        return None
+    return (
+        f"parquet carries {len(ids)} distinct eval_run_id values "
+        f"(a --resume at the same code_sha): {ids}. This is allowed; surfaced "
+        "so the resume is visible in the publish log."
     )
 
 

@@ -42,7 +42,7 @@ There is no public, reproducible, multi-policy leaderboard for LeRobot's sim env
 1. **Insight > breadth.** Headline is one defensible non-obvious finding. Leaderboard is evidence.
 2. **PushT + Aloha + Libero.** Lets the matrix include HF's VLA stack (SmolVLA, Pi0) alongside DP/ACT. Libero is gated on a 4-hour spike; if WSL/MuJoCo install exceeds the cap, drop to PushT + Aloha and proceed.
 3. **Pretrained inference only — no training, no fine-tuning, no weights authored by us.**
-4. **Multi-seed evaluation: 5 seeds × 50 episodes per (policy, env) cell.** Bootstrap 95% CI computed over the (seed, episode) pool within each cell. This is the bar — not "≥3" or aspirational; if compute can't support it, scope cuts the matrix, not the seeds.
+4. **Multi-seed evaluation: 5 seeds × 50 episodes per (policy, env) cell.** Closed-form Wilson 95% score interval on the per-cell success rate over the (seed, episode) pool; bootstrap is reserved for paired deltas and distributional summaries. This is the bar — not "≥3" or aspirational; if compute can't support it, scope cuts the matrix, not the seeds.
 5. **HF Spaces is the public surface.** Free CPU tier confirmed as the deployment target. Playground tab is pre-recorded rollouts streamed from a HF Hub dataset; live inference is a v2 stretch only.
 6. **Independent repo, lerobot==0.5.1 pinned as dependency.**
 7. **No public benchmark like this exists today.** This is the novelty claim. Will be verified before lockin (10-min HF Hub + Google Scholar search).
@@ -65,7 +65,23 @@ Success is the per-env standard reward threshold from `lerobot.envs.<env>.config
 
 **Per-env success thresholds.** Verified at Day 0 — read from `lerobot.envs.<env>.config.SUCCESS_REWARD` if it exists in v0.5.1, otherwise hardcoded in `envs.py` as: PushT 0.95 reward (coverage threshold), Aloha 1.0 (task-complete flag), Libero 1.0 (task-complete flag). Decided after a 5-min check in Day 0.
 
-**Bootstrap CI.** For each cell, success rate = `successes / (seeds × episodes_per_seed)`. 95% CI via 10,000 bootstrap resamples over the flat list of `5 × n_episodes_per_seed` binary outcomes per cell (where `n_episodes_per_seed` is 50 for non-downscoped cells, may be lower per the auto-downscope rule below). Comparisons across cells report Δsuccess + 95% CI from the same bootstrap. In the executed v1 sweep two cells were auto-downscoped to 25 episodes/seed (N=125): `diffusion_policy × pusht` (published) and `xvla × libero_10` (excluded from publish — its downscope was dispatch-time only); every other cell ran the full 50 episodes/seed (N=250).
+> **Bench rule vs. canonical rule (read this).** The bench default (`v1_legacy`)
+> reduces a rollout to a boolean with `success := final_reward >= success_threshold`
+> — the *last step's* reward against the threshold above. The canonical/paper rule
+> is a **sticky** reduction over the whole episode: `any(info["is_success"])` for
+> PushT/LIBERO, and `any(reward == 4)` for `aloha_transfer_cube` (only a completed
+> transfer counts; reward levels 1-3 are sub-goals). Canonical LIBERO also runs at
+> `max_steps=600` for every suite, vs. the lerobot defaults the v1 sweep used. These
+> diverge only on episodes that hit the step cap: under `v1_legacy` PushT/Aloha
+> **over-count** cap-hit sub-goal rollouts, while LIBERO **under-counts** truncated
+> rollouts that would have succeeded with more steps (so the v1 `libero_10` number is
+> a lower bound). The canonical rule is opt-in via `--canonical` on
+> `scripts/run_sweep.py` / `scripts/run_one.py`; the published v1 leaderboard is
+> entirely `v1_legacy`. Full per-env table and verbatim source citations:
+> [`docs/CANONICAL_CRITERIA.md`](CANONICAL_CRITERIA.md) and
+> [`docs/SUCCESS_CRITERION_AUDIT.md`](SUCCESS_CRITERION_AUDIT.md).
+
+**Confidence intervals.** For each cell, success rate = `successes / (seeds × episodes_per_seed)`. The per-cell success-rate 95% CI is the closed-form Wilson score interval over the flat list of `5 × n_episodes_per_seed` binary outcomes per cell (where `n_episodes_per_seed` is 50 for non-downscoped cells, may be lower per the auto-downscope rule below). Comparisons across cells report Δsuccess + 95% CI from a paired percentile bootstrap (10,000 resamples). In the executed v1 sweep two cells were auto-downscoped to 25 episodes/seed (N=125): `diffusion_policy × pusht` (published) and `xvla × libero_10` (excluded from publish — its downscope was dispatch-time only); every other cell ran the full 50 episodes/seed (N=250).
 
 **Compute budget rule (auto-downscope).** Total per-cell wall-time budget is 3 hours. After Day 0 calibration produces per-policy `mean_ms_per_step`, episodes-per-seed for each cell = `min(50, floor(3 * 3600 / (5 * env_max_steps * mean_s_per_step)))`. If a policy's per-cell minimum (e.g., 5 episodes/seed × 5 seeds = 25 episodes total per cell) still exceeds 3 hours, the policy is dropped from v1, not silently truncated.
 
@@ -198,7 +214,7 @@ If neither finding is supported by 5 seeds × 50 episodes, the artifact graceful
 
 The artifact is "done" when:
 - ✅ Public HF Space at `thrmnn/embodimetry` is live and not broken
-- ✅ Leaderboard table renders with ≥4 policies × ≥2 envs × full 5 seeds × 50 episodes (or downscoped to 25 episodes per Q4, documented), with bootstrap CIs
+- ✅ Leaderboard table renders with ≥4 policies × ≥2 envs × full 5 seeds × 50 episodes (or downscoped to 25 episodes per Q4, documented), with Wilson CIs
 - ✅ Video grid shows ≥1 success and ≥1 failure rollout per populated cell, served from HF Hub dataset
 - ✅ Browse-rollouts tab works end-to-end on free CPU Spaces (just video fetch + metadata, no live inference)
 - ✅ Independent repo `thrmnn/embodimetry` lists exact repro steps; reproducing **a single cell** end-to-end is < 1 hour wall time on equivalent hardware (full sweep is documented as overnight)

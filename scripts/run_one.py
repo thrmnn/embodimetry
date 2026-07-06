@@ -459,13 +459,17 @@ def run_one(
     n_attempted = len(cell_result.episodes)
     n_errored = sum(1 for ep in cell_result.episodes if ep.error is not None)
     n_succeeded = sum(1 for ep in cell_result.episodes if ep.success)
+    # Legitimate task failures: success=False with no error (timeout,
+    # early_termination, unknown). Without this the log silently drops them.
+    n_failed = n_attempted - n_succeeded - n_errored
+    assert n_succeeded + n_errored + n_failed == n_attempted
 
     if n_errored > 0:
         exit_code = 2
         log = (
             f"[run-one] policy={policy_name} env={env_name} seed={seed} "
             f"eps={n_attempted} success={n_succeeded}/{n_attempted} "
-            f"errors={n_errored} rows_appended={n_attempted} "
+            f"errors={n_errored} failures={n_failed} rows_appended={n_attempted} "
             f"(cell completed with errors; total_rows={n_total_rows_after})"
         )
     else:
@@ -473,7 +477,7 @@ def run_one(
         log = (
             f"[run-one] policy={policy_name} env={env_name} seed={seed} "
             f"eps={n_attempted} success={n_succeeded}/{n_attempted} "
-            f"rows_appended={n_attempted} out={out_parquet}"
+            f"failures={n_failed} rows_appended={n_attempted} out={out_parquet}"
         )
 
     return RunOneOutcome(

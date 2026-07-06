@@ -6,11 +6,14 @@
 # them. See docs/MODEL_CARDS.md for the human-readable companion.
 #
 # VLA libero policies — locked 2026-05-03 via huggingface_hub.HfApi().model_info(repo_id).sha
-# All 4 LIBERO task suites are listed under env_compat: lerobot's libero
-# wrapper exposes the same observation contract for every suite, and
-# every VLA below is finetuned on libero (suite mix varies by checkpoint
-# but all 4 suites work — performance differences are the headline
-# finding in the artifact).
+# Per-policy LIBERO support is whatever that policy's `env_compat` declares
+# — not an automatic property of the wrapper. lerobot's libero wrapper does
+# expose the same observation contract across suites, and every VLA below is
+# a libero finetune, but we only advertise the suites we actually intend to
+# sweep for each checkpoint. In practice that means: the 4 base suites
+# (libero_spatial/object/goal/10) for every VLA here, plus the 36 per-task
+# `_t<N>` specs for smolvla_libero ONLY (the v1.1 all-10-task expansion).
+# Performance differences across suites are the headline artifact finding.
 
 policies:
   - name: no_op
@@ -138,11 +141,20 @@ policies:
       uses 5 seeds x 50 episodes per cell.
 
   # ------------------------------------------------------------------
-  # VLA libero policies — 5 entries, all libero suites compatible.
+  # VLA libero policies. Each advertises the 4 base LIBERO suites
+  # (libero_spatial/object/goal/10) under env_compat; only smolvla_libero
+  # (below) is additionally expanded to the 36 per-task `_t<N>` specs.
   # SHAs locked 2026-05-03 from huggingface_hub.HfApi().model_info(repo_id).sha.
   # These are large (Pi-class) models; expect 0.5-2s/step on RTX 4060
   # per docs/DESIGN.md § Open Questions Q2. The auto-downscope rule in
   # scripts/run_sweep.py handles per-cell wall-time budgets.
+  #
+  # NOTE on the pi0/pi05 family (pi05_libero_finetuned_v044, pi05_libero,
+  # pi0_libero_finetuned_v044, pi0fast_libero): these are INTENTIONALLY not
+  # expanded to the per-task `_t<N>` specs, even though the env infra exists.
+  # The v1.1 all-10-task LIBERO expansion is smolvla-only (smallest VLA,
+  # fastest cell turnaround); the pi-family stays on the 4 base suites. This
+  # is deliberate, not an oversight — don't "complete" the matrix here.
   # ------------------------------------------------------------------
 
   - name: pi05_libero_finetuned_v044
@@ -240,11 +252,51 @@ policies:
 
   - name: smolvla_libero
     is_baseline: false
+    # v1.1 all-10-task LIBERO expansion: task 0 keeps the bare suite name
+    # (v1 join compatibility); tasks 1..9 are <suite>_t<N>. All 40 specs
+    # live in configs/envs.yaml and share the same observation contract,
+    # so smolvla runs on every one. Swept by configs/sweep_v11_libero.yaml.
     env_compat:
       - libero_spatial
+      - libero_spatial_t1
+      - libero_spatial_t2
+      - libero_spatial_t3
+      - libero_spatial_t4
+      - libero_spatial_t5
+      - libero_spatial_t6
+      - libero_spatial_t7
+      - libero_spatial_t8
+      - libero_spatial_t9
       - libero_object
+      - libero_object_t1
+      - libero_object_t2
+      - libero_object_t3
+      - libero_object_t4
+      - libero_object_t5
+      - libero_object_t6
+      - libero_object_t7
+      - libero_object_t8
+      - libero_object_t9
       - libero_goal
+      - libero_goal_t1
+      - libero_goal_t2
+      - libero_goal_t3
+      - libero_goal_t4
+      - libero_goal_t5
+      - libero_goal_t6
+      - libero_goal_t7
+      - libero_goal_t8
+      - libero_goal_t9
       - libero_10
+      - libero_10_t1
+      - libero_10_t2
+      - libero_10_t3
+      - libero_10_t4
+      - libero_10_t5
+      - libero_10_t6
+      - libero_10_t7
+      - libero_10_t8
+      - libero_10_t9
     repo_id: lerobot/smolvla_libero
     revision_sha: 31d453f7edd78c839a8bbc39744a292686daf0de
     fp_precision: bf16
