@@ -13,8 +13,11 @@ Serve the repo root so root-relative links resolve to the other surfaces:
 
 from __future__ import annotations
 
+import re
 import urllib.request
 from pathlib import Path
+
+import yaml
 
 import hubkit as hk
 
@@ -22,6 +25,19 @@ REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "_hub"
 DOCS_OUT = OUT / "docs"
 GENERATOR = "scripts/build_project_hub.py"
+
+_FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
+
+# academic-paper-workflow DAG order + upstream deps (mirrors each artifact's
+# own `depends_on` header -- duplicated here only as a fallback default for
+# artifacts missing a header, not as the source of truth).
+_PAPER_DAG_NODES = [
+    ("proposal", "paper/dag/proposal.md", []),
+    ("results", "paper/dag/results.md", ["proposal"]),
+    ("figures", "paper/dag/figures.md", ["results"]),
+    ("lit-review-detail", "paper/dag/lit-review-detail.md", ["proposal"]),
+    ("targets", "paper/dag/targets.md", ["proposal"]),
+]
 
 
 def _probe(url: str, timeout: float = 2.0) -> bool:
@@ -34,6 +50,14 @@ def _probe(url: str, timeout: float = 2.0) -> bool:
 
 def _crumb() -> str:
     return hk.breadcrumb([("embodimetry hub", "../index.html"), ("doc", None)])
+
+
+def _frontmatter(md_path: Path) -> dict:
+    m = _FRONTMATTER.match(md_path.read_text())
+    if not m:
+        return {}
+    data = yaml.safe_load(m.group(1))
+    return data if isinstance(data, dict) else {}
 
 
 def render_docs() -> dict[str, str]:
@@ -61,6 +85,66 @@ def render_docs() -> dict[str, str]:
         hk.render_doc_page(md_path, out_path, crumb=_crumb(), provenance=prov, base=base)
         hrefs[slug] = f"docs/{slug}.html"
     return hrefs
+
+
+def render_paper_dag() -> str:
+    """Render the academic-paper-workflow DAG: status badges + rendered pages.
+
+    A node is BLOCKED if any dependency isn't `locked` yet, regardless of its
+    own status -- this is the DAG's whole point (don't let draft/results drift
+    ahead of an unlocked proposal).
+    """
+    prov = hk.git_provenance(REPO, GENERATOR)
+    statuses: dict[str, str] = {}
+    cards = []
+    for slug, rel_path, deps in _PAPER_DAG_NODES:
+        md_path = REPO / rel_path
+        if not md_path.exists():
+            continue
+        fm = _frontmatter(md_path)
+        status = fm.get("status", "draft")
+        deps = fm.get("depends_on", deps)
+        statuses[slug] = status
+        blocked = any(statuses.get(d, "draft") != "locked" for d in deps)
+        kind = {"locked": "ok", "review": "info"}.get(status, "amber")
+        if blocked and status not in ("locked",):
+            kind = "warn"
+        out_path = DOCS_OUT / f"paper-{slug}.html"
+        hk.render_doc_page(md_path, out_path, crumb=_crumb(), provenance=prov, base="../..")
+        dep_note = f"depends on: {', '.join(deps)}" if deps else "depends on: none"
+        state_note = f"{status.upper()}" + (" — blocked on deps" if blocked else "")
+        cards.append(
+            hk.card(
+                slug.replace("-", " ").title(),
+                dep_note,
+                f"docs/paper-{slug}.html",
+                kind=kind,
+                meta=state_note,
+            )
+        )
+
+    draft_deps_locked = all(
+        statuses.get(n) == "locked" for n in ("results", "figures", "lit-review-detail", "targets")
+    )
+    draft_exists = (REPO / "paper/main.pdf").exists()
+    cards.append(
+        hk.card(
+            "Draft (paper/main.pdf)",
+            "Assembled from results + figures + lit-review-detail + targets once "
+            "all four are locked."
+            + (
+                ""
+                if draft_deps_locked
+                else " Draft currently exists AHEAD of formal DAG approval — "
+                "predates this workflow; treat upstream artifacts as a "
+                "retroactive review pass, not a block on the existing PDF."
+            ),
+            "../paper/main.pdf",
+            kind="ok" if draft_exists else "warn",
+            meta="paper/main.tex",
+        )
+    )
+    return hk.section("Paper DAG (academic-paper-workflow)", cards, anchor="paper-dag")
 
 
 def main() -> None:
@@ -189,10 +273,13 @@ def main() -> None:
         ),
     ]
 
+    paper_dag_section = render_paper_dag()
+
     body = (
         ship_inline
         + hk.section("User-facing", user_cards, anchor="user-facing")
         + hk.section("Presentation & paper", deck_cards, anchor="presentation")
+        + paper_dag_section
         + hk.section("Dev / ops", dev_cards, anchor="dev-ops")
     )
 
@@ -201,6 +288,7 @@ def main() -> None:
             ("ship-readiness", "Ship readiness"),
             ("user-facing", "User-facing"),
             ("presentation", "Presentation & paper"),
+            ("paper-dag", "Paper DAG"),
             ("dev-ops", "Dev / ops"),
         ]
     )

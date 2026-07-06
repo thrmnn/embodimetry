@@ -166,7 +166,7 @@ scores all four paradigms as the same \texttt{PolicyCallable} under one
 seed / Wilson-and-bootstrap-CI / MDE ruler, with floor baselines and
 honest negatives (the SmolVLA-LoRA collapse, the classical $0.012$) kept
 on the board --- no neighbor (HF leaderboards, MLPerf, Open
-X-Embodiment~\cite{bohg2025open}, or the world-model
+X-Embodiment~\cite{bohg2024open}, or the world-model
 benchmarks~\cite{zhou2024dinowm,assran2025vjepa2}) puts paradigms on one
 ruler with the negatives retained. \emph{(2) A self-auditing methodology.}
 The instrument caught and corrected its own headline overclaim, code-fenced
@@ -256,7 +256,7 @@ itself is the data; this paper is the defense.
 PushT~\cite{chi2023diffusion}, the Aloha suite~\cite{zhao2023learning},
 and LIBERO~\cite{liu2023libero} are the de facto LeRobot references;
 RLBench~\cite{james2020rlbench}, CALVIN~\cite{mees2022calvin}, and Open
-X-Embodiment~\cite{bohg2025open} offer larger taxonomies but no
+X-Embodiment~\cite{bohg2024open} offer larger taxonomies but no
 pretrained LeRobot-compatible checkpoints or shared protocol. None ship a
 multi-policy leaderboard with shared seed accounting, multi-seed CIs, and
 re-runnable rows. We adopt the multi-seed, bootstrap-CI, MDE-bounded
@@ -734,7 +734,9 @@ cell $N{=}250$ (5~seeds $\times$ 50~episodes). The entire recovery is the
 normalization fix (PR~\#51): broken normalization stays at 0.016
 regardless of inference settings, and once normalization is fixed the
 Hub-default and paper inference settings are statistically
-indistinguishable (overlapping Wilson CIs), so temporal ensembling is a
+indistinguishable (overlapping Wilson CIs; Cohen's $h{=}0.108$, small,
+the same non-significance criterion applied to the L1 fine-tune result
+in \S\ref{sec:results}), so temporal ensembling is a
 wash. The fixed+Hub-default cell (0.812) is the same condition as the
 canonical leaderboard number 0.824~[0.772, 0.866] (Table~\ref{tab:leaderboard})
 measured in a separate $N{=}250$ run; the two agree within CI. Source:
