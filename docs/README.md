@@ -68,6 +68,10 @@ paper-vs-measured delta.
   suite-average scope mismatch behind the SmolVLA paper-vs-measured deltas.
 - [`SUCCESS_CRITERION_AUDIT.md`](SUCCESS_CRITERION_AUDIT.md) — success-rule and
   step-cap mismatches (Aloha reward bands, PushT sticky-coverage, LIBERO 600).
+- [`CODE_SHA_INTEGRITY_AUDIT.md`](CODE_SHA_INTEGRITY_AUDIT.md) — why
+  `results/sweep-full/results.parquet`'s 13 distinct `code_sha` values are
+  behaviorally reproducible from one effective codebase state, and why that
+  finding doesn't resolve the publish preflight guard on its own.
 - [`CANONICAL_CRITERIA.md`](CANONICAL_CRITERIA.md) — the canonical per-env
   success and step-cap definitions the audits measure against.
 - [`DEFERRED_POLICIES.md`](DEFERRED_POLICIES.md) — why `xvla` and the `pi0`
