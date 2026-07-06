@@ -80,11 +80,19 @@ def _row(
     }
 
 
-def _build_sweep_dir(tmp_path: Path, pairs: list[tuple[str, str]]) -> dict[str, Path]:
+def _build_sweep_dir(
+    tmp_path: Path,
+    pairs: list[tuple[str, str]],
+    *,
+    config_path: str = "configs/sweep_full.yaml",
+    finished_utc: str | None = "2026-05-03T01:00:00+00:00",
+) -> dict[str, Path]:
     """Build a sweep dir whose parquet contains exactly one cell per (policy, env).
 
     Each cell gets a single episode -- enough to count as "present" for the
-    coverage gate. Returns the canonical publish input paths.
+    coverage gate. ``config_path`` is written into the manifest so the
+    sweep-aware coverage gate derives the REQUIRED set from the right sweep.
+    Returns the canonical publish input paths.
     """
     sweep_dir = tmp_path / "sweep-test"
     sweep_dir.mkdir(parents=True)
@@ -100,10 +108,10 @@ def _build_sweep_dir(tmp_path: Path, pairs: list[tuple[str, str]]) -> dict[str, 
         json.dumps(
             {
                 "started_utc": "2026-05-03T00:00:00+00:00",
-                "finished_utc": "2026-05-03T01:00:00+00:00",
+                "finished_utc": finished_utc,
                 "code_sha": "abc",
                 "lerobot_version": "0.5.1",
-                "config_path": "configs/sweep_full.yaml",
+                "config_path": config_path,
                 "cells": [],
             }
         )
@@ -130,7 +138,7 @@ def _fixed_required(monkeypatch: pytest.MonkeyPatch) -> frozenset[tuple[str, str
     monkeypatch.setattr(
         pr,
         "_required_coverage_pairs_for_preflight",
-        lambda: _TEST_REQUIRED,
+        lambda _config_path=None: _TEST_REQUIRED,
     )
     return _TEST_REQUIRED
 
@@ -176,7 +184,7 @@ def test_missing_whole_env_fails_via_cli_dry_run(
     monkeypatch.setattr(
         pr,
         "_required_coverage_pairs_for_preflight",
-        lambda: _TEST_REQUIRED,
+        lambda _config_path=None: _TEST_REQUIRED,
     )
     # Present everything except the two pusht-axis... here drop both pusht cells.
     present = [p for p in sorted(_TEST_REQUIRED) if p[1] != "pusht"]
@@ -239,11 +247,14 @@ def _spec(
 
 def test_required_set_excludes_non_v1_and_non_runnable(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    """The derivation drops non-v1 (xvla) and non-runnable policies; honors sweep envs."""
-    # Pin the sweep env axis so the test is independent of configs/sweep_full.yaml.
+    """The derivation drops non-v1 (xvla) and non-runnable policies; honors sweep axes."""
+    # Pin the sweep policies + envs axes so the test is independent of any
+    # on-disk config. ``_required_coverage_pairs`` reads them via _sweep_axes.
+    sweep_policies = ("smolvla_libero", "random", "act", "xvla_libero")
     sweep_envs = ("pusht", "aloha_transfer_cube", "libero_10")
-    monkeypatch.setattr(pr, "_v1_sweep_envs", lambda: (sweep_envs, False))
+    monkeypatch.setattr(pr, "_sweep_axes", lambda _path: (sweep_policies, sweep_envs, False))
 
     registry = PolicyRegistry(
         {
@@ -262,7 +273,7 @@ def test_required_set_excludes_non_v1_and_non_runnable(
         }
     )
 
-    pairs = pr._required_coverage_pairs(registry)
+    pairs = pr._required_coverage_pairs(registry, sweep_config=tmp_path / "sweep.yaml")
 
     assert ("smolvla_libero", "libero_10") in pairs
     assert ("smolvla_libero", "libero_goal") not in pairs  # not a sweep env
@@ -277,16 +288,17 @@ def test_required_set_excludes_non_v1_and_non_runnable(
 def test_required_set_falls_back_to_env_compat_union(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
 ) -> None:
-    """If the sweep YAML yields no clean env list, fall back to env_compat union + log."""
-    monkeypatch.setattr(pr, "_v1_sweep_envs", lambda: ((), True))
+    """If the sweep YAML yields no clean axes, fall back to env_compat union + log."""
+    monkeypatch.setattr(pr, "_sweep_axes", lambda _path: ((), (), True))
     registry = PolicyRegistry(
         {
             "smolvla_libero": _spec("smolvla_libero", env_compat=("libero_10", "libero_goal")),
         }
     )
     with caplog.at_level("WARNING"):
-        pairs = pr._required_coverage_pairs(registry)
+        pairs = pr._required_coverage_pairs(registry, sweep_config=tmp_path / "sweep.yaml")
     # Both env_compat envs are required despite no sweep env intersection.
     assert ("smolvla_libero", "libero_10") in pairs
     assert ("smolvla_libero", "libero_goal") in pairs
@@ -299,8 +311,11 @@ def test_required_set_falls_back_to_env_compat_union(
 
 
 def test_live_required_set_is_sane() -> None:
-    """The real configs derive a non-empty REQUIRED set with the expected shape."""
-    pairs = pr._default_required_coverage_pairs()
+    """The real configs derive a non-empty REQUIRED set with the expected shape.
+
+    None config_path -> falls back to configs/sweep_full.yaml (the v1 gate).
+    """
+    pairs = pr._default_required_coverage_pairs(None)
     assert pairs  # non-empty
     # act is aloha-only; never required on a libero env.
     assert ("act", "aloha_transfer_cube") in pairs
@@ -309,3 +324,86 @@ def test_live_required_set_is_sane() -> None:
     assert not any(p == "xvla_libero" for p, _ in pairs)
     # pi0 family deferred -> never required.
     assert not any(p.startswith("pi0") or p.startswith("pi05") for p, _ in pairs)
+
+
+# --------------------------------------------------------------------- #
+# Sweep-aware gate: the REQUIRED set tracks the sweep being published     #
+# --------------------------------------------------------------------- #
+
+
+def _libero_v11_pairs() -> list[tuple[str, str]]:
+    """The 40 smolvla_libero x LIBERO-task cells declared by sweep_v11_libero."""
+    import yaml
+
+    cfg = yaml.safe_load((pr._REPO_ROOT / "configs" / "sweep_v11_libero.yaml").read_text())
+    return [("smolvla_libero", env) for env in cfg["envs"]]
+
+
+def test_v11_libero_sweep_passes_with_its_declared_cells(tmp_path: Path) -> None:
+    """A single-policy multi-env sweep PASSES the REAL coverage gate when complete.
+
+    Regression for the exit-3 v1.1 blocker: before the fix the gate
+    hardcoded configs/sweep_full.yaml and demanded act×aloha, diffusion×
+    pusht, baselines × *, which the LIBERO-only v1.1 sweep never runs --
+    so a valid v1.1 parquet failed exit 3. Now the manifest's config_path
+    drives the REQUIRED set: the 40 smolvla_libero × LIBERO cells the v1.1
+    sweep declares, and nothing else.
+    """
+    pairs = _libero_v11_pairs()
+    assert len(pairs) == 40  # 4 suites x 10 tasks
+    paths = _build_sweep_dir(
+        tmp_path,
+        pairs,
+        config_path="configs/sweep_v11_libero.yaml",
+    )
+    result = _preflight(paths)  # REAL gate -- not monkeypatched
+    assert result.error is None, result.error
+
+
+def test_v11_libero_sweep_missing_a_task_fails(tmp_path: Path) -> None:
+    """Dropping one of the 40 v1.1 cells still trips the (now sweep-aware) gate."""
+    pairs = _libero_v11_pairs()
+    dropped = pairs[-1]
+    paths = _build_sweep_dir(
+        tmp_path,
+        pairs[:-1],
+        config_path="configs/sweep_v11_libero.yaml",
+    )
+    result = _preflight(paths)
+    assert result.error is not None
+    assert "missing REQUIRED" in result.error
+    assert dropped[1] in result.error
+
+
+def test_v1_sweep_full_gate_unchanged_demands_non_libero_policies(tmp_path: Path) -> None:
+    """Publishing under sweep_full STILL requires the full v1 matrix (gate not weakened).
+
+    A parquet carrying only the 40 LIBERO cells but a manifest pointing at
+    sweep_full must FAIL -- act×aloha, diffusion×pusht, baselines × envs are
+    all still REQUIRED. This proves the fix did not make the v1 publish
+    weaker; it only made the gate track the declared sweep.
+    """
+    paths = _build_sweep_dir(
+        tmp_path,
+        _libero_v11_pairs(),
+        config_path="configs/sweep_full.yaml",
+    )
+    result = _preflight(paths)  # REAL gate
+    assert result.error is not None
+    assert "missing REQUIRED" in result.error
+    # act×aloha is required by sweep_full and absent here.
+    assert "act" in result.error
+
+
+def test_unfinished_sweep_is_refused(
+    tmp_path: Path, _fixed_required: frozenset[tuple[str, str]]
+) -> None:
+    """A manifest with null finished_utc -> refuse to publish a half-done sweep."""
+    paths = _build_sweep_dir(
+        tmp_path,
+        sorted(_fixed_required),
+        finished_utc=None,
+    )
+    result = _preflight(paths)
+    assert result.error is not None
+    assert "unfinished" in result.error.lower()

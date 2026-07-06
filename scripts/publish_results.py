@@ -54,6 +54,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import logging
 import shutil
@@ -231,55 +232,76 @@ class _PreflightResult:
     error: str | None = None
 
 
-def _v1_sweep_envs() -> tuple[tuple[str, ...], bool]:
-    """Return ``(envs, used_fallback)`` -- the env set the v1 sweep runs.
+def _sweep_axes(config_path: Path) -> tuple[tuple[str, ...], tuple[str, ...], bool]:
+    """Return ``(policies, envs, used_fallback)`` declared by a sweep YAML.
 
-    Primary source: the ``envs:`` list in ``configs/sweep_full.yaml``
-    (the cartesian-product axis the orchestrator actually iterates). If
-    that file is missing/malformed or doesn't yield a clean non-empty
-    list of env-name strings, ``used_fallback=True`` and the caller falls
-    back to the union of ``env_compat`` across the v1 policies.
+    Primary source: the ``policies:`` and ``envs:`` lists in the given
+    sweep config (the cartesian-product axes the orchestrator actually
+    iterates). If the file is missing/malformed or either axis doesn't
+    yield a clean non-empty list of name strings, ``used_fallback=True``
+    and the caller falls back to the union of ``env_compat`` across the v1
+    policies (whole-registry coverage). This keeps a malformed config from
+    silently weakening the gate.
     """
     try:
-        data = yaml.safe_load(_SWEEP_FULL_YAML.read_text())
+        data = yaml.safe_load(config_path.read_text())
     except (OSError, yaml.YAMLError):
-        return (), True
+        return (), (), True
     if not isinstance(data, dict):
-        return (), True
+        return (), (), True
+    policies = data.get("policies")
     envs = data.get("envs")
-    if not isinstance(envs, list) or not envs or not all(isinstance(e, str) for e in envs):
-        return (), True
-    return tuple(envs), False
+    if not (isinstance(policies, list) and policies and all(isinstance(p, str) for p in policies)):
+        return (), (), True
+    if not (isinstance(envs, list) and envs and all(isinstance(e, str) for e in envs)):
+        return (), (), True
+    return tuple(policies), tuple(envs), False
 
 
 def _required_coverage_pairs(
     registry: PolicyRegistry,
+    *,
+    sweep_config: Path,
 ) -> frozenset[tuple[str, str]]:
-    """Derive the REQUIRED ``(policy, env)`` pairs the published v1 dataset must cover.
+    """Derive the REQUIRED ``(policy, env)`` pairs the published dataset must cover.
 
-    For each policy whose name is in :data:`V1_POLICIES` *and* is runnable
-    (:meth:`PolicySpec.is_runnable`), expand its ``env_compat`` and
-    intersect with the v1 sweep env set read from
-    ``configs/sweep_full.yaml``. This deliberately avoids a dense
-    policy×env cross-product: ``act`` is aloha-only, ``smolvla_libero`` is
-    libero-only, etc. Pairs present in the data but NOT required are
-    OPTIONAL and never an error.
+    The REQUIRED set is derived from *the sweep being published*, read from
+    ``sweep_config`` (the manifest's ``config_path``). For each policy the
+    sweep declares that is also in :data:`V1_POLICIES` *and* runnable
+    (:meth:`PolicySpec.is_runnable`), we cross it with the sweep's declared
+    ``envs`` axis, intersected with that policy's ``env_compat`` (so an
+    aloha-only policy is never required on a libero env even if the sweep
+    over-states its env list -- mirroring the orchestrator, which drops
+    incompatible cells from the plan). Pairs present in the data but NOT
+    required are OPTIONAL and never an error.
 
-    If ``sweep_full.yaml`` doesn't cleanly yield an env list we fall back
-    to the union of all ``env_compat`` across the v1 policies and log it.
+    Examples:
+      * publishing ``sweep_full.yaml`` -> the full v1 matrix (act×aloha,
+        diffusion×pusht, baselines × their envs, smolvla×libero) -- the v1
+        gate is UNCHANGED.
+      * publishing ``sweep_v11_libero.yaml`` -> the 40 smolvla_libero ×
+        LIBERO-task cells that sweep actually runs, and nothing else.
+
+    If the sweep YAML doesn't cleanly yield both axes we fall back to the
+    union of all ``env_compat`` across the v1 policies and log it.
     """
-    sweep_envs, used_fallback = _v1_sweep_envs()
+    sweep_policies, sweep_envs, used_fallback = _sweep_axes(sweep_config)
     if used_fallback:
         logger.warning(
-            "configs/sweep_full.yaml did not yield a clean env list; "
+            "sweep config %s did not yield clean policies/envs axes; "
             "falling back to the union of env_compat across v1 policies "
-            "for the REQUIRED coverage set"
+            "for the REQUIRED coverage set",
+            sweep_config,
         )
 
+    # On fallback, require every v1 policy on its full env_compat. Otherwise
+    # require only the policies the sweep declares (still gated on V1_POLICIES
+    # + runnable), crossed with the sweep's env axis ∩ env_compat.
+    candidate_policies = V1_POLICIES if used_fallback else tuple(sweep_policies)
     sweep_env_set = set(sweep_envs)
     pairs: set[tuple[str, str]] = set()
-    for name in V1_POLICIES:
-        if name not in registry:
+    for name in candidate_policies:
+        if name not in V1_POLICIES or name not in registry:
             continue
         spec = registry.get(name)
         if not spec.is_runnable():
@@ -290,16 +312,25 @@ def _required_coverage_pairs(
     return frozenset(pairs)
 
 
-def _default_required_coverage_pairs() -> frozenset[tuple[str, str]]:
-    """Derive the REQUIRED coverage set from the on-disk registry + sweep config.
+def _default_required_coverage_pairs(config_path: str | None) -> frozenset[tuple[str, str]]:
+    """Derive the REQUIRED coverage set from the registry + the sweep being published.
 
-    Wrapper around :func:`_required_coverage_pairs` that loads the policy
-    registry from ``configs/policies.yaml``. Raises ``OSError`` /
-    ``ValueError`` on an unreadable / malformed registry; the caller in
-    :func:`_preflight` turns that into an exit-3 message.
+    ``config_path`` is the manifest's ``config_path`` field (e.g.
+    ``"configs/sweep_v11_libero.yaml"``); ``None`` / missing falls back to
+    ``configs/sweep_full.yaml`` so the legacy v1 publish path is unchanged.
+    The path is resolved relative to the repo root when not absolute.
+
+    Raises ``OSError`` / ``ValueError`` on an unreadable / malformed
+    registry; the caller in :func:`_preflight` turns that into exit 3.
     """
+    if config_path:
+        sweep_config = Path(config_path)
+        if not sweep_config.is_absolute():
+            sweep_config = _REPO_ROOT / sweep_config
+    else:
+        sweep_config = _SWEEP_FULL_YAML
     registry = PolicyRegistry.from_yaml(_POLICIES_YAML)
-    return _required_coverage_pairs(registry)
+    return _required_coverage_pairs(registry, sweep_config=sweep_config)
 
 
 # Module-level injection point for the coverage gate, mirroring
@@ -307,8 +338,10 @@ def _default_required_coverage_pairs() -> frozenset[tuple[str, str]]:
 # (``monkeypatch.setattr(publish_results, "_required_coverage_pairs_for_preflight", ...)``)
 # swap in a synthetic REQUIRED set so they can exercise the
 # missing-cell / extra-cell branches without depending on the live
-# configs. Production always uses the registry-derived default.
-_required_coverage_pairs_for_preflight: Callable[[], frozenset[tuple[str, str]]] = (
+# configs. Production always uses the registry-derived default. The
+# callable takes the manifest's ``config_path`` so the REQUIRED set is
+# derived from the sweep actually being published.
+_required_coverage_pairs_for_preflight: Callable[[str | None], frozenset[tuple[str, str]]] = (
     _default_required_coverage_pairs
 )
 
@@ -422,14 +455,64 @@ def _preflight(
                 ),
             )
 
-    # Coverage gate (#165): the published v1 dataset must carry every
-    # REQUIRED (policy, env) cell -- otherwise an entire policy or env can
-    # silently vanish from the leaderboard and still publish "clean". The
-    # REQUIRED set is derived from the runnable v1 policies x the sweep's
-    # env axis (see _required_coverage_pairs). Pairs present in the data
-    # but NOT required are OPTIONAL and allowed.
+    # Read the manifest up front: it carries the ``config_path`` of the
+    # sweep being published (so the coverage gate is derived from THAT
+    # sweep, not a hardcoded one) and the completion marker.
+    if not manifest_path.exists():
+        return _PreflightResult(
+            n_cells=0,
+            n_episodes=0,
+            referenced_video_shas=(),
+            error=f"manifest not found: {manifest_path}",
+        )
     try:
-        required_pairs = _required_coverage_pairs_for_preflight()
+        manifest = json.loads(manifest_path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        return _PreflightResult(
+            n_cells=0,
+            n_episodes=0,
+            referenced_video_shas=(),
+            error=f"manifest unreadable: {manifest_path}: {exc}",
+        )
+    if not isinstance(manifest, dict):
+        return _PreflightResult(
+            n_cells=0,
+            n_episodes=0,
+            referenced_video_shas=(),
+            error=f"manifest is not a JSON object: {manifest_path}",
+        )
+
+    # Completion gate (round-3 integrity): refuse to publish a half-done
+    # sweep. ``run_sweep.py`` writes ``finished_utc`` only once the sweep
+    # reaches the end of its plan; a null/absent value means the run was
+    # interrupted (SIGINT, OOM, WSL sleep) and the parquet is partial.
+    finished = manifest.get("finished_utc")
+    if not finished:
+        return _PreflightResult(
+            n_cells=0,
+            n_episodes=0,
+            referenced_video_shas=(),
+            error=(
+                "manifest indicates an unfinished sweep (finished_utc is "
+                f"{finished!r}); refusing to publish a half-done run. Let "
+                "scripts/run_sweep.py reach completion (or resume it) first."
+            ),
+        )
+
+    config_path = manifest.get("config_path")
+    if config_path is not None and not isinstance(config_path, str):
+        config_path = None
+
+    # Coverage gate (#165, sweep-aware as of the v1.1 fix): the published
+    # dataset must carry every REQUIRED (policy, env) cell the SWEEP BEING
+    # PUBLISHED declares -- otherwise an entire policy or env can silently
+    # vanish and still publish "clean". The REQUIRED set is derived from
+    # the sweep's declared policies x envs (read from the manifest's
+    # config_path), gated on V1_POLICIES + runnable + env_compat (see
+    # _required_coverage_pairs). Pairs present in the data but NOT required
+    # are OPTIONAL and allowed.
+    try:
+        required_pairs = _required_coverage_pairs_for_preflight(config_path)
     except (OSError, ValueError) as exc:
         return _PreflightResult(
             n_cells=0,
@@ -449,26 +532,10 @@ def _preflight(
             referenced_video_shas=(),
             error=(
                 f"missing REQUIRED (policy, env) cells (first {len(shown)} of "
-                f"{len(missing_pairs)}): {shown}; a v1 publish must cover every "
-                "runnable v1 policy x its sweep envs"
+                f"{len(missing_pairs)}): {shown}; the publish must cover every "
+                "runnable v1 policy x env cell the sweep "
+                f"({config_path or 'configs/sweep_full.yaml'}) declares"
             ),
-        )
-
-    if not manifest_path.exists():
-        return _PreflightResult(
-            n_cells=0,
-            n_episodes=0,
-            referenced_video_shas=(),
-            error=f"manifest not found: {manifest_path}",
-        )
-    try:
-        json.loads(manifest_path.read_text())
-    except (json.JSONDecodeError, OSError) as exc:
-        return _PreflightResult(
-            n_cells=0,
-            n_episodes=0,
-            referenced_video_shas=(),
-            error=f"manifest unreadable: {manifest_path}: {exc}",
         )
 
     n_cells = df[["policy", "env", "seed"]].drop_duplicates().shape[0] if len(df) else 0
@@ -479,11 +546,18 @@ def _preflight(
     referenced_shas = tuple(s for s in df["video_sha256"].tolist() if s)
 
     if not skip_videos and len(df):
-        # Every non-empty video_sha256 row (v1 policies only, post-filter)
-        # must have its MP4 on disk.
+        # Round-3 integrity: every non-empty video_sha256 row (v1 policies
+        # only, post-filter) must (a) have its MP4 on disk under
+        # ``videos_dir`` by canonical name, and (b) the on-disk file's
+        # content hash must MATCH the recorded video_sha256. The clips are
+        # capped at 2 MiB by the render ladder so a full bitwise re-hash is
+        # cheap; we do it rather than trust the filename, so a swapped /
+        # truncated / re-encoded MP4 can't ship under a stale sha.
         missing: list[str] = []
+        mismatched: list[str] = []
         for _, row in df.iterrows():
-            if not row["video_sha256"]:
+            recorded = str(row["video_sha256"])
+            if not recorded:
                 continue
             expected = videos_dir / _video_filename(
                 policy=str(row["policy"]),
@@ -493,6 +567,12 @@ def _preflight(
             )
             if not expected.exists():
                 missing.append(str(expected))
+                continue
+            actual = _sha256_file(expected)
+            if actual != recorded:
+                mismatched.append(
+                    f"{expected.name} (recorded={recorded[:12]}, on-disk={actual[:12]})"
+                )
         if missing:
             sample = missing[:5]
             return _PreflightResult(
@@ -504,6 +584,17 @@ def _preflight(
                     f"(showing first {len(sample)}): {sample}"
                 ),
             )
+        if mismatched:
+            sample = mismatched[:5]
+            return _PreflightResult(
+                n_cells=n_cells,
+                n_episodes=n_episodes,
+                referenced_video_shas=referenced_shas,
+                error=(
+                    f"video_sha256 mismatch vs on-disk MP4 content: {len(mismatched)} "
+                    f"mismatched (showing first {len(sample)}): {sample}"
+                ),
+            )
 
     return _PreflightResult(
         n_cells=n_cells,
@@ -511,6 +602,19 @@ def _preflight(
         referenced_video_shas=referenced_shas,
         error=None,
     )
+
+
+def _sha256_file(path: Path) -> str:
+    """Hex SHA-256 of a file's bytes. Used to verify staged MP4s vs the parquet.
+
+    Clips are <=2 MiB (render ladder cap) so a streamed full-file hash is
+    cheap. Mirrors the digest ``run_one`` records into ``video_sha256``.
+    """
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def _video_filename(*, policy: str, env: str, seed: int, episode_index: int) -> str:

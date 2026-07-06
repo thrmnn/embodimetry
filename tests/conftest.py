@@ -49,5 +49,5 @@ def _disable_publish_coverage_gate_for_legacy_tests(
     monkeypatch.setattr(
         publish_results,
         "_required_coverage_pairs_for_preflight",
-        lambda: frozenset(),
+        lambda _config_path=None: frozenset(),
     )

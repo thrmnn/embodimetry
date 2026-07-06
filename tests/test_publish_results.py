@@ -27,6 +27,7 @@ Coverage:
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -95,6 +96,12 @@ def _build_sweep_dir(
     videos_dir = sweep_dir / "videos"
     videos_dir.mkdir()
 
+    # The publish pre-flight verifies each non-empty video_sha256 against
+    # the on-disk MP4's real content hash (round-3 integrity check), so the
+    # fixture records the actual sha of the bytes it writes -- mirroring
+    # what run_one stores. When create_videos is False the sha is a
+    # placeholder (the file-missing branch fires before any hashing).
+    real_sha = hashlib.sha256(video_bytes).hexdigest()
     rows: list[dict[str, Any]] = []
     for cell_idx in range(n_cells):
         # Differentiate cells by seed to keep policy/env constant
@@ -105,7 +112,7 @@ def _build_sweep_dir(
                 env="pusht",
                 seed=cell_idx,
                 episode_index=ep_idx,
-                video_sha256=f"sha-{cell_idx}-{ep_idx}",
+                video_sha256=real_sha if create_videos else f"sha-{cell_idx}-{ep_idx}",
             )
             rows.append(row)
             if create_videos:
