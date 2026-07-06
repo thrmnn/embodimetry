@@ -28,7 +28,7 @@ Public, reproducible evaluation of pretrained [LeRobot](https://github.com/huggi
 The headline cell is **`act` × `aloha_transfer_cube` = 0.824 [0.772, 0.866]** (Wilson 95% CI, N=250, Hub-default inference). This supersedes the earlier v1.0.0 reading of **0.016**, which was a normalization bug *in our own eval harness* — image observations were fed to ACT un-normalized — fixed in PR #51 and confirmed by a controlled 2×2 ablation (the recovery is 100% the normalization fix, 0% temporal ensembling). See `docs/MODEL_CARDS.md` § ACT and `docs/INFERENCE_AUDIT.md` for the full account.
 
 - **Code**: <https://github.com/thrmnn/embodimetry>
-- **Live leaderboard (HF Space)**: <https://huggingface.co/spaces/thrmnn/embodimetry>
+- **Leaderboard (HF Space)**: <https://huggingface.co/spaces/thrmnn/embodimetry>
 - **Methodology**: see `docs/DESIGN.md` § Methodology in the GitHub repo.
 - **Statistical rigor doc**: see `docs/MDE_TABLE.md` for minimum-detectable-difference analysis at N=250.
 - **Failure taxonomy**: see `docs/FAILURE_TAXONOMY.md` for the six-mode rollout labeling rubric.

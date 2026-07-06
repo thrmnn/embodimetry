@@ -11,9 +11,9 @@ copy-pasteable sequence: run each block top to bottom, in order.
   after `git pull`. `results/` is gitignored, so the data mutation in Step 1
   happens on the real on-disk parquets, not in any worktree.
 
-This is the *publish slice* of the broader cut in `RELEASE.md` (Phase 4) and
-the Space deploy/rollback in `docs/RUNBOOK.md` § Deploy + roll back the Space —
-it does not replace them.
+This is the *publish slice* of the broader cut tracked in `SHIP_READINESS.md`
+and the Space deploy/rollback in `docs/RUNBOOK.md` § Deploy + roll back the
+Space — it does not replace them.
 
 Pin paths once:
 
@@ -166,15 +166,15 @@ good tree.
 ## Step 5 [OWNER] — Cut the git tag + GitHub release
 
 Final, irreversible step. **Tags are immutable** — a bad release is superseded
-by the next version, never re-tagged. Do the version-triple bump +
-CHANGELOG + release notes per `RELEASE.md` Phases 5–6 first; this block is only
-the tag-and-push.
+by the next version, never re-tagged. Do the version-triple bump + CHANGELOG
++ release notes first (see `docs/RUNBOOK.md` § Release a new embodimetry
+version); this block is only the tag-and-push.
 
 ```bash
 git checkout main && git pull origin main
 make all                          # lint + typecheck + test must pass
-# (version triple + CHANGELOG already committed per RELEASE.md Phase 5)
-git tag v1.0.0
+# (version triple + CHANGELOG already committed)
+git tag v1.0.2
 git push origin main --tags       # triggers release.yml
 ```
 
@@ -183,8 +183,8 @@ Verifies: `release.yml` `build` job (version-triple check → `python -m build` 
 GH release.
 
 Rollback: **none** — the tag is immutable. Do not `git tag -f`, do not delete
-and re-push. Fix the problem, bump to `v1.0.1`, and cut again (next version
-supersedes). This is the same rule as `RELEASE.md` and `docs/RUNBOOK.md`
+and re-push. Fix the problem, bump to the next patch version, and cut again
+(next version supersedes). This is the same rule as `docs/RUNBOOK.md`
 § Release a new embodimetry version.
 
 ---
