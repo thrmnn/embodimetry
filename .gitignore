@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 *.so
 
+# Generated orchestration hub (regenerate: python scripts/build_project_hub.py)
+_hub/
+
 # Distribution / packaging
 .Python
 build/
