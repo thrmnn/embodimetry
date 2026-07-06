@@ -49,7 +49,7 @@ all: lint typecheck test  ## Lint + typecheck + test
 
 # --- bench-specific ---
 
-.PHONY: calibrate sweep-mini sweep-full publish space-deploy worktree-prune dashboard probe-act probe-smolvla probes
+.PHONY: calibrate sweep-mini sweep-full paper-figures publish space-deploy worktree-prune dashboard probe-act probe-smolvla probes
 
 # Sweep dir whose artifacts get published; override for a dated sweep.
 SWEEP ?= results/sweep-full
@@ -82,6 +82,10 @@ sweep-full:  ## Full benchmark sweep (overnight)
 
 review-results:  ## Sanity-check the partial sweep results.parquet for anomalies
 	$(PYTHON) scripts/review_results.py
+
+paper-figures:  ## Regenerate paper/figures/{paper,deck,web}/* from current code + results/sweep-full/results.parquet -- run before any paper submission/regen (see paper/dag/figures.md); `git diff --stat paper/figures` after to see what actually changed
+	$(PYTHON) scripts/render_figures.py --style all --figure all
+	@echo "Now: git diff --stat paper/figures/ -- review before committing."
 
 publish:  ## Push a sweep's artifacts to the HF Hub dataset: pass `SWEEP=results/sweep-full` (default) and `DRY_RUN=1` for a no-network staging pass
 	$(PYTHON) scripts/publish_results.py \

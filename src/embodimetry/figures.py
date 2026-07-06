@@ -289,7 +289,7 @@ def forest_plot(df: pd.DataFrame, *, style: Style, out_dir: Path) -> list[Path]:
     ax.invert_yaxis()
     ax.set_xlim(-0.02, 1.02)
     ax.set_xlabel("success rate")
-    ax.set_title("Per-cell success rates - 95% Wilson CI - N=250/cell")
+    ax.set_title("Per-cell success rates - 95% Wilson CI")
     ax.grid(True, axis="x", linestyle="--", alpha=0.25)
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
