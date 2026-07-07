@@ -373,7 +373,6 @@ def build_app() -> gr.Blocks:
     """
     with gr.Blocks(
         title="embodimetry",
-        theme=gr.themes.Soft(),  # readable on the default Spaces background
     ) as demo:
         gr.Markdown(
             "# embodimetry — public leaderboard\n"
@@ -626,4 +625,8 @@ demo: gr.Blocks | None = None
 if __name__ == "__main__":
     demo = build_app()
     demo.queue()  # default concurrency; free CPU tier gates this for us
-    demo.launch(server_name="0.0.0.0", show_error=True)
+    demo.launch(
+        server_name="0.0.0.0",
+        show_error=True,
+        theme=gr.themes.Soft(),  # readable on the default Spaces background
+    )
