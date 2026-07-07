@@ -14,22 +14,22 @@ depends_on: [proposal]
 > venue table below was rewritten after a length check changed the picture
 > materially — see the note.
 
-**Length check, done this pass:** rebuilding `paper/main.tex` (`make -C
-paper`) produces an **11-page PDF**, not the "4pp" this file previously
-assumed (that number came from `proposal.md`'s stale framing, itself
-inherited from the last compression pass in commit `da6c594`, before the
-draft roughly doubled in size through later feature work). This changes
-every venue recommendation below: **every page-capped venue in this table
-is currently over budget**, not just "format-mismatched" as an earlier pass
-of this file put it.
+**Length check, updated 2026-07-06:** the draft was 11pp when this file was
+first written (not the "4pp" it originally assumed, inherited from stale
+`proposal.md` framing). A same-day compression pass — cutting duplicated
+restatements and fixing a LaTeX float-placement bug, zero content lost —
+brought it to **9pp**. That changes the table below materially from the
+previous "every page-capped venue is over budget" note: NeurIPS D&B's
+~9pp+appendix cap is now in range on length alone (its scope-fit concern
+stands regardless); CoRL's ~8pp still isn't.
 
 ## Candidate venues
 
-| Venue | Scope fit | Fits at current length (11pp)? | Typical review time | OA/cost |
+| Venue | Scope fit | Fits at current length (9pp)? | Typical review time | OA/cost |
 |---|---|---|---|---|
 | arXiv (cs.RO primary, cs.LG secondary) | Exact fit — already the current target (`CITATION.cff`, README) | **Yes — no hard page limit** | Immediate (no review) | Free, fully OA |
-| CoRL (Conference on Robot Learning) | Good fit for a paper that mixes a methodology contribution (RQ1/RQ2) with a genuine scientific finding (RQ3) — the venue explicitly welcomes both in one paper | No — typical 8pp cap; needs real compression | ~4 months | Free |
-| NeurIPS Datasets & Benchmarks track | Strong fit for RQ1/RQ2 alone (the contract + self-audit); **weaker fit for RQ3** — D&B reviewers score benchmark/dataset rigor and are prone to treating a scientific claim about planning capability (N=6/cell, one env per endpoint) as out-of-track scope creep, not a benchmark result | No, even at its more generous ~9pp+appendix cap; also expects heavier dataset-paper scaffolding (datasheet, reproducibility checklist, maintenance plan) than this draft currently has | ~3–4 months | Free |
+| CoRL (Conference on Robot Learning) | Good fit for a paper that mixes a methodology contribution (RQ1/RQ2) with a genuine scientific finding (RQ3) — the venue explicitly welcomes both in one paper | No — typical 8pp cap; still needs ~1pp more compression, and the remaining cut would be substance not redundancy | ~4 months | Free |
+| NeurIPS Datasets & Benchmarks track | Strong fit for RQ1/RQ2 alone (the contract + self-audit); **weaker fit for RQ3** — D&B reviewers score benchmark/dataset rigor and are prone to treating a scientific claim about planning capability (N=6/cell, one env per endpoint) as out-of-track scope creep, not a benchmark result | **Close — fits the ~9pp+appendix cap on length**, but expects heavier dataset-paper scaffolding (datasheet, reproducibility checklist, maintenance plan) than this draft currently has | ~3–4 months | Free |
 | RSS (Robotics: Science and Systems) | Moderate fit — more systems/theory-leaning than benchmark papers historically | No — strict, competitive page limit | ~4 months | Free |
 | ICRA / IROS | Moderate fit — broad robotics audience, less statistical-rigor-focused reviewing | No — 6–8pp | ~4–6 months | Free (registration cost) |
 

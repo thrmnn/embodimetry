@@ -26,23 +26,23 @@ contribution — the nav-vs-contact replication — is a headline result. Worth
 deciding whether the title should name L3 explicitly or stays paradigm-neutral
 on purpose (the ladder framing already implies "and beyond").
 
-**Blocking open item — length/venue, found during bulletproofing:** the
-"4pp" framing below and in `targets.md` is stale. Rebuilding `paper/main.tex`
-from its current source (982 lines, `make -C paper`) produces an **11-page**
-PDF with no LaTeX errors — not 4. The draft hit 4pp once, at the last
-compression pass (commit `da6c594`, 2026-05-26, 444 lines); it has since
-roughly doubled through real feature work (L3 section, capability-ladder
-framing, the ACT ablation table, failure taxonomy) with no compression pass
-since. `paper/main.pdf` itself is gitignored by design (`paper/.gitignore` —
-arXiv builds the PDF from `.tex`/`.bib`/figures directly, so it's never
-committed); the local copy on disk was simply a stale local build from the
-old, shorter source and has been rebuilt to match current `main.tex` as part
-of this pass. So the "4pp" claim wasn't just aspirational drift in this
-proposal — the actual page count had genuinely moved and nothing surfaced
-it, since there's no committed PDF for anyone to notice was wrong.
-**This needs Théo's call**: compress back toward a conference length,
-or accept ~11pp and target arXiv + a venue that allows it. See `targets.md`
-for the venue-fit consequences.
+**Length item, updated 2026-07-06 (was blocking, now partially resolved):**
+the draft was rebuilt at 11pp on 2026-07-06 (982 lines) — the "4pp" framing
+here was stale, last true at commit `da6c594` (2026-05-26, 444 lines)
+before the draft roughly doubled through real feature work (L3 section, ACT
+ablation table, failure taxonomy) with no compression pass in between. A
+same-day compression pass cut **11pp → 9pp** by removing duplicate
+restatements (the L3 caveats and three-contributions framing were repeated
+6+ times across the abstract/intro/results/discussion) and fixing a LaTeX
+float-placement bug that was dumping figures onto their own near-empty
+trailing pages — zero numbers, citations, or caveats cut, verified by
+`tests/test_no_ungated_l3_claims.py` plus an independent stats-rigor review
+pass (which caught and got two over-cut caveats restored). **Still needs
+Théo's call:** 9pp fits arXiv (no cap) and is close to NeurIPS D&B's
+~9pp+appendix cap, but not CoRL's strict ~8pp — closing that last gap means
+cutting actual Limitations/Methods substance, not just redundancy, which is
+an editorial judgment call, not something automatable. See `targets.md` for
+the updated venue-fit table.
 
 ## Research questions
 
