@@ -47,7 +47,7 @@ jobs:
             echo "::notice::WM track not present yet (no research/ or docs/WM_RESEARCH_TRACK.md); placeholder no-op."
           fi
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         if: steps.probe.outputs.present == 'true'
         with:
           python-version: "3.12"
