@@ -1,5 +1,14 @@
 # Claim audit — SmolVLA published vs measured success rates
 
+> ✅ **v1.1 UPDATE (2026-08-06): the deferred apples-to-apples comparison now
+> exists** — `docs/SWEEP_V11_LIBERO_RESULTS.md`. The 10-task sweep answers the
+> question this audit had to leave open: the suite-averaged gap **survives** in
+> all four suites (spatial −25.7 pp, object −27.6 pp, goal −10.7 pp, libero_10
+> −21.7 pp; task-as-sampling-unit test, all Holm-adjusted p ≤ 0.037). The
+> envelope phrasing this audit mandated can now be upgraded for
+> spatial/object/libero_10 (goal stays excluded pending the cap-600 probe).
+> Everything below is the v1-era record and remains accurate as written.
+
 | Field   | Value |
 | ------- | ----- |
 | Status  | Resolved (§1.1, §1.6); Waived — external resource (§1.4, §1.5) |
