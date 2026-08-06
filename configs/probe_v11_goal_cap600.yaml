@@ -1,0 +1,38 @@
+# Goal-suite canonical-cap probe (v1.1 follow-up 2, docs/SWEEP_V11_LIBERO_RESULTS.md §8).
+#
+# Re-runs the 10 libero_goal tasks under the canonical overlay
+# (max_steps=600 vs the v1_legacy 300) to close the one-directional cap
+# confound that keeps the goal suite out of the suite-average headline:
+# v1.1 measured goal at 0.813 vs published 0.92 (Holm-adj p=0.037), and
+# 100% of failures run to the 300-step cap, so the confound is unbounded
+# from the v1_legacy data alone. Same protocol otherwise (5 seeds x 50
+# eps). No video: the probe answers a rate question only; taxonomy uses
+# the v1_legacy sweep's videos.
+
+policies:
+- smolvla_libero
+
+envs:
+- libero_goal
+- libero_goal_t1
+- libero_goal_t2
+- libero_goal_t3
+- libero_goal_t4
+- libero_goal_t5
+- libero_goal_t6
+- libero_goal_t7
+- libero_goal_t8
+- libero_goal_t9
+
+seeds: [0, 1, 2, 3, 4]
+
+episodes_per_seed: 50
+
+results_path: results/probes/sweep-v11-goal-cap600/results.parquet
+videos_dir: results/probes/sweep-v11-goal-cap600/videos
+record_video: false
+device: cuda
+
+criterion: canonical
+cell_timeout_s: 14400
+max_parallel: 1
