@@ -1,9 +1,11 @@
 # v1.1 LIBERO 10-task sweep results
 
-> **Status: ANALYZED + stats-rigor reviewed (2026-08-06).** The review's veto
-> (episode-level Fisher test invalid under task clustering) and all must-fix
-> findings are incorporated below — the primary test is task-as-sampling-unit.
-> Sweep completed
+> **Status: ANALYZED + stats-rigor reviewed (2026-08-06); goal cap-600 probe
+> added 2026-08-07 (§8).** The review's veto (episode-level Fisher test invalid
+> under task clustering) and all must-fix findings are incorporated below — the
+> primary test is task-as-sampling-unit. The goal suite's cap confound is now
+> **empirically closed**: doubling the cap to canonical 600 moved the suite
+> average by exactly 0.0 pp. Sweep completed
 > 2026-07-08: 200/200 cells, 0 failed, 0 errored episodes. Source:
 > `results/sweep-v11-libero/results.parquet` (10,000 rows), config
 > `configs/sweep_v11_libero.yaml`, manifest
@@ -55,23 +57,24 @@ far smaller p-values (2.1e-11 – 5.2e-03) but overstate the effective sample
 size by the 25–65× design effect and are reported only as an anticonservative
 bound, not as evidence. **Object and spatial reject decisively; goal and
 libero_10 are solid but not overwhelming (adjusted p = 0.037 each)** — the
-goal gap in particular (−10.7 pp, h=0.32, marginal p, and an unprobed
-one-directional cap confound, see caveat 6.1) must not be presented as
-decisive.
+goal gap must be framed as the smallest and statistically marginal, though
+its cap confound has since been probed and closed (§8: suite average
+identical at cap 600, one-sample task-level p = 0.026 at the canonical cap).
 
 **What this resolves from the claim audit.** CLAIM_AUDIT_SMOLVLA §"Does not
 rule out" left open that the 9 unmeasured tasks per suite could each score
 high enough to recover the published averages. They do not. The deferred
 apples-to-apples comparison now exists, and the deck/paper headline can be
 upgraded from the envelope phrasing ("at least one task scores well below…")
-to a suite-averaged claim for **spatial, object, and libero_10** — with the
-step-cap caveat travelling wherever the headline lands (as a slide/table
-footnote, per the CLAIM_AUDIT_SMOLVLA §7 pattern), since the cap confound is
-one-directional and unprobed on 3 of 4 suites (caveat 6.1). **Goal should be
-excluded from any headline** (or conditioned on the cap-600 probe, §8): its
-gap is the smallest, its adjusted p is marginal (0.037), and its 300-vs-600
-cap is the kind of confound that could plausibly account for a large fraction
-of −10.7 pp.
+to a suite-averaged claim for **all four suites** — with the step-cap caveat
+travelling wherever the headline lands (as a slide/table footnote, per the
+CLAIM_AUDIT_SMOLVLA §7 pattern) for spatial/object, whose 280 caps remain
+unprobed (caveat 6.1). **Goal's original exclusion is lifted** (2026-08-07):
+the cap-600 probe (§8) shows its suite average is numerically unchanged at
+the canonical cap (same success count, 2032/2500), so the −10.7 pp gap is
+not cap-induced — but goal stays
+labeled as the smallest gap with marginal significance (adjusted p = 0.037
+in-family; p = 0.026 at the canonical cap), never as decisive.
 
 ## 2. Per-task rates
 
@@ -148,7 +151,12 @@ seed-cluster variance at suite granularity.
    canonical. **The cap confound is one-directional**: a tighter cap can only
    censor would-be successes, so it can only widen our measured gap, never
    shrink it — which is why it must travel with the headline wherever the
-   headline lands. The LIBERO success *rule* is bit-equivalent
+   headline lands. Probed and closed for **goal** (§8: +0.0 pp at cap 600)
+   and for **libero_10 task 0** (+0.4 pp, `PROBE_RESULTS_V1.0.1.md` Probe 2);
+   still unprobed for spatial/object (cap 280). With stuck-while-trying now
+   replicated on two suites (goal: full suite at 2× cap; libero_10: task 0
+   only, 520→600), a large cap effect on spatial/object is implausible — but
+   that is a judgment, not a measurement, so the caveat stays. The LIBERO success *rule* is bit-equivalent
    (`SUCCESS_CRITERION_AUDIT.md`); inference settings were audited
    (`INFERENCE_AUDIT.md`).
 2. **Episode-level tests (Wilson CIs, Fisher) assume iid episodes and are
@@ -184,13 +192,72 @@ check that the measurement didn't drift. **Publish implication:**
 `code_sha`, so this dataset hits the same guard as v1 — same decision
 (documented override vs. re-run) applies if/when v1.1 publishes.
 
-## 8. Follow-ups
+## 8. Goal-suite canonical-cap probe (added 2026-08-07)
 
+Motivation: 100% of v1.1 failures run to the v1_legacy step cap in every
+suite (§6.1), so the cap confound was unbounded from that data alone — and
+goal's 300-vs-600 cap was the stated reason for excluding it from headlines.
+Probe: the full goal suite re-run under the canonical overlay (`criterion:
+canonical`, max_steps=600), same protocol otherwise (10 tasks × 5 seeds × 50
+eps = 2,500 episodes, ~13.8 h). Config `configs/probe_v11_goal_cap600.yaml`,
+data `results/probes/sweep-v11-goal-cap600/results.parquet` (0 errored; two
+code_shas, `d15f078`/`90bf6cb` — the latter only adds the probe config
+itself).
+
+**Result: doubling the cap leaves the suite average unchanged and bounds the
+cap effect at ≲1.4 pp.** Suite average at cap 600 is **0.813 (2032/2500)** —
+the same success count as cap 300. (The identity is aggregate, not
+episode-level: the runs are not episode-deterministic, and 237 episodes
+flipped in each direction between them.) Per-task deltas span −2.0 to
++1.2 pp, mean −0.0 pp — consistent with noise (paired task-level t p = 1.00,
+Wilcoxon p = 0.95; 95% CI on the mean cap effect from the paired deltas
+[−0.8, +0.8] pp). Failures riding to the cap is structural in LIBERO
+(episodes end only on success or cap), so the discriminating evidence is the
+success-time distribution: only **35/2,032 successes needed more than 300
+steps** (1.4 pp of episodes; P99 = 374, max = 567 of 600) — the directly
+observed censoring tail caps the cap effect at 1.4 pp, an order of magnitude
+below the 10.7 pp gap. The policy is **stuck-while-trying**, not
+slow-but-eventually-correct, replicating the libero_10 task-0 cap probe
+(+0.4 pp) at 10× the task coverage.
+
+| Task | cap 300 | cap 600 | Δ pp |
+|---|---|---|---|
+| t0 | 0.924 | 0.928 | +0.4 |
+| t1 | 0.956 | 0.960 | +0.4 |
+| t2 | 0.872 | 0.884 | +1.2 |
+| t3 | 0.680 | 0.692 | +1.2 |
+| t4 | 0.844 | 0.848 | +0.4 |
+| t5 | 0.804 | 0.788 | −1.6 |
+| t6 | 0.548 | 0.540 | −0.8 |
+| t7 | 0.916 | 0.924 | +0.8 |
+| t8 | 0.812 | 0.792 | −2.0 |
+| t9 | 0.772 | 0.772 | +0.0 |
+
+**Verdict — and the load-bearing argument is the direct measurement, not the
+paired null:** the gap is now measured *at the canonical cap itself* — 0.813
+vs published 0.92, one-sample task-level t p = 0.026 (unadjusted; single
+planned comparison), cluster-robust 95% t-CI [0.722, 0.904] excludes 0.92,
+Cohen's h = 0.32 — so the counterfactual "would cap 600 have closed it"
+question is moot. **The goal gap is not cap-induced; caveat 6.1 is closed
+for goal, and goal's headline exclusion is lifted** (still framed as the
+smallest, statistically marginal gap). Per-seed suite rates at cap 600 stay
+within a 4.0 pp band (0.796–0.836), matching §5.
+
+## 9. Follow-ups
+
+- [x] ~~Canonical-cap (600) probe for goal~~ — done, §8 (2026-08-07): +0.0 pp,
+      confound closed for goal.
 - [ ] Failure-taxonomy pass on `libero_spatial_t5` (0.036) and the
       libero_10 hard cluster (t0/t4/t6/t7 all ≤ 0.30).
-- [ ] Canonical-cap (600) probe for spatial/object/goal to close caveat 6.1.
+- [ ] Canonical-cap probe for spatial/object (cap 280) — lower priority now
+      that stuck-while-trying is replicated on two suites, but it's what
+      would let the cap footnote drop entirely.
 - [ ] Upgrade deck slide 07 / paper headline from the envelope phrasing to the
-      suite-averaged comparison for spatial/object/libero_10, cap caveat as a
-      footnote; goal excluded until the cap-600 probe (editorial — Théo).
+      suite-averaged comparison for all four suites; cap footnote for
+      spatial/object; goal labeled marginal (editorial — Théo).
 - [ ] CHANGELOG `[Unreleased]` entry + decide whether v1.1 results publish to
       the Hub (blocked on the same code_sha decision as v1).
+- [ ] `PROBE_RESULTS_V1.0.1.md` Probe 2 leans on the same "cap-hits stay
+      high" framing §8 had to drop as tautological (LIBERO failures can only
+      end at the cap) — its conclusion stands via its Δ+0.4 pp, but the
+      framing deserves the same success-time-tail rewrite.
