@@ -23,6 +23,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -94,6 +95,24 @@ def _read_fleet() -> dict | None:
         return None
 
 
+GITHUB_BLOB = "https://github.com/thrmnn/embodimetry/blob/main/"
+
+
+def _fix_doc_links(out_path: Path, md_dir: Path, rendered: dict[str, str]) -> None:
+    # base="../.." treats md links as repo-root-relative, but authors write them
+    # source-relative (GitHub-style). Remap those to the rendered sibling page,
+    # or to the GitHub blob when the target isn't staged at all.
+    def fix(m: re.Match) -> str:
+        attr, url = m.groups()
+        src = (md_dir / url).resolve()
+        if not src.is_file() or not src.is_relative_to(REPO):
+            return m.group(0)
+        rel = src.relative_to(REPO).as_posix()
+        return f'{attr}="{rendered.get(rel, GITHUB_BLOB + rel)}"'
+
+    out_path.write_text(re.sub(r'(href|src)="\.\./\.\./([^"#]+)"', fix, out_path.read_text()))
+
+
 def render_docs() -> dict[str, str]:
     """Render reference docs to standalone HTML pages; return name -> relative href."""
     DOCS_OUT.mkdir(parents=True, exist_ok=True)
@@ -108,6 +127,11 @@ def render_docs() -> dict[str, str]:
         "sweep-v11-results": REPO / "docs/SWEEP_V11_LIBERO_RESULTS.md",
         "changelog": REPO / "CHANGELOG.md",
     }
+    rendered = {
+        md.relative_to(REPO).as_posix(): f"{slug}.html"
+        for slug, md in targets.items()
+        if md.exists()
+    }
     hrefs = {}
     for slug, md_path in targets.items():
         if not md_path.exists():
@@ -118,6 +142,7 @@ def render_docs() -> dict[str, str]:
         # levels — the source-location branch here was dead code (ruff RUF034).
         base = "../.."
         hk.render_doc_page(md_path, out_path, crumb=_crumb(), provenance=prov, base=base)
+        _fix_doc_links(out_path, md_path.parent, rendered)
         hrefs[slug] = f"docs/{slug}.html"
     return hrefs
 
@@ -655,10 +680,12 @@ def emit_stage(build_id: str, built_at: str, sha: str) -> int:
     shutil.copytree(DOCS_OUT, STAGE / "_hub" / "docs")
     shutil.copytree(REPO / "site", STAGE / "site")
     shutil.copytree(REPO / "paper" / "deck", STAGE / "paper" / "deck")
+    shutil.copytree(REPO / "paper" / "figures" / "deck", STAGE / "paper" / "figures" / "deck")
     shutil.copytree(REPO / "docs" / "assets", STAGE / "docs" / "assets")
     shutil.copytree(REPO / "assets" / "hub-icons", STAGE / "assets" / "hub-icons")
     if (REPO / "paper/main.pdf").exists():
         shutil.copy2(REPO / "paper/main.pdf", STAGE / "paper" / "main.pdf")
+    shutil.copy2(REPO / "paper/main.tex", STAGE / "paper" / "main.tex")
     notebook = REPO / "notebooks/01-write-finding.ipynb"
     if notebook.exists():
         (STAGE / "notebooks").mkdir()
@@ -716,6 +743,50 @@ def emit_stage(build_id: str, built_at: str, sha: str) -> int:
     return len(precache)
 
 
+_LINK_RE = re.compile(r'(?:href|src)="([^"]+)"')
+# Fetched by COCKPIT_JS at runtime; fleet_status.json is absent from the stage
+# until the orchestrator first reports, so it can't be asserted as a file.
+_RUNTIME_ONLY = {"/build.json", "/fleet_status.json"}
+
+
+def lint_stage() -> None:
+    """Route-integrity gate (pattern from brisaverse hub/check_hub.py): a typo'd
+    link must fail the build here, not 404 on the tablet after a push."""
+    links: dict[Path, set[str]] = {}
+    fails = []
+    for page in sorted(STAGE.rglob("*.html")):
+        urls = set()
+        text = re.sub(r"(?s)<script\b.*?</script>", "", page.read_text())
+        for raw in _LINK_RE.findall(text):
+            url = raw.split("#")[0].split("?")[0]
+            if url and not re.match(r"^(https?:|mailto:|data:|//)", url):
+                urls.add(url)
+        links[page] = urls
+        for url in sorted(urls - _RUNTIME_ONLY):
+            t = (STAGE / url.lstrip("/") if url.startswith("/") else page.parent / url).resolve()
+            if not (t.is_file() or (t / "index.html").is_file()):
+                fails.append(f"{page.relative_to(STAGE)}: broken link '{url}'")
+    # BFS over the href graph so a doc page linked only from another doc still counts.
+    index = STAGE / "_hub" / "index.html"
+    reachable, frontier = {index}, [index]
+    while frontier:
+        page = frontier.pop()
+        for url in links.get(page, ()):
+            t = (STAGE / url.lstrip("/") if url.startswith("/") else page.parent / url).resolve()
+            if (t / "index.html").is_file():
+                t = t / "index.html"
+            if t.suffix == ".html" and t.is_file() and t not in reachable:
+                reachable.add(t)
+                frontier.append(t)
+    for doc in sorted((STAGE / "_hub" / "docs").glob("*.html")):
+        if doc.resolve() not in reachable:
+            fails.append(f"orphan doc: _hub/docs/{doc.name} unreachable from index.html")
+    if fails:
+        for f in fails:
+            print(f"LINT: {f}")
+        sys.exit(1)
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     docs = render_docs()
@@ -728,7 +799,11 @@ def main() -> None:
     # --- Ship-readiness rendered inline, not just linked -------------------
     ship_md = (REPO / "docs/SHIP_READINESS.md").read_text()
     ship_body = hk.md_to_html(ship_md, base=["docs", "SHIP_READINESS.md"][0])
-    ship_inline = f'<section id="ship-readiness"><h2>Ship readiness (live)</h2><div class="doc">{ship_body}</div></section>'
+    ship_inline = (
+        '<section id="ship-readiness"><h2>Ship readiness (live)</h2>'
+        f'<p class="mut"><a href="{docs.get("ship-readiness", "#")}">standalone page</a></p>'
+        f'<div class="doc">{ship_body}</div></section>'
+    )
 
     # --- User-facing --------------------------------------------------------
     # HF Space/dataset are plain links, no up/down claim: a build-time probe
@@ -894,6 +969,7 @@ def main() -> None:
     )
     (OUT / "index.html").write_text(html_out)
     n = emit_stage(build_id, built_at, sha)
+    lint_stage()
     print(f"wrote {OUT / 'index.html'}")
     print(f"staged {STAGE} · build {build_id} · {n} precached files")
 
