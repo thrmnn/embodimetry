@@ -152,3 +152,44 @@ citable contributions. The gradient never appears as a settled result.
   social card / abstract — not buried.
 - If any surface drifts, `tests/test_no_ungated_l3_claims.py` fails the build.
   That failure is the signal to fix the copy, not to weaken the test.
+
+---
+
+## External text that names embodimetry (PRs, issues, comments on other repos)
+
+Text posted on surfaces we do not control (upstream PRs, issue comments,
+forum replies) cannot be fixed by a follow-up commit here, so it gets its
+own three rules.
+
+### (a) Claim-check rule — before posting anything
+
+Before posting ANY external text that names embodimetry, grep the draft for
+artifact nouns:
+
+```bash
+grep -inE 'leaderboard|dataset|space|live|dashboard' draft.md
+```
+
+For every hit, verify the named artifact **publicly resolves today** (open
+the URL logged out / `curl -s -o /dev/null -w '%{http_code}' <url>`). Any
+artifact that does not resolve gets rephrased as either a repo-verifiable
+fact ("the repo ships the headline aggregates in
+`examples/results-mini.parquet`") or an attributed report ("as reported in
+the README") — never as a live thing the reader can click.
+
+### (b) 24h re-read rule — after opening an external PR
+
+Within 24 hours of opening an external PR, re-read the body against rule
+(a) and correct any violation immediately. PR edit history is public and
+permanent; speed minimizes the time a wrong claim is live. Deleting
+revision history (or the PR) to hide a wrong claim is prohibited — correct
+in place.
+
+### (c) Reversibility gate — before hiding any public surface
+
+Before hiding, deleting, or making private any surface that has already
+been public (a Hub repo, a Space, a Pages site, a pinned comment),
+enumerate every known inbound link it would break — search this repo, our
+external PRs/issues, and any posted threads for the URL. If the list is
+non-empty, the default is **repair-in-place**; hiding requires explicit
+written justification alongside that list.
