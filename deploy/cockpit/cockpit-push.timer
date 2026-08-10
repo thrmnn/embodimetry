@@ -1,0 +1,10 @@
+[Unit]
+Description=Cockpit build+push every 30 min
+
+[Timer]
+OnStartupSec=2min
+OnCalendar=*:00/30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

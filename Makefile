@@ -127,6 +127,14 @@ worktree-prune:  ## Remove merged/clean git worktrees under .claude/worktrees (k
 dashboard:  ## Launch the local-first operator sweep dashboard (Gradio)
 	$(PYTHON) dashboard/app.py
 
+.PHONY: cockpit-push cockpit-deploy
+
+cockpit-push:  ## Build the tailnet cockpit and rsync _hub/_stage/ to the VPS
+	bash scripts/push_cockpit.sh
+
+cockpit-deploy:  ## Provision the VPS serving layer (nginx loopback site + tailscale serve :8443)
+	bash scripts/deploy_cockpit_vps.sh
+
 probe-act:  ## v1.0.1 probe: ACT x aloha at paper inference settings (~50 min, GPU)
 	$(PYTHON) scripts/probes/probe_act_temporal_ensemble.py
 

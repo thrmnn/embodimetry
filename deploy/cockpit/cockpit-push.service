@@ -1,0 +1,7 @@
+[Unit]
+Description=Build and rsync the embodimetry cockpit to the VPS
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/robotics/embodimetry/scripts/push_cockpit.sh
