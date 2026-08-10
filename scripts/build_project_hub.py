@@ -625,6 +625,11 @@ self.addEventListener("fetch", (e) => {
 _PRECACHE_SUFFIXES = {".html", ".css", ".js", ".svg", ".webmanifest", ".png"}
 
 
+def _png_size(path: Path) -> str:
+    ihdr = path.read_bytes()[16:24]
+    return f"{int.from_bytes(ihdr[:4], 'big')}x{int.from_bytes(ihdr[4:8], 'big')}"
+
+
 def _precache_paths() -> list[str]:
     keep = []
     for p in sorted(STAGE.rglob("*")):
@@ -635,7 +640,7 @@ def _precache_paths() -> list[str]:
             continue
         # Heavy doc figures (docs/assets), the PDF, and the notebook are
         # runtime-cached on first view instead of pinned into every install.
-        if rel.startswith("/docs/assets/"):
+        if rel.startswith(("/docs/assets/", "/assets/hub-screenshots/")):
             continue
         if p.suffix in _PRECACHE_SUFFIXES:
             keep.append(rel)
@@ -664,8 +669,11 @@ def emit_stage(build_id: str, built_at: str, sha: str) -> int:
         json.dumps({"build_id": build_id, "built_at": built_at, "git_sha": sha}) + "\n"
     )
     manifest = {
+        "id": "/_hub/",
         "name": "embodimetry cockpit",
         "short_name": "embodimetry",
+        "description": "Project cockpit for the embodimetry robot-policy benchmark: "
+        "fleet status, sweep progress, ship readiness, paper DAG, and docs at a glance.",
         "start_url": "/_hub/",
         "scope": "/",
         "display": "standalone",
@@ -674,8 +682,32 @@ def emit_stage(build_id: str, built_at: str, sha: str) -> int:
         "icons": [
             {"src": "/assets/hub-icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
             {"src": "/assets/hub-icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+            {
+                "src": "/assets/hub-icons/icon-maskable-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "maskable",
+            },
+            {
+                "src": "/assets/hub-icons/icon-maskable-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "maskable",
+            },
         ],
     }
+    shots = sorted((REPO / "assets" / "hub-screenshots").glob("*.png"))
+    if shots:
+        shutil.copytree(REPO / "assets" / "hub-screenshots", STAGE / "assets" / "hub-screenshots")
+        manifest["screenshots"] = [
+            {
+                "src": f"/assets/hub-screenshots/{p.name}",
+                "sizes": _png_size(p),
+                "type": "image/png",
+                "form_factor": "wide" if "wide" in p.name else "narrow",
+            }
+            for p in shots
+        ]
     (STAGE / "manifest.webmanifest").write_text(json.dumps(manifest) + "\n")
     precache = _precache_paths()
     (STAGE / "sw.js").write_text(
