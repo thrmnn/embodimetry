@@ -1,0 +1,2 @@
+# Single verification gate; global gate-push.sh runs this before any git push
+make all

@@ -1,0 +1,10 @@
+# Generated/canonical artifacts — edit the producer, not these (global deny-generated.sh)
+results/*
+*.parquet
+*.mp4
+*.webm
+*.mov
+*.safetensors
+*.ckpt
+*.pt
+*.pth
