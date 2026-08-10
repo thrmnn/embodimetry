@@ -5,7 +5,9 @@
 # otherwise 403 www-data silently.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-PYTHON="${PYTHON:-python3}"
+# systemd user PATH resolves python3 to the distro's 3.8; the builder needs
+# the miniforge interpreter the hub has always been built with (3.12, pyyaml)
+PYTHON="${PYTHON:-$HOME/miniforge3/bin/python3}"
 DEST="${COCKPIT_DEST:-hetzner:/srv/cockpit/current/}"
 "$PYTHON" scripts/build_project_hub.py
 exec rsync -az --delete --delay-updates --exclude fleet_status.json \
