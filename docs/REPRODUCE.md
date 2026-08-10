@@ -53,9 +53,14 @@ You need the same environment the published sweep used:
    pip install -e ".[all]"
    ```
 
-3. **The reference results parquet.** `make reproduce` compares against
-   `results/sweep-full/results.parquet` by default. If you do not have it
-   locally, pull the published dataset:
+3. **A reference to compare against.** The headline aggregates are committed
+   in-repo — `examples/results-mini.parquet`, printed by
+   `python examples/read_results.py` — and until the dataset release that is
+   the default comparison path: re-run a cell and check the pooled success
+   rate lands inside the committed Wilson CI. Bit-for-bit *per-episode*
+   comparison needs the full reference parquet at
+   `results/sweep-full/results.parquet` (what `make reproduce` expects);
+   fetch it *(after dataset release)*:
 
    ```bash
    huggingface-cli download thrmnn/embodimetry-v1 \

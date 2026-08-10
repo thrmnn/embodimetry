@@ -7,9 +7,10 @@ parquet row plus a rollout video on your own machine. It is the fastest way
 to confirm your install works before you read `docs/REPRODUCE.md` (verify a
 published cell) or `CONTRIBUTING.md` (add your own policy).
 
-> Just want to *look* at results? You do not need to install anything — open
-> the [live leaderboard](https://huggingface.co/spaces/thrmnn/embodimetry).
-> This guide is for running the benchmark locally.
+> Just want to *look* at results? The headline numbers are committed in-repo
+> — `python examples/read_results.py` (no GPU, no download). The
+> [leaderboard Space](https://huggingface.co/spaces/thrmnn/embodimetry) is
+> release-pending. This guide is for running the benchmark locally.
 
 ## Contents
 
@@ -177,7 +178,7 @@ dispatch/queue/resume mechanics in [`docs/ORCHESTRATION.md`](ORCHESTRATION.md).
 | Add a new simulated environment | [`docs/ENV_CONTRIBUTION_GUIDE.md`](ENV_CONTRIBUTION_GUIDE.md) |
 | Run and operate the full overnight sweep | [`docs/RUNBOOK.md`](RUNBOOK.md) § Running a sweep |
 | Understand the methodology (seeding, CIs, MDE, downscope) | [`docs/DESIGN.md`](DESIGN.md) |
-| Browse all results without installing anything | [Live leaderboard](https://huggingface.co/spaces/thrmnn/embodimetry) |
+| Read the committed headline cells (no GPU, no download) | `python examples/read_results.py` — the [leaderboard Space](https://huggingface.co/spaces/thrmnn/embodimetry) is release-pending |
 
 ## 8. Common issues
 

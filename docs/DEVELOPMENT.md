@@ -3,8 +3,10 @@
 The dev/contributor front door for **embodimetry**. This is a hub: it owns the
 developer journey end-to-end and links out to the detailed docs rather than
 duplicating them. If you only want to *read* the leaderboard, start at the
-[README](../README.md) and the [live dashboard](https://huggingface.co/spaces/thrmnn/embodimetry)
-instead — none of this is needed for that.
+[README](../README.md) instead — the headline numbers are committed in-repo
+(`python examples/read_results.py`), and the
+[dashboard Space](https://huggingface.co/spaces/thrmnn/embodimetry) joins them
+at release. None of this is needed for that.
 
 > The operator/internal docs linked below (RUNBOOK, MONITORING, ORCHESTRATION,
 > PUBLISH_RUNBOOK) are **dev-facing**, not part of the end-user surface.

@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **~550 stale git branches** (worktree-agent-*/worktree-wf_* cruft from agent/workflow runs, plus squash-merged named branches never cleaned up post-merge) — 575 → 25 total branches, 19 stale worktrees removed.
 
 ### Changed
+- **Pre-release HF liveness claims neutralized across the public docs** (`README.md`, `docs/{REPRODUCE,DEVELOPMENT,README,GETTING_STARTED,FAQ,TWO_SPEED}.md`, `site/README.md`) — "live leaderboard/dashboard" phrasing and "pull the published dataset" instructions now say release-pending and point at the committed in-repo headline artifacts (`examples/results-mini.parquet` via `examples/read_results.py`) as the default path until `thrmnn/embodimetry-v1` and the Space actually ship. `docs/REPRODUCE.md` reorders its reference-parquet step accordingly.
 - **`docs/HUB_DATASET_README.md`** softened a premature "Live leaderboard (HF Space)" claim to match the Space's actual not-yet-deployed status.
 - **`CITATION.cff`** version/date bumped `1.0.0`/2026-05-26 → `1.0.2`/2026-06-02 to match the shipped version.
 - **`Typing :: Typed` PEP 561 classifier** added to `pyproject.toml` — the package already ships a `py.typed` marker via `[tool.setuptools.package-data]`, so the classifier now advertises the bundled type information on PyPI to match what the wheel actually carries.

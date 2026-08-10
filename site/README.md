@@ -2,7 +2,7 @@
 
 Landing page for **embodimetry**. Static HTML+CSS, no build step, no JS framework. Intended to be served at `thrmnn.github.io/embodimetry` once GitHub Pages is enabled.
 
-This is the *narrative* surface (recruiter/researcher reads the headline, clicks through). The *interactive* surface is the Gradio Space at `huggingface.co/spaces/thrmnn/embodimetry` (separate codebase under `space/`).
+This is the *narrative* surface (recruiter/researcher reads the headline, clicks through). The *interactive* surface is the Gradio Space at `huggingface.co/spaces/thrmnn/embodimetry` (separate codebase under `space/`; deployment is release-pending, so that link does not resolve yet).
 
 ## Files
 

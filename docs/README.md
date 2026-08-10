@@ -12,8 +12,10 @@ hand-labeled failure taxonomy.
 
 This page is the map of the `docs/` directory. Find the group that matches
 why you are here, then follow the link. If you only want to *look* at results,
-you do not need any of this — open the
-[live leaderboard](https://huggingface.co/spaces/thrmnn/embodimetry).
+you do not need any of this — the headline numbers are committed in-repo
+(`python examples/read_results.py`); the
+[leaderboard Space](https://huggingface.co/spaces/thrmnn/embodimetry) is
+release-pending.
 
 ---
 

@@ -101,10 +101,13 @@ intact without exception.
 
 ### Can I look at results without installing anything?
 
-Yes. The [live leaderboard Space](https://huggingface.co/spaces/thrmnn/embodimetry)
-renders the full leaderboard, paired comparisons, and a browsable
-rollout video for every `(policy, env, seed, episode)`. Installation is
-only needed to *run* the benchmark locally.
+The headline numbers are committed in-repo: `pip install -e .` (pandas +
+scipy only) and `python examples/read_results.py` prints every headline
+cell with its Wilson 95% CI. The
+[leaderboard Space](https://huggingface.co/spaces/thrmnn/embodimetry) —
+full leaderboard, paired comparisons, and a browsable rollout video for
+every `(policy, env, seed, episode)` — is release-pending. A GPU install
+is only needed to *run* the benchmark locally.
 
 ---
 
@@ -323,8 +326,10 @@ a valid bit-for-bit reproduction of a GPU-measured cell. See
 ### Where do results go, and why is `results/` empty in the repo?
 
 `results/` is gitignored. A local run writes `results/results.parquet`
-(one row per episode) and `results/videos/*.mp4`. The published sweep's
-artifacts live on the HF Hub dataset
-[`thrmnn/embodimetry-v1`](https://huggingface.co/datasets/thrmnn/embodimetry-v1);
-pull them with `huggingface-cli download`. See
+(one row per episode) and `results/videos/*.mp4`. The full sweep's
+artifacts ship as the HF Hub dataset
+[`thrmnn/embodimetry-v1`](https://huggingface.co/datasets/thrmnn/embodimetry-v1)
+*(release pending)*; after release, pull them with
+`huggingface-cli download`. Until then the committed headline aggregates
+are at `examples/results-mini.parquet`. See
 [`docs/REPRODUCE.md`](REPRODUCE.md) § Prerequisites.

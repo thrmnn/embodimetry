@@ -8,7 +8,7 @@ says what belongs in each, and pins down the **one** sanctioned write that cross
 from research into the production benchmark.
 
 The point of the split is simple: the production benchmark's value *is* its
-stability — reproducible cells, locked SHAs, a published dataset other people cite.
+stability — reproducible cells, locked SHAs, a citable dataset release.
 World-model research, by contrast, needs to churn: new model classes, planning
 horizons, latent-dynamics experiments. Letting that churn into the prod bench would
 trade away the stability the benchmark exists to provide. So they run on separate
