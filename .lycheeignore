@@ -1,0 +1,17 @@
+# Annotated ignore-list for the CI link check (ci.yml, job "links").
+# Every entry is a conscious, dead-but-intentional link; add a reason with
+# each new entry, and delete entries as the artifacts go live at release.
+
+# HF Space — undeployed until the v1 release (401 today). Prose around every
+# occurrence already labels it release-pending.
+https://huggingface\.co/spaces/thrmnn/embodimetry
+
+# HF dataset — the repo shell exists (currently 200) but the v1 publish is
+# gated on an explicit decision; its visibility may flip until release.
+https://huggingface\.co/datasets/thrmnn/embodimetry-v1
+
+# GitHub Pages — not enabled yet (site/README.md § Deploy); 404 until then.
+https://thrmnn\.github\.io/embodimetry
+
+# Tailnet-only preview host — resolvable only inside the tailnet, never from CI.
+^http://100\.104\.205\.62

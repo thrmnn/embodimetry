@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -47,6 +48,37 @@ jobs:
           pip install "mypy>=1.13" "numpy>=2.0" "scipy>=1.13" "pandas-stubs" "types-tqdm" "types-PyYAML"
       - name: Mypy
         run: mypy src
+
+  liveness:
+    name: liveness-claim linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Fail on liveness claims about unreleased artifacts
+        run: |
+          set -euo pipefail
+          pattern='live leaderboard|live dashboard|dataset is live|published dataset|pull the published'
+          allow_re=$(grep -v '^#' .github/liveness-allowlist.txt | sed '/^[[:space:]]*$/d' | paste -sd'|')
+          hits=$(grep -rniE "$pattern" README.md docs site | grep -vE "^($allow_re):" || true)
+          if [ -n "$hits" ]; then
+            echo "Liveness claim about an unreleased artifact. Rephrase as release-pending,"
+            echo "or allowlist the file with a reason in .github/liveness-allowlist.txt:"
+            echo "$hits"
+            exit 1
+          fi
+
+  links:
+    name: link check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Lychee (annotated ignore-list at .lycheeignore)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --exclude-all-private README.md 'docs/**/*.md' 'site/**/*.md'
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test:
     name: pytest (fast)

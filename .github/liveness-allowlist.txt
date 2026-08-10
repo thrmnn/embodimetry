@@ -1,0 +1,23 @@
+# Files exempt from the CI liveness-claim linter (ci.yml, job "liveness").
+# One path per line; the comment above each entry is the reason it is exempt.
+# Public-facing surfaces (README, docs front doors, site/) must NOT be added
+# here — rephrase the claim as release-pending instead.
+
+# Operator runbook: describes the post-publish verify flow the operator runs
+# at release time, not a claim that the artifacts are live today.
+docs/RUNBOOK.md
+
+# Dataset-card source that is uploaded WITH the dataset at publish time; by
+# construction it is only ever read after the dataset exists.
+docs/HUB_DATASET_README.md
+
+# Roadmap: describes the future pipeline (post-release states) by design.
+docs/PIPELINE_ROADMAP.md
+
+# Operator monitoring doc: "live leaderboard" refers to the local dashboard
+# pane during a sweep, not the HF Space.
+docs/MONITORING.md
+
+# Internal launch sequence: phase 2+ steps are explicitly gated behind the
+# v1 HF publish gate and describe the post-publish world.
+docs/COMMS_PLAN.md
