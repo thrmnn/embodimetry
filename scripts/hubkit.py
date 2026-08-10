@@ -20,7 +20,19 @@ from pathlib import Path
 
 CSS = """
 :root{--ink:#1a1d21;--mut:#5b6470;--line:#e3e7ec;--accent:#1a6fb5;--ok:#1a7f4b;
---warn:#b3261e;--amber:#9a5b00;--pend:#1f5fa8;--bg:#fbfcfd;--card:#fff;--lh:1.6}
+--warn:#b3261e;--amber:#9a5b00;--pend:#1f5fa8;--bg:#fbfcfd;--card:#fff;--lh:1.6;
+--img-line:#eee;--faint:#9aa;--code-bg:#f3f5f7;--th-bg:#eef1f4;--row-alt:#fafbfc;
+--pre-bg:#1d2127;--pre-ink:#e6e9ee;--doc-ink:#2a2d31;--doc-lede:#444;
+--ok-bg:#e6f4ec;--ok-ln:#bfe2cd;--warn-bg:#fdeceb;--warn-ln:#f3c9c5;
+--amber-bg:#fbf1e0;--amber-ln:#ecd9b3;--info-bg:#e8f1fb;--info-ln:#c7ddf5;
+--doc-bg:#eef0f2;--doc-ln:#dde1e5}
+@media(prefers-color-scheme:dark){:root{--ink:#e2e6ea;--mut:#9aa4af;--line:#2b323a;
+--accent:#63a9e6;--ok:#53c48d;--warn:#ef7d75;--amber:#d9a850;--pend:#82b6ec;
+--bg:#12161a;--card:#191f25;--img-line:#2b323a;--faint:#6d7883;--code-bg:#242b33;
+--th-bg:#202730;--row-alt:#1d242b;--pre-bg:#0c0f12;--pre-ink:#dde2e7;
+--doc-ink:#cfd6dc;--doc-lede:#aeb7bf;--ok-bg:#15342a;--ok-ln:#245c41;
+--warn-bg:#3d1f1e;--warn-ln:#6e3330;--amber-bg:#3a2c14;--amber-ln:#6b5426;
+--info-bg:#16283c;--info-ln:#2a4a6e;--doc-bg:#232a31;--doc-ln:#333c45}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);
 font:16px/var(--lh) -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
@@ -37,36 +49,36 @@ h2{font-size:18px;margin:30px 0 12px;padding-bottom:5px;border-bottom:1px solid 
 .card{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;
 overflow:hidden;text-decoration:none;color:inherit;transition:.12s;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.08)}
-.card img{width:100%;display:block;border-bottom:1px solid #eee;cursor:zoom-in}
+.card img{width:100%;display:block;border-bottom:1px solid var(--img-line);cursor:zoom-in}
 .cap{padding:13px 15px}.cap h3{margin:6px 0 4px;font-size:15px}
-.cap p{margin:0;color:var(--mut);font-size:13px}.cap code{font-size:11px;color:#9aa}
+.cap p{margin:0;color:var(--mut);font-size:13px}.cap code{font-size:11px;color:var(--faint)}
 .pill{display:inline-block;padding:2px 8px;border-radius:11px;font-size:11px;font-weight:700;
 text-transform:uppercase;letter-spacing:.03em;border:1px solid transparent}
-.pill.ok{background:#e6f4ec;color:var(--ok);border-color:#bfe2cd}
-.pill.warn{background:#fdeceb;color:var(--warn);border-color:#f3c9c5}
-.pill.amber{background:#fbf1e0;color:var(--amber);border-color:#ecd9b3}
-.pill.info{background:#e8f1fb;color:var(--pend);border-color:#c7ddf5}
-.pill.doc{background:#eef0f2;color:var(--mut);border-color:#dde1e5}
-footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:#9aa;font-size:12px}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-ln)}
+.pill.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-ln)}
+.pill.amber{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-ln)}
+.pill.info{background:var(--info-bg);color:var(--pend);border-color:var(--info-ln)}
+.pill.doc{background:var(--doc-bg);color:var(--mut);border-color:var(--doc-ln)}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--faint);font-size:12px}
 .doc{max-width:820px}.doc h1{font-size:24px}.doc h2{font-size:19px}.doc h3{font-size:16px}
 .doc table{border-collapse:collapse;margin:14px 0;font-size:14px;width:100%}
 .doc th,.doc td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
-.doc th{background:#f3f5f7}.doc code{background:#f3f5f7;padding:1px 5px;border-radius:4px;font-size:13px}
-.doc pre{background:#1d2127;color:#e6e9ee;padding:14px;border-radius:8px;overflow:auto;font-size:13px}
+.doc th{background:var(--th-bg)}.doc code{background:var(--code-bg);padding:1px 5px;border-radius:4px;font-size:13px}
+.doc pre{background:var(--pre-bg);color:var(--pre-ink);padding:14px;border-radius:8px;overflow:auto;font-size:13px}
 .doc pre code{background:none;color:inherit;padding:0}.doc blockquote{border-left:3px solid var(--line);
 margin:0;padding:2px 14px;color:var(--mut)}
-.doc{font-size:15.5px;color:#2a2d31}
+.doc{font-size:15.5px;color:var(--doc-ink)}
 .doc h1{font-size:25px;line-height:1.2;margin:0 0 4px}
 .doc h2{margin:34px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--ink)}
 .doc h3{margin:22px 0 8px;color:var(--accent)}
-.doc>p:first-of-type{font-size:17px;color:#444;line-height:1.6}
+.doc>p:first-of-type{font-size:17px;color:var(--doc-lede);line-height:1.6}
 .doc img{max-width:100%;height:auto;display:block;margin:18px auto 4px;border:1px solid var(--line);
 border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 /* an italics-only paragraph right after a figure reads as its caption */
 .doc img+p em:only-child,.doc p>em:only-child{display:block;text-align:center;font-size:13px;
 color:var(--mut);margin:0 auto 18px;max-width:80%;font-style:italic}
-.doc table{box-shadow:0 1px 4px rgba(0,0,0,.05)}.doc th{background:#eef1f4}
-.doc tr:nth-child(even) td{background:#fafbfc}
+.doc table{box-shadow:0 1px 4px rgba(0,0,0,.05)}.doc th{background:var(--th-bg)}
+.doc tr:nth-child(even) td{background:var(--row-alt)}
 .doc strong{color:var(--ink)}
 #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:99;cursor:zoom-out;
 align-items:center;justify-content:center}#lb img{max-width:96vw;max-height:94vh}
@@ -104,8 +116,10 @@ def card(title, desc, href, *, meta="", img=None, kind="doc") -> str:
         else ""
     )
     metatag = f"<br><code>{_html.escape(meta)}</code>" if meta else ""
+    # Relative hrefs stay same-tab so an installed PWA doesn't escape to browser tabs.
+    target = ' target="_blank"' if re.match(r"^https?:", href) else ""
     return (
-        f'<a class="card" href="{href}" target="_blank">{imgtag}'
+        f'<a class="card" href="{href}"{target}>{imgtag}'
         f'<div class="cap">{badge(kind, kind)}<h3>{_html.escape(title)}</h3>'
         f"<p>{_html.escape(desc)}{metatag}</p></div></a>"
     )
@@ -153,7 +167,9 @@ def toc_sections(sections: list[tuple[str, str]]) -> str:
     return '<nav class="toc"><div class="toc-h">Sections</div>' + "".join(rows) + "</nav>"
 
 
-def page(title, subtitle, body, *, crumb="", provenance="", doc=False, sidebar="") -> str:
+def page(
+    title, subtitle, body, *, crumb="", provenance="", doc=False, sidebar="", head_extra=""
+) -> str:
     cls = "wrap doc" if doc else "wrap"
     foot = f"<footer>{_html.escape(provenance)}</footer>" if provenance else ""
     main = (
@@ -168,7 +184,7 @@ def page(title, subtitle, body, *, crumb="", provenance="", doc=False, sidebar="
     )
     return f"""<!doctype html><html lang=en><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
-<title>{_html.escape(title)}</title><style>{CSS}</style></head><body>
+<title>{_html.escape(title)}</title><style>{CSS}</style>{head_extra}</head><body>
 {main}{_LB}</body></html>"""
 
 
