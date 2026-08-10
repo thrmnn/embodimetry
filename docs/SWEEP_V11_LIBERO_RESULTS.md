@@ -247,8 +247,9 @@ within a 4.0 pp band (0.796–0.836), matching §5.
 
 - [x] ~~Canonical-cap (600) probe for goal~~ — done, §8 (2026-08-07): +0.0 pp,
       confound closed for goal.
-- [ ] Failure-taxonomy pass on `libero_spatial_t5` (0.036) and the
-      libero_10 hard cluster (t0/t4/t6/t7 all ≤ 0.30).
+- [x] ~~Failure-taxonomy pass on `libero_spatial_t5` (0.036) and the
+      libero_10 hard cluster~~ — done, §10 (2026-08-10): 62 labeled
+      episodes, `assets/failure-taxonomy-labels-v11.csv`.
 - [ ] Canonical-cap probe for spatial/object (cap 280) — lower priority now
       that stuck-while-trying is replicated on two suites, but it's what
       would let the cap footnote drop entirely.
@@ -261,3 +262,116 @@ within a 4.0 pp band (0.796–0.836), matching §5.
       high" framing §8 had to drop as tautological (LIBERO failures can only
       end at the cap) — its conclusion stands via its Δ+0.4 pp, but the
       framing deserves the same success-time-tail rewrite.
+## 10. Failure taxonomy on the outlier cells (added 2026-08-10)
+
+Closes the §9 follow-up: a per-episode labeling pass on `libero_spatial_t5`
+(0.036, 9/250 — the headline outlier) and the libero_10 hard cluster
+(t0 0.244, t4 0.240, t6 0.288, t7 0.296). This is the per-episode upgrade
+`FAILURE_TAXONOMY.md` §"How to upgrade" gated on: labels are joined on
+`(policy, env, seed, episode_index)` against the per-episode parquet, and
+each labeled episode's video was inspected as a 12-keyframe montage
+(evenly spaced over the episode) plus targeted zooms/densifications where
+the montage was ambiguous. Labels:
+[`assets/failure-taxonomy-labels-v11.csv`](assets/failure-taxonomy-labels-v11.csv)
+(60 failures + 2 success references; same schema as the v1 CSV).
+
+**Sampling rule (deterministic, no RNG).** Per cell: order each seed's
+*failed* episodes by ascending `episode_index`; select round-robin across
+seeds 0–4, taking each seed's k-th earliest failure at pass k, until 12 are
+selected (≥2 per seed). For spatial_t5's success side: the earliest success
+of each of the two lowest-numbered seeds (seed0 ep009, seed1 ep009). Single
+labeler, no agreement statistic — same caveat as the v1 pass. Counts below
+are observational; at n=12 per cell no within- or cross-cell rate claims
+are made beyond the raw counts.
+
+### Per-cell modes (n = 12 failures each)
+
+| Cell | Dominant mode | Count | Other modes |
+|---|---|---|---|
+| libero_spatial_t5 | place-off-target (bowl released tilted/half-on the plate rim or away from the plate) | 7/12 | grasp-never-secured at the elevated bowl 4/12; wrong-object (ramekin ends on the plate) 1/12 |
+| libero_10 (t0) | hover-stall, no grasp (quasi-static above a can to the 520 cap) | 6/12 | first can delivered then stall on the second 5/12; transport-drop-short 1/12 |
+| libero_10_t4 | slip-lost-mug (white mug slips out mid-transport, lost from view) | 4/12 | paw-stall at first mug, no lift 4/12; second mug deposited on the wrong plate 3/12; holds mug over a plate at cap, never releases 1/12 |
+| libero_10_t6 | pudding-related stall | 10/12 | of which: mug-on-plate completed first 5, nothing completed 5; wrong-object engagement with the red distractor mug 2/12 |
+| libero_10_t7 | cream-cheese paw-stall (repeated failed grasps at the small box, nothing placed) | 8/12 | soup delivered then stall 1/12; grasps and lifts the BASKET itself 1/12; holds the box over the basket at cap 1/12; ambiguous 1/12 |
+
+Ambiguity stayed under the 1/3 threshold everywhere (worst cell: t7, 1/12
+forced to `ambiguous` — the cream-cheese box vanishes from agentview and
+may have been pushed into the basket).
+
+### The spatial_t5 story
+
+spatial_t5 ("pick up the black bowl **on the ramekin** and place it on the
+plate") is **not** a stall cell. In all 12 labeled failures the policy runs
+the full pick-and-place routine; it fails at one of the two contact-rich
+ends:
+
+- **Grasp end (4/12):** the fingers close on or above the elevated
+  bowl-on-ramekin stack without securing it (zoom-verified). Twice the
+  attempt knocks the bowl off — once flipping it upside-down beside the
+  ramekin. Notably, after a failed grasp the arm **executes the transport
+  and place motion anyway with an empty gripper**, paws at the plate, then
+  cycles back to re-attempt — repeating until the 280 cap.
+- **Place end (7/12):** grasp and transport succeed, but the bowl is
+  released at the plate's rim — tilted, half-on, or leaning against the
+  adjacent distractor bowl — and the `On(bowl, plate)` predicate never
+  fires. In two of these the bowl looks essentially "on the plate" to the
+  eye yet stays rim-balanced/tilted at cap; the policy keeps poking at it
+  without re-seating it. One further episode (counted separately as
+  wrong-object) ends with the **ramekin** on the plate and the bowl gone
+  from view.
+
+**What the 9 successes do differently** (2 of 9 viewed: seed0 ep009 at 118
+steps, seed1 ep009 at 116 steps — near-identical trajectories): a single
+clean grasp that lifts the bowl off the ramekin on the first attempt
+(~step 50), a short hover holding it, then a direct transport and a
+**centered, flat** placement on the plate. Same routine as the failures —
+the successes differ only in securing the first grasp and seating the bowl
+inside the rim rather than on it. Both viewed successes finish in <45% of
+the step cap, consistent with the cell's failure mass being grasp/place
+execution rather than time pressure.
+
+### Cross-cell pattern (observational)
+
+1. **Failures ride to the cap in an active near-stationary state.** All 60
+   labeled failures end at the step cap (consistent with §6.1: 100% of
+   v1.1 failures are cap-terminated) with the gripper *at or hovering over
+   a task-relevant object* — pawing, pressing, or holding — not drifting
+   away or freezing off-task. "Stuck-while-trying" (§8) is what it looks
+   like frame-by-frame.
+2. **The four libero_10 hard cells are all two-object composites, and the
+   sampled failures concentrate on one leg of the composite.** In 11/48
+   labeled episodes the first object is delivered and the episode stalls
+   on the second; in most of the rest the stall happens on the first
+   object. The stall target is disproportionately a **small/low-profile
+   object** — the pudding box (t6, 10/12) and the cream-cheese box (t7,
+   9/12 incl. the held-at-cap episode) absorb nearly all of those cells'
+   failure time.
+3. **Distractor/wrong-object behavior recurs at low rates but in every
+   scene that has a distractor:** terminal hovering over the red patterned
+   mug in t4 (7/12 labeled episodes end there; it is never a task target),
+   red-mug engagement in t6 (2/12), the ramekin-on-plate episode in t5
+   (1/12), and — most strikingly — one t7 episode that grasps and lifts
+   **the basket itself** and holds it tilted in mid-air at cap.
+4. **Two episodes end with the target object gripped, held in place and
+   never released** (t4 s3e001 over the wrong plate; t7 s3e002 over the basket) —
+   a place-commitment failure distinct from both slip and stall.
+
+No causal claim is attached to any of these: the labels say what the
+rollouts show, not why the policy does it.
+
+### Method notes / artifacts
+
+- Keyframe protocol: 12 evenly spaced frames per episode (4×3 montage),
+  plus zoomed crops (grasp windows, basket interiors, terminal frames)
+  where the montage was ambiguous. This exceeds the 4–6 keyframes the
+  original protocol sketch suggested; the denser grid was necessary to
+  separate slip from no-lift and in from at-rim.
+- **Video off-by-one quirk (worth knowing for any future labeling):** in
+  success-terminated episodes the *last* video frame is the **next
+  episode's post-reset frame**, not the terminal state (verified:
+  spatial_t5 seed0 ep009 frame 118 is pixel-identical to ep010 frame 0).
+  The true terminal state is the penultimate frame. Cap-terminated
+  (failure) videos end on the true terminal observation.
+- Labels are single-view (agentview only; the wrist camera is not in the
+  rendered videos), so in/at-rim judgments near occlusions carry
+  irreducible uncertainty — flagged per-row in the CSV notes.
