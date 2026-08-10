@@ -10,7 +10,7 @@ A public, reproducible **instrument** that scores every robot-policy paradigm �
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![Version 1.0.2](https://img.shields.io/badge/version-1.0.2-informational.svg)](CITATION.cff)
-[![HF Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-thrmnn%2Fembodimetry--v1-blue)](https://huggingface.co/datasets/thrmnn/embodimetry-v1)
+[![HF Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-pending%20release-orange)](https://huggingface.co/datasets/thrmnn/embodimetry-v1)
 [![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Dashboard-deploying-orange)](https://huggingface.co/spaces/thrmnn/embodimetry)
 
 **Quick links:** [Get started](docs/GETTING_STARTED.md) · [Reproduce](docs/REPRODUCE.md) · [FAQ](docs/FAQ.md) · [Development](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md)
@@ -23,9 +23,10 @@ A public, reproducible **instrument** that scores every robot-policy paradigm �
 
 ### ▶ Dashboard *(deploying)* — [huggingface.co/spaces/thrmnn/embodimetry](https://huggingface.co/spaces/thrmnn/embodimetry)
 
+*The Space and dataset go public with the v1 release; both links in this block are the canonical destinations once published — neither resolves yet.*
+
 The public leaderboard, paired comparisons, rollout browser, and failure taxonomy — no install, no GPU, no login.
-Backed by the open dataset [`thrmnn/embodimetry-v1`](https://huggingface.co/datasets/thrmnn/embodimetry-v1): every per-episode outcome and every rollout MP4, queryable by `(policy, env, seed, episode)`.
-*The Space and dataset go public with the v1 release; both links above are the canonical destinations once published.*
+Backed by the dataset [`thrmnn/embodimetry-v1`](https://huggingface.co/datasets/thrmnn/embodimetry-v1): every per-episode outcome and every rollout MP4, queryable by `(policy, env, seed, episode)`.
 
 </div>
 
@@ -37,7 +38,7 @@ Backed by the open dataset [`thrmnn/embodimetry-v1`](https://huggingface.co/data
   <img src="docs/assets/fig-v1-leaderboard-bars.svg" alt="Embodimetry v1 leaderboard: per-cell success rate with Wilson 95% confidence intervals — act×aloha 0.824, diffusion×pusht 0.816, SmolVLA on the four LIBERO suites ranging 0.252 to 0.928" width="900">
 </picture>
 
-<sub>v1 leaderboard — per-cell success rate with Wilson 95% confidence intervals. <a href="https://huggingface.co/spaces/thrmnn/embodimetry">Full interactive leaderboard →</a></sub>
+<sub>v1 leaderboard — per-cell success rate with Wilson 95% confidence intervals. <a href="examples/read_results.py">Read the committed headline cells →</a> (full interactive leaderboard release-pending — headline numbers committed in-repo)</sub>
 
 </div>
 
@@ -82,7 +83,7 @@ The lead is not a leaderboard ranking; it is the self-caught normalization bug (
 
 ## v1 leaderboard (highlights)
 
-Headline cells, success rate with **Wilson 95% CI**. This is a short highlights view — see the **[full interactive leaderboard](https://huggingface.co/spaces/thrmnn/embodimetry)** for every cell, paired comparison, and failure breakdown.
+Headline cells, success rate with **Wilson 95% CI**. This is a short highlights view — every cell, paired comparison, and failure breakdown lands with the interactive leaderboard *(release pending — headline numbers committed in-repo, printed by [`examples/read_results.py`](examples/read_results.py))*.
 
 | Policy | env | N | success | 95% CI |
 |---|---|:-:|:-:|:-:|
@@ -198,4 +199,4 @@ MIT. See [LICENSE](LICENSE).
 ## Citation
 
 The arxiv writeup pre-print lands alongside the dataset upload. Until the arXiv ID is assigned, cite this repository using [`CITATION.cff`](CITATION.cff) (GitHub's "Cite this repository" widget reads it directly).
-<!-- TODO: add the arxiv BibTeX entry here once the ID is assigned (dataset is live at huggingface.co/datasets/thrmnn/embodimetry-v1). -->
+<!-- TODO: add the arxiv BibTeX entry here once the ID is assigned and the dataset has been published at huggingface.co/datasets/thrmnn/embodimetry-v1. -->
