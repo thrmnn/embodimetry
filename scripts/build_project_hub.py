@@ -452,6 +452,7 @@ background:var(--card)}
 padding:1px 7px;margin:3px 4px 0 0}
 .gate.pass{color:var(--ok);border-color:var(--ok-ln)}
 .gate.fail{color:var(--warn);border-color:var(--warn-ln)}
+.gate.awaiting{color:var(--amber);border-color:var(--amber-ln);background:var(--amber-bg)}
 ul.ms{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--mut)}
 .bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin:6px 0}
 .bar>div{height:100%;background:var(--accent)}
@@ -526,7 +527,7 @@ function renderFleet(f) {
     "dashboard " + (f.dashboard_up ? "up" : "down") + " \\u00b7 seen ");
   const note = $("#dash-note");
   if (note) note.textContent = f.dashboard_up ?
-    "(last seen up " + age(f.generated_at) + " ago)" : "(laptop asleep \\u2014 expected)";
+    "(last seen up " + age(f.generated_at) + " ago)" : "(dashboard not reachable)";
   const nb = $("#needs-theo");
   const needs = f.needs_theo || [];
   nb.hidden = !needs.length;
