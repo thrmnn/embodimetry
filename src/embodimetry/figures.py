@@ -978,10 +978,12 @@ def _taxonomy_counts(labels_csv: Path) -> pd.DataFrame:
     if unknown:
         raise ValueError(f"non-canonical labels in {labels_csv}: {sorted(unknown)}")
     counts = pd.DataFrame(0, index=list(_TAXONOMY_CELLS), columns=list(_TAXONOMY_MODES))
-    grouped = failures.groupby(["env", "canonical_label"]).size()
-    for (env, mode), n in grouped.items():
+    grouped = failures.groupby(["env", "canonical_label"]).size().reset_index(name="n")
+    for row in grouped.itertuples(index=False):
+        env = str(row.env)
+        mode = str(row.canonical_label)
         if env in counts.index:
-            counts.loc[env, mode] = int(n)
+            counts.loc[env, mode] = int(row.n)  # type: ignore[index,arg-type]
     return counts
 
 
