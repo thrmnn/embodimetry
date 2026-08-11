@@ -1453,6 +1453,161 @@ def test_debatched_vec_env_adapter_strips_and_adds_batch_dim() -> None:
     assert actions_seen[-1].shape == (1, 7)
 
 
+class _SelfResettingVecEnv:
+    """Mimics the sweep-era lerobot ``LiberoEnv`` bug (task #33, lerobot #4273).
+
+    On the terminating step the env builds the returned obs from the
+    terminal state and THEN resets its own simulator state — so a live
+    ``render()`` after that step shows the *next* episode's post-reset
+    scene. Raw frames follow the LIBERO storage convention (upside-down);
+    ``render()`` flips both H and W exactly like ``LiberoEnv.render()``.
+
+    Raw frame encoding: marker pixel at raw ``[0, 0]`` (rendered
+    ``[3, 3]``) carries the state value. Episode state starts at 100 and
+    increments per step; the post-self-reset state is 200.
+    """
+
+    num_envs = 1
+    single_action_space = type("S", (), {"shape": (2,)})()
+    single_observation_space: Any = None
+
+    def __init__(self, *, terminate_at: int | None) -> None:
+        self._terminate_at = terminate_at
+        self._state = 100
+
+    @staticmethod
+    def _raw_frame(value: int) -> np.ndarray:
+        arr = np.zeros((4, 4, 3), dtype=np.uint8)
+        arr[0, 0, :] = value
+        return arr
+
+    def _batched_obs(self, value: int) -> dict[str, Any]:
+        return {"pixels": {"image": self._raw_frame(value)[np.newaxis]}}
+
+    def reset(self, *, seed: int) -> tuple[dict[str, Any], dict[str, Any]]:
+        self._state = 100
+        return self._batched_obs(self._state), {}
+
+    def step(
+        self, action: np.ndarray
+    ) -> tuple[dict[str, Any], np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
+        self._state += 1
+        terminated = self._terminate_at is not None and self._state == 100 + self._terminate_at
+        obs = self._batched_obs(self._state)
+        reward = np.array([1.0 if terminated else 0.0])
+        if terminated:
+            self._state = 200  # the buggy env's self-reset inside step()
+        return obs, reward, np.array([terminated]), np.array([False]), {}
+
+    def render(self) -> np.ndarray:
+        # Live sim state, flipped for visualization — LiberoEnv.render().
+        return self._raw_frame(self._state)[::-1, ::-1]
+
+    @property
+    def envs(self) -> list[Any]:
+        return [self]
+
+    def close(self) -> None:
+        return None
+
+
+def test_final_video_frame_is_own_terminal_state_despite_env_self_reset() -> None:
+    """Regression for task #33: SUCCESS episodes must not end on the next
+    episode's post-reset frame when the env resets itself inside the
+    terminating ``step()`` (sweep-era lerobot LiberoEnv behaviour)."""
+    from embodimetry.eval import _DebatchedVecEnvAdapter
+
+    adapter = _DebatchedVecEnvAdapter(_SelfResettingVecEnv(terminate_at=3))
+    episode = _run_one_episode(
+        policy=MockPolicy(),
+        env=adapter,
+        episode_index=0,
+        episode_seed=0,
+        max_steps=10,
+        success_threshold=0.5,
+        record_video=True,
+    )
+    assert episode.terminated is True
+    assert episode.success is True
+    # 1 post-reset frame + 3 step frames.
+    assert len(episode.frames) == 4
+    last = episode.frames[-1]
+    # Terminal state value is 103; the buggy behaviour would capture the
+    # post-self-reset state (200). Rendered orientation puts the raw
+    # [0, 0] marker at [3, 3].
+    assert last[3, 3, 0] == 103
+    assert last[0, 0, 0] == 0
+    # Mid-episode frames still come from the live render.
+    assert episode.frames[1][3, 3, 0] == 101
+    assert episode.frames[2][3, 3, 0] == 102
+
+
+def test_cap_terminated_episode_final_frame_is_true_terminal_state() -> None:
+    """No done flag ever fires -> live render path unchanged; the last
+    frame is the state after the final step."""
+    from embodimetry.eval import _DebatchedVecEnvAdapter
+
+    adapter = _DebatchedVecEnvAdapter(_SelfResettingVecEnv(terminate_at=None))
+    episode = _run_one_episode(
+        policy=MockPolicy(),
+        env=adapter,
+        episode_index=0,
+        episode_seed=0,
+        max_steps=3,
+        success_threshold=0.5,
+        record_video=True,
+    )
+    assert episode.terminated is False
+    assert len(episode.frames) == 4
+    assert episode.frames[-1][3, 3, 0] == 103
+
+
+def test_adapter_terminal_frame_cleared_on_reset() -> None:
+    """The cached terminal frame must not leak into the next episode's renders."""
+    from embodimetry.eval import _DebatchedVecEnvAdapter
+
+    adapter = _DebatchedVecEnvAdapter(_SelfResettingVecEnv(terminate_at=1))
+    adapter.reset(seed=0)
+    _obs, _r, terminated, _t, _info = adapter.step(np.zeros(2, dtype=np.float32))
+    assert terminated is True
+    assert adapter.render()[3, 3, 0] == 101  # served from the cached terminal obs
+    adapter.reset(seed=1)
+    assert adapter.render()[3, 3, 0] == 100  # live render of the fresh episode
+
+
+def test_adapter_rejects_same_step_autoreset_vec_env() -> None:
+    """SAME_STEP autoreset returns the post-reset obs from the terminating
+    step, so neither obs nor render could yield the episode's terminal state."""
+    import enum
+
+    from embodimetry.eval import _DebatchedVecEnvAdapter
+
+    class _Mode(enum.Enum):
+        SAME_STEP = "SameStep"
+        NEXT_STEP = "NextStep"
+
+    class _SameStepVec(_SelfResettingVecEnv):
+        autoreset_mode = _Mode.SAME_STEP
+
+    class _NextStepVec(_SelfResettingVecEnv):
+        autoreset_mode = _Mode.NEXT_STEP
+
+    with pytest.raises(ValueError, match="SAME_STEP autoreset"):
+        _DebatchedVecEnvAdapter(_SameStepVec(terminate_at=None))
+    # NEXT_STEP (the gymnasium default) is accepted.
+    _DebatchedVecEnvAdapter(_NextStepVec(terminate_at=None))
+
+
+def test_frame_from_obs_pixels_returns_none_without_usable_pixels() -> None:
+    """Obs without a pixels dict (or with non-image pixels) -> fall back to live render."""
+    from embodimetry.eval import _frame_from_obs_pixels
+
+    assert _frame_from_obs_pixels(np.zeros(5)) is None
+    assert _frame_from_obs_pixels({"agent_pos": np.zeros(2)}) is None
+    assert _frame_from_obs_pixels({"pixels": {}}) is None
+    assert _frame_from_obs_pixels({"pixels": {"image": np.zeros((4, 4))}}) is None
+
+
 def test_strip_batch_dim_handles_nested_dicts() -> None:
     """LIBERO obs has 2-3 levels of dict nesting under robot_state."""
     from embodimetry.eval import _strip_batch_dim

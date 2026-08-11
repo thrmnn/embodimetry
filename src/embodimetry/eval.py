@@ -1407,11 +1407,36 @@ class _DebatchedVecEnvAdapter:
     ``TokenizerProcessorStep`` to consume). For envs without a
     ``task_description`` attribute (PushT, Aloha when wrapped via the
     factory path), the key is omitted; the eval loop is unaffected.
+
+    **Terminal frame (task #33).** ``render()`` reads the *live*
+    simulator state. That is wrong for exactly one frame per episode:
+    the render after a ``terminated``/``truncated`` step, IF the env
+    reset itself inside that ``step()`` (the sweep-era lerobot
+    ``LiberoEnv.step`` did exactly that on termination — fixed upstream
+    in lerobot #4273 — so every SUCCESS video's last frame was the next
+    episode's post-reset scene; see
+    ``docs/SWEEP_V11_LIBERO_RESULTS.md`` § Method notes). The
+    observation *returned* by the terminating step is built from the
+    pre-reset terminal state even under that bug, so on a done step we
+    derive the frame from the returned obs (:func:`_frame_from_obs_pixels`)
+    and serve it from the next ``render()`` call instead of touching
+    the live sim. SAME_STEP-autoreset vector envs are rejected at
+    construction: there the returned obs is *already* the reset obs,
+    so neither source could yield the episode's own terminal state.
     """
 
     def __init__(self, vec_env: Any) -> None:
+        mode = getattr(vec_env, "autoreset_mode", None)
+        if mode is not None and getattr(mode, "name", None) == "SAME_STEP":
+            raise ValueError(
+                "vector env uses SAME_STEP autoreset: the terminating step() returns "
+                "the post-reset observation, so neither the final obs nor the terminal "
+                "video frame would belong to the episode. Construct the vec env with "
+                "NEXT_STEP (gymnasium default) or DISABLED autoreset."
+            )
         self._vec = vec_env
         self._task_description = self._discover_task_description()
+        self._terminal_frame: NDArray[np.uint8] | None = None
 
     def _discover_task_description(self) -> str | None:
         """Best-effort: pull ``task_description`` (or ``task``) from the underlying env.
@@ -1445,6 +1470,7 @@ class _DebatchedVecEnvAdapter:
 
     def reset(self, *, seed: int) -> tuple[dict[str, Any], dict[str, Any]]:
         obs, info = self._vec.reset(seed=seed)
+        self._terminal_frame = None
         # Re-discover task description: LIBERO sets it on env construction
         # (constant per task_id), but other factories may set it on reset.
         if self._task_description is None:
@@ -1458,11 +1484,20 @@ class _DebatchedVecEnvAdapter:
         action_arr = np.asarray(action)
         action_batched = action_arr[np.newaxis, ...] if action_arr.ndim == 1 else action_arr
         obs, reward, terminated, truncated, info = self._vec.step(action_batched)
+        obs_stripped = self._inject_task(_strip_batch_dim(obs))
+        done_terminated = bool(np.asarray(terminated).reshape(-1)[0])
+        done_truncated = bool(np.asarray(truncated).reshape(-1)[0])
+        if done_terminated or done_truncated:
+            # The obs returned by the done step is built from the terminal
+            # state even if the env resets itself inside step() (the
+            # sweep-era LiberoEnv bug); a live render() at this point may
+            # already show the next episode. See class docstring.
+            self._terminal_frame = _frame_from_obs_pixels(obs_stripped)
         return (
-            self._inject_task(_strip_batch_dim(obs)),
+            obs_stripped,
             float(np.asarray(reward).reshape(-1)[0]),
-            bool(np.asarray(terminated).reshape(-1)[0]),
-            bool(np.asarray(truncated).reshape(-1)[0]),
+            done_terminated,
+            done_truncated,
             info,
         )
 
@@ -1474,6 +1509,11 @@ class _DebatchedVecEnvAdapter:
         return obs
 
     def render(self) -> NDArray[np.uint8]:
+        # After a done step the live sim state may already belong to the
+        # next episode (env-internal or vec-level reset); serve the frame
+        # derived from the terminating step's returned obs instead.
+        if self._terminal_frame is not None:
+            return self._terminal_frame
         # SyncVectorEnv exposes envs[0]; AsyncVectorEnv would need .call("render").
         if hasattr(self._vec, "envs"):
             frame = self._vec.envs[0].render()
@@ -1484,6 +1524,30 @@ class _DebatchedVecEnvAdapter:
 
     def close(self) -> None:
         self._vec.close()
+
+
+def _frame_from_obs_pixels(obs: Any) -> NDArray[np.uint8] | None:
+    """Derive a render-equivalent RGB frame from a (debatched) factory-env obs.
+
+    Used only for the terminal frame of an episode (see
+    :class:`_DebatchedVecEnvAdapter`). Mirrors lerobot's
+    ``LiberoEnv.render()``: take the ``pixels`` dict's agentview
+    (``"image"``, falling back to the first view) and flip both H and W
+    — LIBERO stores raw camera images upside-down, and the flip keeps
+    the terminal frame's orientation identical to every live-rendered
+    frame in the clip. Returns ``None`` when the obs carries no usable
+    pixels; the caller then falls back to the live render.
+    """
+    if not isinstance(obs, dict):
+        return None
+    pixels = obs.get("pixels")
+    if not isinstance(pixels, dict) or not pixels:
+        return None
+    image = pixels.get("image", next(iter(pixels.values())))
+    arr = np.asarray(image)
+    if arr.ndim != 3 or arr.shape[-1] != 3:
+        return None
+    return np.ascontiguousarray(arr[::-1, ::-1]).astype(np.uint8, copy=False)
 
 
 def _strip_batch_dim(obs: Any) -> Any:
