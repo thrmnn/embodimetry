@@ -1,4 +1,4 @@
-% embodimetry --- ~9-page arXiv writeup (cs.RO primary, cs.LG secondary).
+% embodimetry --- ~11-page arXiv writeup (cs.RO primary, cs.LG secondary).
 % Capability-Ladder Audit framing: L0 pretrained / L1 fine-tune / L2 classical
 % / L3 world-model planner on ONE seed+Wilson-CI+MDE contract. The LEAD
 % contribution is the auditable instrument + the self-caught normalization
@@ -291,8 +291,10 @@ sanity-checked 95\% CIs: the closed-form Wilson score
 interval~\cite{wilson1927probable,agresti1998approximate} (shown in the
 tables) and a percentile bootstrap~\cite{efron1979bootstrap,efron1993introduction}
 ($10{,}000$ resamples, seeded \texttt{Generator(42)}, resampling over
-\emph{episodes} not seeds); the two agree within 0.6\,pp on the
-leaderboard cells, including the down-scoped $N{=}125$ cell. For
+\emph{episodes} not seeds); the two agree within 0.7\,pp on every
+leaderboard cell with a non-zero success count, including the down-scoped
+$N{=}125$ cell (on zero-success cells the percentile bootstrap degenerates
+to $[0,0]$, so Wilson is the interval reported there). For
 two cells sharing $(\text{seed\_idx}, e)$ pairings \emph{and} with
 per-episode outcomes retained, we report a paired
 $\Delta\hat{p}$ with a paired bootstrap CI and
@@ -813,7 +815,8 @@ independent world-model families --- DINO-WM~\cite{zhou2024dinowm} and
 \texttt{facebookresearch/jepa-wms}~\cite{assran2025vjepa2}. On
 \textbf{Wall}, two-room point-mass navigation, the planner reaches $4/6$
 (JEPA-WM; Wilson 95\% $[0.30, 0.90]$) $\approx 3/6$ (DINO-WM; $[0.19,
-0.81]$); on \textbf{PushT}, quasi-static contact manipulation, it scores
+0.81]$; the matched seeds-1--6 subset of a fuller 24-episode DINO-WM Wall
+run scoring $9/24{=}0.375$, consistent in direction); on \textbf{PushT}, quasi-static contact manipulation, it scores
 $0/6$ (JEPA-WM; $[0, 0.39]$) and $0/2$ (DINO-WM; $[0, 0.66]$; this run was
 stopped after 2 of 3 requested episodes to stay inside its GPU time box, so
 the two families' PushT cells are asymmetric in $N$), moving the block but
