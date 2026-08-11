@@ -667,7 +667,7 @@ pre.code .v{color:var(--ink);}
           <span class="name">xvla_libero</span>
           <span class="sub">larger VLA · fine-tuned on LIBERO</span>
         </div>
-        <span class="tag def">deferred to v1.1</span>
+        <span class="tag def">deferred · bug 3 open</span>
       </div>
       <div class="arch">
         <svg viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg">
@@ -710,7 +710,7 @@ pre.code .v{color:var(--ink);}
         <th class="policy-h">act<span class="y">2023 · imitation</span></th>
         <th class="policy-h">diffusion_policy<span class="y">2023 · diffusion</span></th>
         <th class="policy-h">smolvla_libero<span class="y">2024 · VLA · fine-tuned</span></th>
-        <th class="policy-h def">xvla_libero<span class="y">2024 · deferred v1.1</span></th>
+        <th class="policy-h def">xvla_libero<span class="y">2024 · deferred</span></th>
       </tr>
     </thead>
     <tbody>
@@ -746,19 +746,19 @@ pre.code .v{color:var(--ink);}
         <td class="dim">best cell here</td>
         <td class="v-ok"><span class="num">0.824</span><span class="lo">aloha</span></td>
         <td class="v-ok"><span class="num">0.816</span><span class="lo">pusht</span></td>
-        <td class="v-ok"><span class="num">0.928</span><span class="lo">libero_goal</span></td>
+        <td class="v-ok"><span class="num">0.813</span><span class="lo">libero_goal · 10-task avg</span></td>
         <td class="v-def">—<span class="lo">deferred</span></td>
       </tr>
       <tr>
         <td class="dim">spread across envs</td>
         <td class="v-mute">n/a (1 env)</td>
         <td class="v-mute">n/a (1 env)</td>
-        <td class="v-warm"><span class="num">0.252 → 0.928</span><span class="lo">huge variance</span></td>
+        <td class="v-warm"><span class="num">0.493 → 0.813</span><span class="lo">suites · per-task 0.036–0.880</span></td>
         <td class="v-def">n/a</td>
       </tr>
       <tr>
         <td class="dim">one-line takeaway</td>
-        <td>does not beat random on aloha</td>
+        <td>reproduces — after we fixed our own norm bug (#51)</td>
         <td>reproduces the paper</td>
         <td>language-conditioned · suite-dependent</td>
         <td class="v-def">upstream wiring bugs · slide 13</td>
@@ -768,7 +768,7 @@ pre.code .v{color:var(--ink);}
   <div class="body" style="margin-top:12px;font-size:15px;color:var(--mute);">
     <span class="accent">Adding a new policy?</span> Drop a column here, copy a card to slide C2, compose primitives from <span class="mono">&lt;defs&gt;</span> — see <span class="mono">docs/POLICY_DIAGRAM_GUIDE.md</span>.
   </div>
-  <div class="foot"><span>configs/policies.yaml · MODEL_CARDS.md · matches slide 04 matrix</span><span class="src">v1.1 will fill the deferred column</span></div>
+  <div class="foot"><span>configs/policies.yaml · MODEL_CARDS.md · smolvla row: v1.1 suite averages (slide 02)</span><span class="src">xvla column pending upstream bug 3 (slide 13)</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -874,7 +874,7 @@ pre.code .v{color:var(--ink);}
     <div class="ecard">
       <div class="vid-thumb"><video src="../../docs/assets/rollouts/loops/libero-10-success.mp4" autoplay muted loop playsinline></video></div>
       <div class="head"><span class="name">libero_10</span><span class="meta">7-DOF · libero · long horizon</span></div>
-      <p>LIBERO's <em>10 long-horizon tasks</em>. Multi-step plans, long episodes. The benchmark stress test — where the SmolVLA gap is widest.</p>
+      <p>LIBERO's <em>10 long-horizon tasks</em>. Multi-step plans, long episodes. The benchmark stress test — SmolVLA's lowest suite average (0.493 in v1.1).</p>
     </div>
 
   </div>
@@ -925,18 +925,18 @@ pre.code .v{color:var(--ink);}
     <h1 class="h-1">Pretrained robot software<br>under <span class="accent">default Hub configs.</span></h1>
   </div>
   <div class="body-lg" style="margin-top:24px;font-size:26px;">
-    Five pretrained checkpoints, each shipped with a paper number. We re-ran each one <span class="ink">250 times</span> on the lerobot eval defaults. Some replicate. Some don't. <span class="warm">All four smolvla rows compare a single task vs the paper's 10-task suite average</span> — see slides 07 + 08 before drawing conclusions.
+    Five pretrained checkpoints, each shipped with a paper number. We re-ran each one on the lerobot eval defaults — and the v1.1 sweep re-ran SmolVLA on <span class="ink">all 10 tasks of all four LIBERO suites</span> (2,500 episodes per suite). Some replicate. Some don't. <span class="warm">The gap survives suite-averaging in all four suites; the goal gap is the smallest and statistically marginal</span> — see slides 06–08 for the statistics.
   </div>
   <table class="delta-table">
     <tr><th>policy × env</th><th>paper said</th><th>we measured</th><th>Δ <span style="color:var(--warm);">⚠</span></th></tr>
-    <tr><td class="policy">smolvla · libero_10 <span style="color:var(--warm);">⚠</span></td><td class="paper">0.71 <span class="lo" style="display:inline;color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured bad">0.252 <span style="color:var(--mute);font-size:12px;">(task 0)</span></td><td class="delta">−45.8 pp*</td></tr>
-    <tr><td class="policy">smolvla · libero_object <span style="color:var(--warm);">⚠</span></td><td class="paper">0.96 <span style="color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured bad">0.528 <span style="color:var(--mute);font-size:12px;">(task 0)</span></td><td class="delta">−43.2 pp*</td></tr>
-    <tr><td class="policy">smolvla · libero_spatial <span style="color:var(--warm);">⚠</span></td><td class="paper">0.90 <span style="color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured warn">0.776 <span style="color:var(--mute);font-size:12px;">(task 0)</span></td><td class="delta">−12.4 pp*</td></tr>
-    <tr><td class="policy">smolvla · libero_goal <span style="color:var(--warm);">⚠</span></td><td class="paper">0.92 <span style="color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured ok">0.928 <span style="color:var(--mute);font-size:12px;">(task 0)</span></td><td class="delta">+0.8 pp*</td></tr>
+    <tr><td class="policy">smolvla · libero_object <span style="color:var(--warm);">‡</span></td><td class="paper">0.96 <span class="lo" style="display:inline;color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured bad">0.684 <span style="color:var(--mute);font-size:12px;">(10-task avg, n=2500)</span></td><td class="delta">−27.6 pp*</td></tr>
+    <tr><td class="policy">smolvla · libero_spatial <span style="color:var(--warm);">‡</span></td><td class="paper">0.90 <span style="color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured bad">0.643 <span style="color:var(--mute);font-size:12px;">(10-task avg, n=2500)</span></td><td class="delta">−25.7 pp*</td></tr>
+    <tr><td class="policy">smolvla · libero_10</td><td class="paper">0.71 <span style="color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured bad">0.493 <span style="color:var(--mute);font-size:12px;">(10-task avg, n=2500)</span></td><td class="delta">−21.7 pp*</td></tr>
+    <tr><td class="policy">smolvla · libero_goal</td><td class="paper">0.92 <span style="color:var(--mute);font-size:12px;">(10-task avg)</span></td><td class="measured warn">0.813 <span style="color:var(--mute);font-size:12px;">(10-task avg, n=2500)</span></td><td class="delta">−10.7 pp <span style="color:var(--mute);font-size:12px;">marginal*</span></td></tr>
     <tr><td class="policy">act · aloha_transfer_cube</td><td class="paper">0.50 <span style="color:var(--mute);font-size:12px;">(human teleop)</span></td><td class="measured ok">0.824 <span style="color:var(--mute);font-size:12px;">[.772, .866]</span><br><span style="color:var(--mute);font-size:12px;">our norm bug fixed (#51)**</span></td><td class="delta">+32 pp</td></tr>
     <tr><td class="policy">diffusion_policy · pusht</td><td class="paper">0.654 <span class="lo" style="display:inline;color:var(--mute);font-size:12px;">(Hub card)</span></td><td class="measured ok">0.816</td><td class="delta">+16.2 pp†</td></tr>
   </table>
-  <div class="foot"><span>* smolvla scope · ** v1.0.0's 0.016 was OUR eval-harness normalization bug (skipped stats on observation.images.top); fixed in #51. 2×2 ablation: norm fix 0.016→0.812, inference settings a wash · † our final_reward≥0.95 over-counts vs the Hub card's sticky any(is_success) — see SUCCESS_CRITERION_AUDIT</span><span class="src">results.parquet · results/probes/act-norm-ablation/</span></div>
+  <div class="foot"><span>* v1.1 suite averages vs published n=100 self-reports; task-as-sampling-unit t-test, Holm-adj p ≤ 0.037 in all four suites; goal marginal (adj p = 0.037; p = 0.026 at the canonical 600-step cap) · ‡ spatial/object 280-step caps unprobed vs canonical 600 — one-directional: can only widen our gap · ** v1.0.0's 0.016 was OUR eval-harness normalization bug (skipped stats on observation.images.top); fixed in #51. 2×2 ablation: norm fix 0.016→0.812; inference-settings effect inconclusive (Δ=0.044, McNemar p=0.23) · † our final_reward≥0.95 over-counts vs the Hub card's sticky any(is_success) — see SUCCESS_CRITERION_AUDIT</span><span class="src">results/sweep-v11-libero/results.parquet · results/probes/act-norm-ablation/</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1034,6 +1034,9 @@ pre.code .v{color:var(--ink);}
       <div class="body" style="font-size:20px;color:var(--dim);">
         <em>22 runnable cells.</em> 110 dispatched (each baseline splits per env). 0 failures over 25 hours. Two slow cells — <span class="mono">diffusion_policy × pusht</span> and <span class="mono">xvla × libero_10</span> — were auto-downscoped to 125 episodes by the calibration latency rule.
       </div>
+      <div class="body" style="font-size:20px;color:var(--warm);">
+        ⚠ The smolvla cells shown are v1 <em>task_id=0</em> probes. The v1.1 10-task suite averages are <span class="mono">.64 / .68 / .81 / .49</span> (spatial / object / goal / 10) — slide 02.
+      </div>
       <div class="matrix-key" style="margin-top:4px;">
         <span><span class="sw" style="background:var(--ok);"></span>rate &gt; .70</span>
         <span><span class="sw" style="background:var(--warm);"></span>rate .30–.70</span>
@@ -1043,7 +1046,7 @@ pre.code .v{color:var(--ink);}
       </div>
     </div>
   </div>
-  <div class="foot"><span>configs/sweep_full.yaml · v1.1 plans broader coverage (slide 21)</span><span class="src">5 seeds × 50 episodes / cell</span></div>
+  <div class="foot"><span>configs/sweep_full.yaml · v1.1 added all 40 LIBERO task cells (slide 06)</span><span class="src">5 seeds × 50 episodes / cell</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1079,13 +1082,13 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <!-- 06 — THE HEADLINE GAP -->
 <!-- ===================================================================== -->
-<section class="slide center dark" data-section="main" data-cap="The headline gap — paper vs measured.">
+<section class="slide center dark" data-section="main" data-cap="The headline gap — survives suite-averaging in all four suites.">
   <div class="chrome">
     <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">06<span class="of">/</span>22</div>
   </div>
   <div style="max-width:1620px;width:100%;">
-    <div class="eyebrow" style="margin-bottom:20px;">smolvla on libero-10 · single task_id=0 · careful read</div>
+    <div class="eyebrow" style="margin-bottom:20px;">smolvla on libero-10 · v1.1 · all 10 tasks, 2,500 episodes</div>
     <div style="display:flex;align-items:baseline;gap:48px;flex-wrap:wrap;">
       <div>
         <div class="eyebrow" style="font-size:11px;color:var(--mute);margin-bottom:12px;">paper · 10-task suite avg</div>
@@ -1093,16 +1096,16 @@ pre.code .v{color:var(--ink);}
       </div>
       <div class="serif-it" style="font-size:104px;color:var(--mute);">→</div>
       <div>
-        <div class="eyebrow" style="font-size:11px;color:var(--fail);margin-bottom:12px;">ours · task 0 only</div>
-        <div class="stat-mega fail" style="font-size:200px;">0.252</div>
+        <div class="eyebrow" style="font-size:11px;color:var(--fail);margin-bottom:12px;">ours · 10-task suite avg</div>
+        <div class="stat-mega fail" style="font-size:200px;">0.493</div>
       </div>
     </div>
     <div class="body-lg" style="margin-top:32px;font-size:24px;">
-      <span class="warm">⚠ Two compounding caveats.</span> The 0.252 is (a) a <em>single task</em> vs the paper's <em>10-task average</em> (audit PR #84), and (b) <em>truncated at 520 steps</em> while the canonical LIBERO protocol allows 600 — and <span class="ink">74.8% of our <em>failed</em> libero_10 episodes hit the cap</span> (audit PR #89).<br>
-      The number is statistically tight (Wilson 95% CI <span class="mono ink">[.202, .309]</span>, MDE <span class="mono">12.3 pp</span>) but is a <em>lower bound</em> on this checkpoint's true single-task success rate. <em>Not</em> a paper-replication gap until v1.1 fixes both.
+      <span class="ink">The gap survives suite-averaging in all four suites</span>: −27.6 pp (object), −25.7 pp (spatial), −21.7 pp (libero_10), −10.7 pp (goal) — each rejecting at α = 0.05 with the <em>task</em> as the sampling unit, Holm-corrected. <span class="warm">The goal gap is the smallest and statistically marginal.</span><br>
+      The step cap does not explain it: re-run at the canonical 600-step cap, the goal suite average stays <span class="mono ink">0.813</span> and the success-time tail bounds the cap effect at <span class="mono ink">≲1.4 pp</span> — an order of magnitude below the gap. A <em>protocol-level discrepancy</em>, not a "SmolVLA is worse than reported" claim.
     </div>
   </div>
-  <div class="foot"><span>N=250 · 5 seeds × 50 ep · audits #84 (scope) + #89 (step cap) both confirmed</span><span class="src">paper §4 · see slide 08</span></div>
+  <div class="foot"><span>n=2,500/suite · 5 seeds × 50 ep × 10 tasks · libero_10 cluster-robust 95% t-CI [0.322, 0.664] excludes 0.71</span><span class="src">paper §4.1 · docs/SWEEP_V11_LIBERO_RESULTS.md · see slide 08</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1115,7 +1118,7 @@ pre.code .v{color:var(--ink);}
   </div>
   <div class="title-block" style="margin-top:32px;">
     <span class="eyebrow warm">before drawing conclusions · what we verified</span>
-    <h2 class="h-2">A 46 pp claim needs receipts.</h2>
+    <h2 class="h-2">A four-suite gap needs receipts.</h2>
   </div>
   <div class="audit-list" style="margin-top:24px;">
     <div class="audit ok">
@@ -1146,8 +1149,8 @@ pre.code .v{color:var(--ink);}
       <div class="glyph">✓</div>
       <div class="body-block">
         <span class="lab">statistical resolution</span>
-        <h5>Gap is 4× the MDE — not in the noise.</h5>
-        <p>N=250 puts our minimum detectable effect at <span class="mono">12.3 pp</span>. A 45.8 pp gap is <em>well outside</em> sampling-error range. Wilson CI excludes the paper number by 40 pp.</p>
+        <h5>All four suite gaps reject under cluster-robust tests.</h5>
+        <p>LIBERO episodes cluster by task (design effect 25–65×), so the <em>task</em> is the sampling unit: one-sample t over the 10 per-task rates vs the published mean, Holm-corrected across suites — p ≤ 0.037 in all four. libero_10's cluster-robust CI <span class="mono">[0.322, 0.664]</span> excludes the paper's 0.71. Goal is marginal, and read as such.</p>
       </div>
     </div>
   </div>
@@ -1167,12 +1170,12 @@ pre.code .v{color:var(--ink);}
     <h2 class="h-2">Three confirmed mismatches — and what they do to the headline.</h2>
   </div>
   <div class="audit-list" style="margin-top:20px;">
-    <div class="audit warn">
-      <div class="glyph">!</div>
+    <div class="audit ok">
+      <div class="glyph">✓</div>
       <div class="body-block">
-        <span class="lab">PR #84 · task coverage — scope mismatch</span>
-        <h5>SmolVLA paper §4.1: <span class="mono">10 tasks × 10 trials per task = 100-ep suite averages.</span> We ran <span class="mono">task 0 × 5 seeds × 50 ep = 250 single-task episodes.</span></h5>
-        <p>The two scalars measure <em>different quantities</em>. The "0.71 → 0.252" headline is a <em>single-task probe</em>, not a paper-replication number — until v1.1 runs all 10 tasks. Full verdict: <span class="mono">docs/CLAIM_AUDIT_SMOLVLA.md</span>.</p>
+        <span class="lab">PR #84 · task coverage — scope mismatch · <span style="color:var(--accent);">CLOSED by v1.1</span></span>
+        <h5>SmolVLA paper §4.1: <span class="mono">10 tasks × 10 trials per task = 100-ep suite averages.</span> v1 ran <span class="mono">task 0 only</span> — so v1.1 re-ran <span class="mono">all 10 tasks × 4 suites × 5 seeds × 50 ep</span> (10,000 episodes, 0 errored).</h5>
+        <p>The gap survives suite-averaging in <em>all four</em> suites (−10.7 to −27.6 pp, task-as-sampling-unit t, Holm-adj p ≤ 0.037; goal marginal). Task 0 was unrepresentative in <em>both</em> directions — it overstated the libero_10 gap (−45.8 vs −21.7 pp) and understated spatial's. Full verdict: <span class="mono">docs/SWEEP_V11_LIBERO_RESULTS.md</span>.</p>
       </div>
     </div>
     <div class="audit ok">
@@ -1180,22 +1183,22 @@ pre.code .v{color:var(--ink);}
       <div class="body-block">
         <span class="lab">#51 · OUR normalization bug — ACT × aloha · <span style="color:var(--accent);">v1.0.2 ROOT-CAUSED</span></span>
         <h5>Our eval harness silently skipped dataset norm stats on <span class="mono">observation.images.top</span>, feeding ACT un-normalized images. Our bug, fixed in #51.</h5>
-        <p>Controlled 2×2 (norm {buggy, fixed} × inference {Hub, paper}): <span class="mono">buggy=0.016</span> either way; <span class="mono">fixed=0.812</span> (Hub) / <span class="mono">0.768</span> (paper) — overlapping CIs. Recovery is 100% the norm fix, 0% temporal ensembling (a wash). Canonical: <span class="ink" style="font-weight:600;">0.824 [.772, .866]</span>. (results/probes/act-norm-ablation/.)</p>
+        <p>Controlled 2×2 (norm {buggy, fixed} × inference {Hub, paper}): <span class="mono">buggy=0.016</span> either way; <span class="mono">fixed=0.812</span> (Hub) / <span class="mono">0.768</span> (paper). Recovery attributable to the norm fix; the inference-settings effect is <em>inconclusive at this N</em> (Δ=0.044, paired McNemar p=0.23). Canonical: <span class="ink" style="font-weight:600;">0.824 [.772, .866]</span>. (results/probes/act-norm-ablation/.)</p>
       </div>
     </div>
     <div class="audit warn">
       <div class="glyph">!</div>
       <div class="body-block">
-        <span class="lab">PR #89 · success criterion + step cap — under-count</span>
+        <span class="lab">PR #89 · success criterion + step cap — probed &amp; bounded, spatial/object open</span>
         <h5>LIBERO <span class="mono">max_steps={280, 280, 300, 520}</span> vs canonical <span class="mono">600</span>. PushT + Aloha success rules also non-canonical.</h5>
-        <p>74.8% of <em>failed</em> <span class="mono">smolvla × libero_10</span> episodes hit our 520-step cap → the 0.252 is a <em>lower bound</em>. Aloha accepts <span class="mono">reward ∈ {1..4}</span> vs ACT paper's <span class="mono">reward == 4</span>. v1.1 adopts canonical (PR #90 lands selectable rules).</p>
+        <p>Cap-hit rates are uninformative — LIBERO episodes end only on success or cap. The measured bound: re-run at canonical 600, the goal suite average stays <span class="mono">0.813</span>; only <span class="mono">35/2032</span> successes needed &gt;300 steps → cap effect <span class="mono">≲1.4 pp</span> (libero_10 task 0: +0.4 pp). Spatial/object caps (280) remain unprobed — one-directional, can only widen our gap. Aloha accepts <span class="mono">reward ∈ {1..4}</span> vs ACT paper's <span class="mono">reward == 4</span> (PR #90 lands selectable rules).</p>
       </div>
     </div>
   </div>
   <div class="body" style="margin-top:14px;font-size:14px;color:var(--mute);">
-    <span class="warm">Net for the headline:</span> smolvla × libero_10 sits under <em>two compounding caveats</em> (scope + truncation); <span style="color:var(--accent);">ACT × aloha root-caused — we found and fixed our OWN harness normalization bug (#51); canonical 0.824.</span> External replication + cross-hardware variance: see slide 18 limitations.
+    <span class="warm">Net for the headline:</span> v1.1 closed the scope caveat and bounded the cap for goal + libero_10; spatial/object caps stay open (one-directional). The four-suite gap stands as a <em>protocol-level discrepancy</em>. <span style="color:var(--accent);">ACT × aloha root-caused — we found and fixed our OWN harness normalization bug (#51); canonical 0.824.</span> External replication + cross-hardware variance: see slide 18 limitations.
   </div>
-  <div class="foot"><span>4 of 6 §1 audits closed (incl. ACT norm bug root-caused) · §§1.4–1.6 holding</span><span class="src">docs/PIPELINE_ROADMAP.md</span></div>
+  <div class="foot"><span>scope audit closed by the v1.1 sweep · cap bounded for goal + libero_10 t0 · spatial/object caps open</span><span class="src">docs/SWEEP_V11_LIBERO_RESULTS.md</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1210,10 +1213,10 @@ pre.code .v{color:var(--ink);}
     <span class="eyebrow">the headline isn't one number</span>
     <h2 class="h-2">SmolVLA across all four LIBERO suites.</h2>
   </div>
-  <div class="fig-embed">
-    <img src="../../docs/assets/fig-smolvla-libero.png" alt="SmolVLA success rate across LIBERO suites, with paper-reported rates marked">
+  <div class="fig-embed" style="background:var(--bg);">
+    <img src="../figures/deck/replication_scatter.png" alt="Paper-reported vs measured success rate per cell. The four SmolVLA points are v1.1 10-task suite averages (0.643 spatial, 0.684 object, 0.813 goal, 0.493 libero_10) with cluster-robust 95% t-CIs over the 10 per-task rates; small grey dots behind each mean are the per-task rates. The ACT × aloha point sits at the norm-fixed 0.824, with a hollow pre-fix annotation at 0.016.">
   </div>
-  <div class="foot"><span>solid bars = task_id=0 only · dashes = paper · 10-task suite avg (PR #84 mismatch) · error bars = Wilson 95%</span><span class="src">notebooks/01-write-finding.ipynb</span></div>
+  <div class="foot"><span>smolvla points = v1.1 suite averages · bars = cluster-robust 95% t-CI (task as sampling unit) · grey dots = per-task rates, spread 0.036–0.880</span><span class="src">make paper-figures · figures.py:replication_scatter · results/sweep-v11-libero/results.parquet</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1241,7 +1244,7 @@ pre.code .v{color:var(--ink);}
     </div>
   </div>
   <div class="body" style="margin-top:14px;max-width:none;text-align:center;font-size:22px;">
-    Diffusion Policy on PushT measures 0.816 — +16.2 pp <em>above</em> the Hub card's 0.654, consistent with our lax final_reward≥0.95 over-counting the card's sticky rule. <span class="warm">ACT's 0.016 was OUR eval-harness normalization bug</span> — we skipped dataset stats on the top camera, fixed in #51. Canonical: <strong>0.824 [.772, .866]</strong>. A 2×2 ablation confirms recovery is the norm fix (0.016→0.812), not temporal ensembling (a wash).
+    Diffusion Policy on PushT measures 0.816 — +16.2 pp <em>above</em> the Hub card's 0.654, consistent with our lax final_reward≥0.95 over-counting the card's sticky rule. <span class="warm">ACT's 0.016 was OUR eval-harness normalization bug</span> — we skipped dataset stats on the top camera, fixed in #51. Canonical: <strong>0.824 [.772, .866]</strong>. A 2×2 ablation attributes the recovery to the norm fix (0.016→0.812); the inference-settings effect is inconclusive at this N (Δ=0.044, McNemar p=0.23).
   </div>
   <div class="foot"><span>lerobot/diffusion_pusht · lerobot/act_aloha_sim_transfer_cube_human</span><span class="src">paper §4</span></div>
 </section>
@@ -1276,7 +1279,7 @@ pre.code .v{color:var(--ink);}
       </div>
     </div>
   </div>
-  <div class="foot"><span>no_op = 0 / 1500 · random = 0 everywhere except aloha</span><span class="src">paper §4.3</span></div>
+  <div class="foot"><span>no_op = 0 / 1500 · random = 0 everywhere except aloha</span><span class="src">paper §4</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1455,7 +1458,7 @@ pre.code .v{color:var(--ink);}
     <div class="line" style="color:var(--mute);">  → results/.../videos/*.mp4</div>
   </div>
   <div class="body" style="margin-top:24px;font-size:20px;">
-    Or skip straight to the leaderboard: <span class="mono ink">hf.co/spaces/thrmnn/embodimetry</span>
+    Or skip straight to the leaderboard: <span class="mono ink">hf.co/spaces/thrmnn/embodimetry</span> (released with v1)
   </div>
   <div class="foot"><span>docs/GETTING_STARTED.md · CONTRIBUTING.md</span><span class="src">python 3.12 · pip · git</span></div>
 </section>
@@ -1510,9 +1513,9 @@ pre.code .v{color:var(--ink);}
       <p>Pooled per-policy comparisons aren't statistically defined when env supports don't overlap.</p>
     </div>
     <div class="item">
-      <span class="n">03 / one task / suite</span>
-      <h4>LIBERO at task_id = 0.</h4>
-      <p>v1.1 expands to all 10 tasks per suite. Today's numbers are per-suite, not per-suite-averaged. (See slide 08.)</p>
+      <span class="n">03 / protocol residuals</span>
+      <h4>The suite comparison is protocol-level.</h4>
+      <p>v1.1 ran all 10 tasks per suite; what remains: 5 seeds × 50 ep vs the paper's 10 trials/task, spatial/object caps unprobed vs canonical 600, and n=100 published self-reports with no per-task breakdown. (See slide 08.)</p>
     </div>
   </div>
   <div class="body" style="margin-top:28px;font-size:19px;color:var(--mute);">
@@ -1539,7 +1542,7 @@ pre.code .v{color:var(--ink);}
     <div class="item"><span class="n">03 / mde</span><h4>≈ 12.3 pp at N = 250.</h4><p>Deltas smaller than this are inconclusive — we report them as such, not as findings.</p></div>
   </div>
   <div class="body" style="margin-top:28px;font-size:19px;">
-    A stats reviewer holds <em>veto authority</em> on every numeric claim. Every chart caption is a defensible interval.
+    A stats reviewer holds <em>veto authority</em> on every numeric claim. Every chart caption is a defensible interval. Suite-level claims treat the <em>task</em> as the sampling unit (episode clustering, design effect 25–65×) — episode-iid intervals never carry suite significance.
   </div>
   <div class="foot"><span>src/embodimetry/stats.py · docs/MDE_TABLE.md</span><span class="src">α = 0.05 two-sided</span></div>
 </section>
@@ -1547,24 +1550,24 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <!-- 20 — ROADMAP -->
 <!-- ===================================================================== -->
-<section class="slide" data-section="main" data-cap="v1.1 — what we'd add next.">
+<section class="slide" data-section="main" data-cap="After v1.1 — the open threads.">
   <div class="chrome">
     <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry</div>
     <div class="num">20<span class="of">/</span>22</div>
   </div>
   <div class="title-block" style="margin-top:36px;">
-    <span class="eyebrow">v1.1 — what we'd add next</span>
+    <span class="eyebrow">after v1.1 — what's still open</span>
     <h2 class="h-2">Three open threads.</h2>
   </div>
   <div class="three">
-    <div class="item"><span class="n">→ coverage</span><h4>All 10 LIBERO tasks per suite.</h4><p>Closes the largest caveat from slide 08. ~10× the libero cell count; calibrated to fit a weekend sweep.</p></div>
-    <div class="item"><span class="n">→ xvla</span><h4>Root-cause Bug 3.</h4><p>Chunked-action layout vs <span class="mono ink">empty_camera_0</span> handling. Upstream issue in flight.</p></div>
-    <div class="item"><span class="n">→ upstream</span><h4>Land <span class="mono ink">lerobot.eval.multi_seed</span>.</h4><p>Eval module as a reusable upstream piece. Fork ready. Tests green on our side.</p></div>
+    <div class="item"><span class="n">→ caps</span><h4>Canonical-cap probe for spatial/object.</h4><p>The last open cap caveat: their 280-step caps vs canonical 600. One-directional — can only widen the measured gap — but unprobed until re-run (goal + libero_10 t0 already bounded, slide 08).</p></div>
+    <div class="item"><span class="n">→ data</span><h4>Per-episode Hub dataset, released with v1.</h4><p>Every parquet row + every rollout MP4, SHA-pinned per episode — ships as the open dataset the tables and figures point at.</p></div>
+    <div class="item"><span class="n">→ upstream</span><h4>Land <span class="mono ink">lerobot.eval.multi_seed</span>.</h4><p>Eval module as a reusable upstream piece — rebase and open the <span class="mono">feat/eval-multi-seed</span> PR on the #3674 → #4346 contribution arc.</p></div>
   </div>
   <div class="body" style="margin-top:28px;font-size:19px;color:var(--mute);">
-    Full roadmap (v1.1 → vNext): <span class="mono">docs/PIPELINE_ROADMAP.md</span> — covers pi-family, sim-to-real, MetaWorld, online RL.
+    Full roadmap: <span class="mono">docs/PIPELINE_ROADMAP.md</span> — covers XVLA bug 3, pi-family, sim-to-real, MetaWorld, online RL.
   </div>
-  <div class="foot"><span>docs/DEFERRED_POLICIES.md · docs/PIPELINE_ROADMAP.md</span><span class="src">target: v1.1 cut Q3 2026</span></div>
+  <div class="foot"><span>docs/DEFERRED_POLICIES.md · docs/PIPELINE_ROADMAP.md</span><span class="src">v1.1 10-task sweep landed 2026-07</span></div>
 </section>
 
 <!-- ===================================================================== -->
@@ -1611,22 +1614,22 @@ pre.code .v{color:var(--ink);}
 <!-- ===================================================================== -->
 <!-- S1 — SUPPLEMENTARY: paper vs measured scatter -->
 <!-- ===================================================================== -->
-<section class="slide" data-section="outro" data-cap="Supplementary — paper vs measured, all 5 points.">
+<section class="slide" data-section="outro" data-cap="Supplementary — every v1 cell with Wilson 95% CIs.">
   <div class="chrome">
     <div class="brand"><svg viewBox="0 0 128 128"><use href="#chrome-mark"/></svg> embodimetry · supplementary</div>
     <div class="num">S1<span class="of">/</span>S2</div>
   </div>
   <div class="title-block" style="margin-top:32px;">
     <span class="eyebrow accent">supplementary · for the technically curious</span>
-    <h2 class="h-2">Paper-reported vs measured. <span class="serif-it accent">One picture.</span></h2>
+    <h2 class="h-2">The full v1 leaderboard. <span class="serif-it accent">One picture.</span></h2>
   </div>
   <div class="fig-embed" style="background:var(--bg);">
-    <img src="../figures/deck/replication_scatter.png" alt="Paper-reported vs measured success rate scatter, with Wilson 95% CI error bars; classical heads near the diagonal, SmolVLA cells below. The ACT × aloha point sits at the norm-fixed 0.824 on the diagonal, with a hollow pre-fix annotation at 0.016 showing the jump our normalization fix produced.">
+    <img src="../figures/deck/forest_plot.png" alt="Forest plot: per-cell success rate with Wilson 95% CI for every v1 leaderboard cell, floors at the far left, dotted line at the pooled uniform-random rate. The four SmolVLA rows are labeled task 0.">
   </div>
   <div class="body" style="margin-top:8px;font-size:18px;color:var(--mute);">
-    Above the diagonal = beat the paper. Below = missed it. Grey = inside the MDE band (agrees with paper). The ACT × aloha point is the <span class="accent">norm-fixed 0.824</span>; the hollow point is the <em>pre-fix</em> reading (0.016) before we caught our own normalization bug (#51) — the arrow is the jump the fix produced. <span class="warm">All caveats from slide 08 apply.</span>
+    Every v1 leaderboard cell on one axis — learned policies at the top, no_op/random floors at the bottom; the dotted line is the pooled uniform-random rate. The ACT × aloha row is the <span class="accent">norm-fixed 0.824</span> (its pre-fix reading was 0.016, our own bug, #51). <span class="warm">The four smolvla rows are task-0 cells; the v1.1 suite averages (slides 02 + 09) supersede them for suite-level statements.</span>
   </div>
-  <div class="foot"><span>render-figures replication_scatter · results.parquet + configs/policies.yaml</span><span class="src">paper/figures/deck/replication_scatter.png</span></div>
+  <div class="foot"><span>make paper-figures · figures.py:forest_plot · results/sweep-full/results.parquet</span><span class="src">paper/figures/deck/forest_plot.png</span></div>
 </section>
 
 <!-- ===================================================================== -->
