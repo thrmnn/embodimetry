@@ -558,7 +558,12 @@ async function pollFleet() {
   try {
     const r = await fetch("/fleet_status.json", {cache: "no-store"});
     if (!r.ok) throw 0;
-    renderFleet(await r.json());
+    const f = await r.json();
+    // The baked pane may carry a newer heartbeat than a stale rsync copy
+    // (or vice versa) — always keep whichever generated_at is newer.
+    const baked = $("#chip-fleet")?.dataset.ts;
+    if (baked && Date.parse(baked) > (Date.parse(f.generated_at) || 0)) return;
+    renderFleet(f);
   } catch {}
 }
 function renderPRs(data) {
@@ -599,6 +604,10 @@ addEventListener("DOMContentLoaded", () => {
   paintAges();
   setInterval(paintAges, 60000);
   refresh();
+  setInterval(refresh, 120000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refresh();
+  });
   if ("serviceWorker" in navigator &&
       (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname)))
     navigator.serviceWorker.register("/sw.js").catch(() => {});
