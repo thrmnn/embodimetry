@@ -5,11 +5,15 @@ Usage::
 
     render-figures                              # every figure x every style
     render-figures --style paper                # all figures at paper style
-    render-figures --figure act_probe_bar       # 1 figure at all 3 styles
+    render-figures --figure replication_scatter # 1 figure at all 3 styles
     render-figures --style deck --figure forest_plot --out-dir /tmp/check
 
 Default inputs:
 - ``--results results/sweep-full/results.parquet``
+- ``--v11-results results/sweep-v11-libero/results.parquet`` (feeds the
+  replication scatter's SmolVLA suite-average points; optional — when the
+  gitignored parquet is absent the scatter falls back to pooling from
+  ``--results`` with explicit coverage annotations)
 - ``--out-dir paper/figures``
 
 Each render prints ``<path>\\t<size_bytes>``; the trailing line reports
@@ -67,6 +71,7 @@ _register_brand_fonts()
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_RESULTS = _REPO_ROOT / "results" / "sweep-full" / "results.parquet"
+_DEFAULT_V11_RESULTS = _REPO_ROOT / "results" / "sweep-v11-libero" / "results.parquet"
 _DEFAULT_OUT_DIR = _REPO_ROOT / "paper" / "figures"
 
 
@@ -94,6 +99,16 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f"Path to results parquet. Default: {_DEFAULT_RESULTS}",
     )
     p.add_argument(
+        "--v11-results",
+        type=Path,
+        default=_DEFAULT_V11_RESULTS,
+        help=(
+            "Path to the v1.1 all-10-task LIBERO parquet feeding the replication "
+            "scatter's SmolVLA suite-average points (cluster-robust t-CIs + per-task "
+            f"dots). Optional; skipped with a warning when absent. Default: {_DEFAULT_V11_RESULTS}"
+        ),
+    )
+    p.add_argument(
         "--out-dir",
         type=Path,
         default=_DEFAULT_OUT_DIR,
@@ -109,17 +124,25 @@ def _load_results(path: Path, figure: str) -> pd.DataFrame:
     if not path.exists():
         raise SystemExit(
             f"results parquet not found: {path}\n"
-            "  (act_probe_bar / act_norm_ablation_2x2 can render "
+            "  (act_norm_ablation_2x2 / failure_taxonomy_v11 can render "
             "without it; the other figures cannot.)"
         )
     return pd.read_parquet(path)
 
 
-def _render_one(figure: str, style: Style, df: pd.DataFrame, out_dir: Path) -> list[Path]:
+def _render_one(
+    figure: str,
+    style: Style,
+    df: pd.DataFrame,
+    out_dir: Path,
+    v11_df: pd.DataFrame | None = None,
+) -> list[Path]:
     fn = FIGURES[figure]
     kwargs: dict[str, Any] = {"style": style, "out_dir": out_dir}
     if figure in PARQUET_FREE_FIGURES:
         return list(fn(**kwargs))
+    if figure == "replication_scatter":
+        kwargs["v11_df"] = v11_df
     return list(fn(df, **kwargs))
 
 
@@ -133,13 +156,24 @@ def main(argv: list[str] | None = None) -> int:
     # Load parquet once and reuse — read_parquet is the dominant cost
     # for the leaderboard figures.
     needs_df = any(f not in PARQUET_FREE_FIGURES for f in figures)
-    df = _load_results(args.results, figure="forest_plot" if needs_df else "act_probe_bar")
+    df = _load_results(args.results, figure="forest_plot" if needs_df else "act_norm_ablation_2x2")
+
+    v11_df: pd.DataFrame | None = None
+    if "replication_scatter" in figures:
+        if args.v11_results.exists():
+            v11_df = pd.read_parquet(args.v11_results)
+        else:
+            print(
+                f"# v1.1 parquet not found: {args.v11_results} — replication_scatter "
+                "falls back to pooled suite rows from --results",
+                file=sys.stderr,
+            )
 
     t0 = time.perf_counter()
     written: list[Path] = []
     for figure in figures:
         for style in styles:
-            paths = _render_one(figure, style, df, args.out_dir)
+            paths = _render_one(figure, style, df, args.out_dir, v11_df=v11_df)
             for path in paths:
                 size = path.stat().st_size
                 print(f"{path}\t{size}")

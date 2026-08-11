@@ -383,6 +383,42 @@ def wilson_halfwidth_at_p(p: float, n: int, *, alpha: float = 0.05) -> float:
     return float((hi - lo) / 2.0)
 
 
+def cluster_mean_t_ci(
+    rates: NDArray[np.floating] | list[float],
+    *,
+    alpha: float = 0.05,
+) -> tuple[float, float]:
+    """Cluster-robust t-CI on the mean of per-cluster success rates.
+
+    The house rule for clustered episode data (SWEEP_V11_LIBERO_RESULTS.md
+    § 1, § 6.2): episodes within a task are heavily correlated (design
+    effect 25–65×), so suite-level uncertainty must treat the *task* as
+    the sampling unit — a one-sample t interval over the K per-task
+    rates, ``mean ± t_{1-α/2, K-1} · sd / sqrt(K)`` — never an
+    episode-iid Wilson/binomial interval on the pooled counts.
+
+    Args:
+        rates: per-cluster (per-task) success rates; needs ``K >= 2``.
+        alpha: significance level (default 0.05 ⇒ 95% CI).
+
+    Returns:
+        ``(lo, hi)`` bounds of the ``1 - alpha`` t interval on the mean.
+    """
+    arr = np.asarray(rates, dtype=np.float64)
+    if arr.ndim != 1:
+        raise ValueError(f"rates must be 1-D, got shape {arr.shape}")
+    if arr.size < 2:
+        raise ValueError(f"need >= 2 cluster rates for a t interval, got {arr.size}")
+    if not 0.0 < alpha < 1.0:
+        raise ValueError(f"alpha must be in (0, 1), got {alpha}")
+
+    k = arr.size
+    mean = float(arr.mean())
+    se = float(arr.std(ddof=1) / np.sqrt(k))
+    t_crit = float(scipy_stats.t.ppf(1.0 - alpha / 2.0, k - 1))
+    return mean - t_crit * se, mean + t_crit * se
+
+
 def mcnemar_paired(b: int, c: int, *, exact: bool = True) -> tuple[float, float]:
     """Paired McNemar test on a 2×2 table of paired binary outcomes.
 

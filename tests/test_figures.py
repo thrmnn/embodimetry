@@ -7,7 +7,6 @@ runs without ``results/sweep-full/results.parquet`` on disk.
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -28,8 +27,8 @@ from embodimetry.figures import (  # noqa: E402
     MDE_BAND,
     STYLES,
     act_norm_ablation_2x2,
-    act_probe_bar,
     apply_style,
+    failure_taxonomy_v11,
     forest_plot,
     replication_scatter,
 )
@@ -114,31 +113,12 @@ def test_forest_plot_produces_file_per_format(tmp_path: Path) -> None:
             assert p.parent == tmp_path / style
 
 
-def test_act_probe_bar_loads_from_summary_json_if_present(tmp_path: Path) -> None:
-    summary = {
-        "per_seed_success_rate": {"0": 0.10, "1": 0.10, "2": 0.10, "3": 0.10, "4": 0.10},
-        "pooled_success_rate": 0.10,
-        "n_episodes_per_seed": 50,
-        "v1_default_rate": 0.05,
-    }
-    summary_path = tmp_path / "summary.json"
-    summary_path.write_text(json.dumps(summary))
-    data = fig_mod._load_probe_data(summary_path)
-    assert data["probe"]["rate"] == pytest.approx(0.10)
-    assert data["probe"]["per_seed"] == [0.10] * 5
-    assert data["v1_default"]["rate"] == pytest.approx(0.05)
-    paths = act_probe_bar(style="web", out_dir=tmp_path, summary_path=summary_path)
-    assert all(p.exists() and p.stat().st_size > 0 for p in paths)
-
-
-def test_act_probe_bar_falls_back_to_hardcoded(tmp_path: Path) -> None:
-    paths = act_probe_bar(
-        style="paper", out_dir=tmp_path, summary_path=tmp_path / "does-not-exist.json"
-    )
-    assert all(p.exists() for p in paths)
-    data = fig_mod._load_probe_data(tmp_path / "does-not-exist.json")
-    assert data["probe"]["rate"] == pytest.approx(0.764)
-    assert data["v1_default"]["rate"] == pytest.approx(0.016)
+def test_act_probe_bar_is_retired() -> None:
+    # The probe bar hardcoded the abandoned "inference settings are the
+    # load-bearing variable" framing; it must stay out of the registry so
+    # `make paper-figures` cannot regenerate a paper-contradicting asset.
+    assert "act_probe_bar" not in fig_mod.FIGURES
+    assert not hasattr(fig_mod, "act_probe_bar")
 
 
 def test_act_norm_ablation_2x2_produces_file_per_format(tmp_path: Path) -> None:
@@ -304,7 +284,7 @@ def test_collect_replication_non_smolvla_cell_unchanged() -> None:
     assert row["n_tasks_expected"] is None
 
 
-def test_cli_renders_all_9_with_defaults(tmp_path: Path) -> None:
+def test_cli_renders_all_figures_with_defaults(tmp_path: Path) -> None:
     df = _synthetic_df()
     results_path = tmp_path / "results.parquet"
     df.to_parquet(results_path)
@@ -326,9 +306,9 @@ def test_cli_renders_all_9_with_defaults(tmp_path: Path) -> None:
     )
     fig_names = (
         "forest_plot",
-        "act_probe_bar",
         "act_norm_ablation",
         "replication_scatter",
+        "failure_taxonomy_v11",
     )
     expected: list[Path] = []
     for fig_name in fig_names:
@@ -340,3 +320,120 @@ def test_cli_renders_all_9_with_defaults(tmp_path: Path) -> None:
         assert p.stat().st_size > 0
     # 4 figs x (paper(2) + deck(1) + web(1)) = 16 files
     assert len(expected) == len(fig_names) * 4
+
+
+def _v11_suite_df(task_rates: list[float], suite: str = "libero_spatial") -> pd.DataFrame:
+    """All-10-task v1.1-shaped frame with exact per-task success rates."""
+    assert len(task_rates) == 10
+    rows: list[dict[str, object]] = []
+    for t, rate in enumerate(task_rates):
+        env = suite if t == 0 else f"{suite}_t{t}"
+        rows += _smolvla_cell(env, n_success=round(rate * 50), n_total=50)
+    return pd.DataFrame(rows)
+
+
+def test_smolvla_suite_v11_row_uses_cluster_t_ci() -> None:
+    scipy_stats = pytest.importorskip("scipy.stats")
+    task_rates = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.4, 0.6]
+    df = _v11_suite_df(task_rates)
+    row = fig_mod._smolvla_suite_v11_row(df, "libero_spatial", 0.90)
+    assert row is not None
+    import numpy as np
+
+    arr = np.asarray(task_rates)
+    mean = arr.mean()
+    hw = float(scipy_stats.t.ppf(0.975, 9)) * arr.std(ddof=1) / np.sqrt(10)
+    assert row["measured"] == pytest.approx(mean)
+    assert row["lo"] == pytest.approx(mean - hw)
+    assert row["hi"] == pytest.approx(mean + hw)
+    assert row["task_rates"] == pytest.approx(task_rates)
+    assert row["ci_kind"] == "cluster_t"
+    assert row["n"] == 500
+    # The t-CI excludes the published 0.90, so the point must NOT grey out.
+    assert row["hi"] < 0.90
+    assert row["inside_mde"] is False
+
+
+def test_smolvla_suite_v11_row_rejects_partial_suite() -> None:
+    df = _v11_suite_df([0.5] * 10)
+    partial = df[df["env"] != "libero_spatial_t7"]
+    assert fig_mod._smolvla_suite_v11_row(partial, "libero_spatial", 0.90) is None
+
+
+def test_collect_replication_rows_prefers_v11_df() -> None:
+    # v1-shaped df: task-0 cell only, at a rate far from the v11 suite mean.
+    v1_df = pd.DataFrame(_smolvla_cell("libero_spatial", n_success=5, n_total=50))
+    v11_df = _v11_suite_df([0.6] * 10)
+    rows = fig_mod._collect_replication_rows(v1_df, _smolvla_registry(), v11_df=v11_df)
+    assert len(rows) == 1
+    assert rows[0]["ci_kind"] == "cluster_t"
+    assert rows[0]["measured"] == pytest.approx(0.6)
+
+
+def test_replication_scatter_renders_with_v11_df(tmp_path: Path) -> None:
+    v1_df = pd.DataFrame(_smolvla_cell("libero_spatial", n_success=5, n_total=50))
+    v11_df = _v11_suite_df([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.4, 0.6])
+    paths = replication_scatter(
+        v1_df, style="web", out_dir=tmp_path, registry=_smolvla_registry(), v11_df=v11_df
+    )
+    assert all(p.exists() and p.stat().st_size > 0 for p in paths)
+
+
+def _synthetic_taxonomy_csv(tmp_path: Path) -> Path:
+    lines = ["labeled_by,date_iso,artifact,policy,env,observed_mode,canonical_label,notes"]
+    cells_labels = [
+        ("libero_spatial_t5", ["premature_release"] * 7 + ["gripper_slip"] * 4 + ["wrong_object"]),
+        ("libero_10", ["timeout"] * 12),
+        ("libero_10_t4", ["gripper_slip"] * 4 + ["timeout"] * 5 + ["premature_release"] * 3),
+        ("libero_10_t6", ["timeout"] * 10 + ["wrong_object"] * 2),
+        ("libero_10_t7", ["timeout"] * 11 + ["wrong_object"]),
+    ]
+    for env, labels in cells_labels:
+        for i, label in enumerate(labels):
+            lines.append(f"x,2026-08-10,v{i}.mp4,smolvla_libero,{env},obs,{label},note")
+    lines.append("x,2026-08-10,s.mp4,smolvla_libero,libero_spatial_t5,ok,success_reference,note")
+    path = tmp_path / "labels.csv"
+    path.write_text("\n".join(lines) + "\n")
+    return path
+
+
+def test_taxonomy_counts_excludes_success_reference(tmp_path: Path) -> None:
+    counts = fig_mod._taxonomy_counts(_synthetic_taxonomy_csv(tmp_path))
+    assert counts.loc["libero_spatial_t5", "premature_release"] == 7
+    assert counts.loc["libero_spatial_t5", "gripper_slip"] == 4
+    assert counts.loc["libero_10", "timeout"] == 12
+    # Empty-mode honesty: zero cells exist rather than being dropped.
+    assert counts.loc["libero_10", "drift"] == 0
+    assert (counts.sum(axis=1) == 12).all()
+
+
+def test_taxonomy_counts_raises_on_unknown_label(tmp_path: Path) -> None:
+    path = tmp_path / "bad.csv"
+    path.write_text(
+        "labeled_by,date_iso,artifact,policy,env,observed_mode,canonical_label,notes\n"
+        "x,2026-08-10,v.mp4,smolvla_libero,libero_10,obs,made_up_mode,note\n"
+    )
+    with pytest.raises(ValueError, match="made_up_mode"):
+        fig_mod._taxonomy_counts(path)
+
+
+def test_failure_taxonomy_v11_produces_file_per_format(tmp_path: Path) -> None:
+    csv_path = _synthetic_taxonomy_csv(tmp_path)
+    for style in STYLES:
+        paths = failure_taxonomy_v11(style=style, out_dir=tmp_path, labels_csv=csv_path)
+        assert len(paths) == len(STYLES[style]["formats"])
+        for p in paths:
+            assert p.exists()
+            assert p.stat().st_size > 0
+            assert p.stem == "failure_taxonomy_v11"
+
+
+def test_failure_taxonomy_v11_renders_from_committed_csv(tmp_path: Path) -> None:
+    committed = _REPO_ROOT / "docs" / "assets" / "failure-taxonomy-labels-v11.csv"
+    assert committed.exists()
+    counts = fig_mod._taxonomy_counts(committed)
+    # 62 rows = 60 failures + 2 success references (excluded).
+    assert int(counts.to_numpy().sum()) == 60
+    assert (counts.sum(axis=1) == 12).all()
+    paths = failure_taxonomy_v11(style="paper", out_dir=tmp_path, labels_csv=committed)
+    assert all(p.exists() for p in paths)

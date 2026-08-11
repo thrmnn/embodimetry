@@ -17,6 +17,7 @@ from embodimetry.stats import (
     LIBERO_SUITES,
     bootstrap_ci,
     bootstrap_pivotal_ci,
+    cluster_mean_t_ci,
     cohens_h,
     holm_bonferroni,
     mcnemar_paired,
@@ -753,3 +754,26 @@ def test_pool_binomial_rejects_bad_inputs() -> None:
         pool_binomial([0], [0])
     with pytest.raises(ValueError, match="ci must be in"):
         pool_binomial([1], [10], ci=1.0)
+
+
+def test_cluster_mean_t_ci_matches_hand_computation() -> None:
+    rates = [0.8, 0.772, 0.784, 0.784, 0.472, 0.036, 0.88, 0.732, 0.58, 0.592]
+    lo, hi = cluster_mean_t_ci(rates)
+    arr = np.asarray(rates)
+    hw = float(scipy_stats.t.ppf(0.975, 9)) * arr.std(ddof=1) / np.sqrt(10)
+    assert lo == pytest.approx(arr.mean() - hw)
+    assert hi == pytest.approx(arr.mean() + hw)
+    # The v1.1 libero_spatial per-task rates: SWEEP_V11 § 1 publishes
+    # mean 0.643, cluster-robust t-CI [0.466, 0.820].
+    assert arr.mean() == pytest.approx(0.6432, abs=1e-4)
+    assert lo == pytest.approx(0.466, abs=5e-4)
+    assert hi == pytest.approx(0.820, abs=5e-4)
+
+
+def test_cluster_mean_t_ci_rejects_bad_inputs() -> None:
+    with pytest.raises(ValueError, match=">= 2"):
+        cluster_mean_t_ci([0.5])
+    with pytest.raises(ValueError, match="alpha"):
+        cluster_mean_t_ci([0.4, 0.6], alpha=1.5)
+    with pytest.raises(ValueError, match="1-D"):
+        cluster_mean_t_ci(np.zeros((2, 2)))
