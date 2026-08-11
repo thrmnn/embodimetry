@@ -9,6 +9,10 @@ gitignored and the repo is public.
     python scripts/fleet_status.py            # heartbeat: refresh generated_at + push
     python scripts/fleet_status.py --no-push  # local write only
 
+Report a milestone via `add_milestone(status, track_id, text, link=None)` —
+it bumps the track's `last_event_at` for you; never append to `milestones`
+by hand.
+
 Schema v1 keys: schema, generated_at, heartbeat_interval_s, orchestrator,
 dashboard_up, git_sha, needs_theo[], sweeps[], tracks[] (id, title, state,
 now, last_event_at, gates[], milestones[] capped at 10, pr?).
@@ -54,7 +58,28 @@ def save(status: dict, *, push: bool = True) -> None:
     tmp.write_text(json.dumps(status, indent=1, ensure_ascii=False) + "\n")
     os.replace(tmp, STATUS)
     if push:
-        subprocess.run(["rsync", "-az", "--chmod=F644", str(STATUS), REMOTE], check=False)
+        # check=True: a silent rsync failure means the cockpit keeps showing a
+        # stale heartbeat while everything looks green from the laptop.
+        subprocess.run(["rsync", "-az", "--chmod=F644", str(STATUS), REMOTE], check=True)
+
+
+def add_milestone(status: dict, track_id: str, text: str, link: str | None = None) -> dict:
+    """Append a milestone to a track and bump its last_event_at in one step.
+
+    The bump lives here, not as a caller convention — a milestone without a
+    matching last_event_at renders as a track that looks idle while its
+    milestone list grows.
+    """
+    ts = now()
+    for track in status.get("tracks", []):
+        if track.get("id") == track_id:
+            milestone = {"ts": ts, "text": text}
+            if link:
+                milestone["link"] = link
+            track.setdefault("milestones", []).append(milestone)
+            track["last_event_at"] = ts
+            return milestone
+    raise KeyError(f"no track with id {track_id!r} in fleet status")
 
 
 if __name__ == "__main__":
