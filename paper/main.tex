@@ -122,17 +122,21 @@ world-model planner~\cite{zhou2024dinowm,assran2025vjepa2} are never
 measured on a common axis --- protocols differ in seed counts, episode
 budgets, success thresholds, and whether confidence intervals are reported
 at all, a reproducibility gap documented repeatedly in adjacent
-fields~\cite{henderson2018deep,agarwal2021deep}. \textbf{Building a ruler
+fields~\cite{henderson2018deep,agarwal2021deep,patterson2024empirical}.
+\textbf{Building a ruler
 that scores them together is the load-bearing contribution of this
 paper.} We introduce \emph{embodimetry}, a \emph{Capability-Ladder Audit}:
 it measures multiple paradigms as the \emph{same} \texttt{PolicyCallable}
 (\texttt{obs} $\to$ \texttt{action}) through \emph{one} seed / Wilson-CI /
 MDE contract on shared LeRobot~\cite{cadene2024lerobot} tasks, with floor
 baselines and honest negatives (the SmolVLA-LoRA collapse, the classical
-$0.012$) kept on the board --- no neighbor (HF leaderboards, MLPerf, Open
-X-Embodiment~\cite{bohg2024open}, or the world-model
-benchmarks~\cite{zhou2024dinowm,assran2025vjepa2}) puts paradigms on one
-ruler with the negatives retained. The instrument is paradigm-neutral by
+$0.012$) kept on the board. Neighboring efforts (HF leaderboards, MLPerf,
+Open X-Embodiment~\cite{bohg2024open}, the world-model
+benchmarks~\cite{zhou2024dinowm,assran2025vjepa2}, and the emerging
+evaluation-audit thread of \S\ref{sec:related}) each cover part of this;
+to our knowledge, none combines one cross-paradigm ruler with retained
+negatives and a \emph{code-enforced self-audit} of its own harness. The
+instrument is paradigm-neutral by
 construction: it has no stake in which rung wins.
 
 We stand behind three reproducible contributions, developed in
@@ -204,11 +208,34 @@ X-Embodiment~\cite{bohg2024open} offer larger taxonomies but no
 pretrained LeRobot-compatible checkpoints or shared protocol. None ship a
 multi-policy leaderboard with shared seed accounting, multi-seed CIs, and
 re-runnable rows. We adopt the multi-seed, bootstrap-CI, MDE-bounded
-posture that Henderson et al.~\cite{henderson2018deep} and Agarwal et
-al.~\cite{agarwal2021deep} established for deep RL, and add weights-free
+posture that Henderson et al.~\cite{henderson2018deep}, Agarwal et
+al.~\cite{agarwal2021deep}, and Patterson et
+al.~\cite{patterson2024empirical} established for deep RL, and add
+weights-free
 no-op/uniform-random floor baselines on every cell (per the
 Gym~\cite{brockman2016openai} convention) since some envs admit non-zero
 random success.
+
+\paragraph{Evaluation rigor and benchmark auditing.}
+A growing thread treats robot-policy evaluation itself as the object of
+study: best-practice guidance for policy
+evaluation~\cite{kressgazit2024robot}, statistical frameworks for
+trustworthy performance claims at small
+$n$~\cite{vincent2024generalizable}, and simulation-based evaluation
+validated against real-robot outcomes~\cite{li2024simpler}. Closest to
+our outward-facing audit, vla-eval~\cite{choi2026vlaeval} reproduces
+published VLA scores across simulation benchmarks --- including LIBERO,
+the canonical open-VLA eval target since
+OpenVLA~\cite{kim2024openvla} --- and documents previously undocumented
+protocol pitfalls in doing so; LIBERO-Plus~\cite{fei2025liberoplus} and
+LIBERO-PRO~\cite{zhou2025liberopro} stress-test LIBERO-evaluated VLAs for
+robustness and memorization, complementing our suite-level protocol
+finding (\S\ref{sec:suite-audit}). These efforts audit \emph{policies} or
+\emph{other} benchmarks; to our knowledge, none makes auditing its
+\emph{own} harness a first-class, code-enforced contribution --- a
+regression-guarded self-audit (\S\ref{sec:guard}) with a controlled
+attribution ablation --- which is the narrower uniqueness claim this
+paper defends.
 
 \paragraph{Cross-paradigm and world-model planning.}
 The ladder we audit spans paradigms each benchmarked in isolation:
@@ -219,8 +246,9 @@ report success on their own tasks, never against a learned imitation
 policy under one shared seed/CI protocol. Our contribution is not a new
 policy class but the \emph{contract} that puts a pretrained, fine-tuned,
 classical, \emph{and} world-model planner on the same Wilson interval ---
-with floor baselines and honest negatives retained, which no neighboring
-benchmark does --- plus the \emph{cross-env, cross-family study it makes
+with floor baselines and honest negatives retained, a combination we have
+not found in any neighboring benchmark --- plus the \emph{cross-env,
+cross-family study it makes
 possible}: running the same receding-horizon latent-MPC loop across two
 world-model families (DINO-WM, \texttt{jepa-wms}) on envs of differing
 dynamical complexity, which yields a two-endpoint reading --- zero-training
@@ -720,7 +748,11 @@ plots every cell's measured rate against its paper-reported rate and shows
 the $0.016\to0.824$ jump directly. The lesson
 generalises: an eval suite must be audited --- normalization,
 buffer wiring, observation plumbing --- as carefully as the policies it
-scores (Section~\ref{sec:results-audit}).
+scores (Section~\ref{sec:results-audit}). It is not unique to us:
+vla-eval~\cite{choi2026vlaeval}, reproducing published VLA scores across
+simulation benchmarks, independently documents the same failure class ---
+underspecified protocols and undocumented preprocessing that must be
+reverse-engineered before published numbers reproduce.
 
 \begin{table}[t]
 \centering
