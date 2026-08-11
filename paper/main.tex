@@ -76,58 +76,27 @@ reproducible eval contract\vspace{-0.5ex}}
 % ---------------------------------------------------------------- %
 
 \begin{abstract}
-The animating question of this work is whether a zero-training world-model
-planner can stand in for a learned policy, and \emph{where} it cannot: does
-its success track the dynamical complexity of the environment? Robot-policy
-success rates are reported per paradigm --- pretrained imitation,
-fine-tuning, classical control, world-model planning --- on incompatible
-protocols, so the paradigms cannot be put on one axis. \emph{Building a
-ruler that scores them together is the load-bearing contribution of this
-paper.} We introduce \emph{embodimetry}, a
-\emph{Capability-Ladder Audit}, and stand behind three reproducible
-contributions. \emph{First, a single cross-paradigm evaluation contract}:
-pretrained, fine-tuned, classical-control, and world-model-planner policies
-are all scored as the \emph{same} \texttt{PolicyCallable} under one seed /
-Wilson-and-bootstrap-CI / minimum-detectable-effect (MDE) ruler on shared
+Robot-policy success rates are reported per paradigm --- pretrained
+imitation, fine-tuning, classical control, world-model planning --- on
+incompatible protocols, so the paradigms cannot be put on one axis. We
+introduce \emph{embodimetry}, a \emph{Capability-Ladder Audit} that scores
+all four paradigms as the \emph{same} \texttt{PolicyCallable} under one
+seed / confidence-interval / minimum-detectable-effect contract on shared
 LeRobot~\cite{cadene2024lerobot} tasks, with floor baselines and honest
-negatives (a SmolVLA-LoRA collapse, a classical controller at $0.012$) kept
-on the board --- no neighboring effort puts paradigms on one ruler with the
-negatives retained. \emph{Second, a self-auditing methodology}: the
-instrument caught and corrected its \emph{own} headline overclaim --- a
-normalization bug in our harness pinned ACT on Aloha-transfer-cube at
-$\hat{p}{=}0.016$ (below the env's random floor), and a clean $2{\times}2$
-ablation isolated the full $0.016\to0.824$ recovery to the normalization
-fix, not inference settings --- and a guard test code-enforces that the
-over-claimed top rung stays labeled to its evidence; an eval suite must be
-audited as carefully as the policies it scores. \emph{Third, a
-strengthened-but-qualified L3 reading the contract was built to test}:
-under matched receding-horizon MPC, zero-training world-model latent-MPC
-planning solves \emph{navigation} but not \emph{contact}, replicated across
-two independent world-model families (DINO-WM,
-\texttt{facebookresearch/jepa-wms}) --- Wall navigation JEPA-WM $4/6
-\approx$ DINO-WM $3/6$, PushT contact JEPA-WM $0/6 \approx$ DINO-WM $0/6$.
-An earlier one-shot $0/6$ JEPA-WM Wall reading was a
-\emph{planning-protocol artifact} (full-horizon vs.\ receding-horizon),
-corrected by a protocol control; the contact endpoint stays ${\sim}0$
-\emph{even with} receding-horizon and across both families, so the
-nav$>$contact gap is neither a protocol artifact nor
-checkpoint-specific. We report this as a strengthened result, not a
-cross-env law: it is a \emph{two-endpoint} contrast at $N{=}6$ episodes per
-cell with one environment per endpoint, so the gradient \emph{middle} is
-unmeasured (a MetaWorld anchor is future work); the L3 cells run as a
-cross-repo artifact (\texttt{lerobot-wm-research}) on the same eval
-contract. \textbf{L0} (pretrained Diffusion Policy on PushT) scores
-$0.816$~[0.739, 0.874]. \textbf{L1} (continued fine-tuning of an
-already-converged ACT on Aloha-transfer-cube) moves $0.824$~[0.772, 0.866]
-to $0.864$~[0.816, 0.901] --- a $+0.040$ shift whose CIs \emph{overlap}
-(Cohen's $h{=}0.11$, below the $N{=}250$ MDE), reported as within noise; an
-attempted SmolVLA LoRA fine-tune collapses ($0.252\to0/50$ on a seed-0
-probe). \textbf{L2}
-(a competent scripted PushT controller) clears the strict bar on only
-$0.012$~[0.004, 0.035] of episodes despite mean rollout coverage near
-$0.50$. The contributions we stand behind are the contract, the
-self-audit, and the L3 two-endpoint nav-vs-contact replication; the full
-dynamics-complexity \emph{curve} remains future work.
+negatives kept on the board. The instrument audits itself: it caught a
+normalization bug in \emph{our own} harness that pinned ACT at $0.016$
+(below the env's random floor), and a controlled $2{\times}2$ ablation
+attributed the $0.016\to0.824$ recovery to the fix; a guard test
+code-enforces that every result keeps its caveats. Pointed outward, the
+contract measures a protocol-level discrepancy against SmolVLA's published
+LIBERO suite averages that survives 10-task suite averaging in all four
+suites ($-10.7$ to $-27.6$\,pp; task-as-sampling-unit $t$-tests,
+Holm-adjusted $p\le0.037$; the goal gap is smallest and statistically
+marginal). At the top rung, under matched receding-horizon MPC, a
+zero-training world-model planner reaches $4/6$ (JEPA-WM) and $3/6$
+(DINO-WM) on Wall navigation but $0/6\approx0/6$ on PushT contact, a
+direction that replicates across both world-model families --- a
+two-endpoint contrast at $N{=}6$ episodes per cell, not a cross-env law.
 \end{abstract}
 
 % ---------------------------------------------------------------- %
@@ -276,7 +245,11 @@ final-step reward meets or exceeds it. PR~\#90 adds a selectable
 \texttt{--canonical} criterion (paper termination rule, 600-step LIBERO
 cap); v1 ships the \texttt{v1\_legacy} (final-reward-threshold)
 criterion --- not lerobot's canonical sticky-success reduction; lerobot
-defaults supplied only the step caps --- and v1.1 reruns affected cells.
+defaults supplied only the step caps. The v1.1 follow-up sweep re-ran the
+affected scope: all 10 tasks of all four LIBERO suites
+($40$~envs $\times$ 5~seeds $\times$ 50~episodes) plus a full
+canonical-cap (600-step) probe of the goal suite
+(\S\ref{sec:suite-audit}).
 
 \paragraph{Seeding contract.}
 Per cell, three RNGs are seeded with
@@ -304,6 +277,20 @@ McNemar~\cite{mcnemar1947note} for binary outcomes), plus Cohen's
 $h{=}2\arcsin\!\sqrt{p_1}-2\arcsin\!\sqrt{p_2}$~\cite{cohen1988statistical}
 ($|h|{<}0.2$ small). Multiple within-env ranking claims are controlled by
 Holm--Bonferroni~\cite{holm1979simple} at $\alpha{=}0.05$.
+
+\paragraph{Suite-level claims: the task is the sampling unit.}
+The episode-level intervals above assume iid episodes, which fails for
+\emph{suite}-level claims: LIBERO episodes cluster heavily by task
+(within-suite per-task rates span $0.036$--$0.880$; ANOVA ICC
+$0.10$--$0.26$, design effect $25$--$65\times$, effective
+$n\approx39$--$101$ rather than $2{,}500$), so an episode-iid interval on
+a suite average is anticonservative by orders of magnitude. Every
+suite-level claim in this paper therefore treats the \emph{task} as the
+sampling unit: a one-sample $t$ over the 10 per-task rates against the
+published suite mean, with a cluster-robust 95\% $t$-CI on the mean
+per-task rate, Holm-corrected across the four suites. Episode-level Wilson
+intervals on suite aggregates are demoted to descriptive summaries and
+never carry a significance claim.
 
 \paragraph{Minimum detectable effect.}
 At $N{=}250$ the Wilson 95\% half-width at worst case $\hat{p}{=}0.5$ is
@@ -625,7 +612,10 @@ random/no-op & other envs  & 2750 & 0.000 & [0.000, 0.001] \\
 \bottomrule
 \end{tabular}
 \caption{v1 per-cell success rate with Wilson 95\% CI, $N{=}5\cdot
-n_\text{ep}$ binary outcomes per cell. $^\dagger$auto-downscoped
+n_\text{ep}$ binary outcomes per cell. SmolVLA rows are
+\texttt{task\_id=0} cells; suite-level statements use the v1.1
+suite-averaged rates (Table~\ref{tab:suite-gap}).
+$^\dagger$auto-downscoped
 diffusion$\times$pusht ($n_\text{ep}{=}25$, $N{=}125$;
 \S\ref{sec:downscope}). Uniform-random clears floor only on
 \texttt{aloha\_transfer\_cube}, so the floor is per-cell; the pooled
@@ -640,9 +630,11 @@ $N{=}250$, $\hat{p}{=}0.5$ is $0.123$; 22~runnable cells; XVLA deferred.}
 \includegraphics[width=0.6\linewidth]{figures/paper/forest_plot.pdf}
 \caption{Per-cell success rate with Wilson 95\% CIs for every v1
 leaderboard cell (\S\ref{sec:methods}); the dotted line is the pooled
-uniform-random rate. Floor baselines sit at the far left and the SmolVLA
-per-suite gradient (\texttt{goal}~$0.928$ down to \texttt{libero\_10}~$0.252$)
-spreads across the axis. \texttt{xvla\_libero} excluded (deferred). Source:
+uniform-random rate. Floor baselines sit at the far left. The four SmolVLA
+rows are \emph{task-0-only} cells (\texttt{goal}~$0.928$ down to
+\texttt{libero\_10}~$0.252$); the v1.1 suite-averaged rates
+(Table~\ref{tab:suite-gap}: $0.813$ down to $0.493$) supersede them as
+suite-level statements. \texttt{xvla\_libero} excluded (deferred). Source:
 \texttt{results/sweep-full/results.parquet} via
 \texttt{src/embodimetry/figures.py:forest\_plot}.}
 \label{fig:forest}
@@ -710,44 +702,162 @@ $N{=}250$ MDE band ($\pm0.123$) are greyed (``agrees with paper''); others
 colored by policy. ACT~$\times$~\texttt{aloha\_transfer\_cube} plots at its
 norm-\emph{fixed} $0.824$, with the pre-fix $0.016$ harness-bug point
 (\S\ref{sec:results-audit}) annotated and connected. SmolVLA~$\times$~LIBERO
-points carry a ``(single-task)'' tag: the v1 sweep ran \texttt{task\_id=0}
-only, vs.\ the paper's 10-task suite averages, so those gaps are not
-apples-to-apples. Source: \texttt{results/sweep-full/} plus the corrected
-ACT rerun, via \texttt{src/embodimetry/figures.py:replication\_scatter}.}
+points carry a ``(partial: 1/10 tasks)'' tag: the v1 sweep ran
+\texttt{task\_id=0} only, vs.\ the paper's 10-task suite averages, so those
+v1 gaps are not apples-to-apples --- the v1.1 suite-averaged comparison is
+Table~\ref{tab:suite-gap}. Source: the canonical
+\texttt{results/sweep-full/results.parquet} (ACT cell already spliced to
+the corrected rerun), via
+\texttt{src/embodimetry/figures.py:replication\_scatter}.}
 \label{fig:replication}
 \end{figure}
 
-\paragraph{Leaderboard context and baseline sanity.}
-For context, SmolVLA's per-suite rates under our protocol
-(\texttt{task\_id=0}, env-default caps) span a sharp gradient (0.928
-\texttt{goal} down to 0.252 \texttt{libero\_10}); these are single-task
-envelopes, not suite
-replications of the paper's 10-task averages~\cite{shukor2025smolvla}
-(\S\ref{sec:results-audit}). The floor baselines confirm the bar is real:
+\paragraph{Baseline sanity.}
+The floor baselines confirm the bar is real:
 no-op succeeds zero times across all six envs ($N{=}1500$, Wilson upper
 $0.003$), and uniform-random is above floor only on
 \texttt{aloha\_transfer\_cube} ($0.052$~[0.031, 0.087]) --- so the floor
-is not one number, which is why we run it on every cell.
+is not one number, which is why we run it on every cell. No floor baseline
+was run on the cross-repo Wall env (\S\ref{sec:l3}), an acknowledged gap
+in the floor matrix.
+
+\subsection{The audit pointed outward: SmolVLA's published LIBERO
+averages under our protocol}
+\label{sec:suite-audit}
+The v1 SmolVLA cells were \texttt{task\_id=0} envelopes, so v1 could not
+compare against the published 10-task suite
+averages~\cite{shukor2025smolvla}. The v1.1 sweep closes that scope gap:
+all 10 tasks of all four LIBERO suites, $5$~seeds $\times$ $50$~episodes
+per task ($2{,}500$ episodes per suite; $10{,}000$ total, 0 errored),
+under the same v1 criterion and checkpoint pin. \textbf{The gap survives
+suite-averaging in all four suites}
+(Table~\ref{tab:suite-gap}): $-25.7$\,pp (spatial), $-27.6$\,pp (object),
+$-10.7$\,pp (goal), $-21.7$\,pp (\texttt{libero\_10}), each rejecting at
+$\alpha{=}0.05$ with the task as the sampling unit after Holm correction
+(\S\ref{sec:methods}). Object and spatial reject decisively; goal and
+\texttt{libero\_10} are solid but not overwhelming (adjusted
+$p{=}0.037$ each), and the goal gap is the smallest and must be read as
+\emph{statistically marginal}. We frame this as a \emph{protocol-level
+discrepancy}, not a ``SmolVLA is worse than reported'' claim: residual
+protocol differences remain (our 5~seeds $\times$ 50~episodes vs.\ their
+10~trials per task, and our inherited step caps), and the published
+numbers are $n{=}100$ self-reports whose per-task breakdown is not
+released, so a task-paired comparison is not possible.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+Suite & Published ($n{=}100$) & v1.1 suite avg ($n{=}2500$) & Gap &
+Cluster-robust 95\% $t$-CI & Holm-adj $p$ \\
+\midrule
+spatial$^\ddagger$ & 0.90 & 0.643 (1608/2500) & $-25.7$\,pp & [0.466, 0.820] & 0.028 \\
+object$^\ddagger$  & 0.96 & 0.684 (1709/2500) & $-27.6$\,pp & [0.572, 0.795] & 0.0013 \\
+goal               & 0.92 & 0.813 (2032/2500) & $-10.7$\,pp & [0.724, 0.901] & 0.037 \\
+libero\_10         & 0.71 & 0.493 (1232/2500) & $-21.7$\,pp & [0.322, 0.664] & 0.037 \\
+\bottomrule
+\end{tabular}
+\caption{v1.1 suite-averaged SmolVLA rates vs.\ the published suite
+averages~\cite{shukor2025smolvla} (10 tasks $\times$ 250 episodes per
+suite, equal task weight, matching the paper's equal-task averaging). The
+primary test is a one-sample $t$ of the 10 per-task rates against the
+published mean (task as sampling unit, Holm-corrected across suites);
+Cohen's $h$ on the pooled rates is $0.64/0.79/0.32/0.45$. The goal gap is
+the smallest and statistically marginal (adjusted $p{=}0.037$; $p{=}0.026$
+re-measured at the canonical 600-step cap), and is never read as decisive.
+$^\ddagger$Step-cap caveat travels with spatial/object: their inherited
+280-step caps remain unprobed against canonical LIBERO's 600, and the cap
+confound is one-directional (a tighter cap can only censor would-be
+successes, i.e.\ only widen our measured gap). Source:
+\texttt{results/sweep-v11-libero/results.parquet};
+\texttt{docs/SWEEP\_V11\_LIBERO\_RESULTS.md}.}
+\label{tab:suite-gap}
+\end{table}
+
+\paragraph{The cap confound, probed at the canonical cap.}
+Every v1.1 failure runs to the step cap --- structurally so, since LIBERO
+episodes end only on success or cap, which makes cap-hit rates
+uninformative about censoring. The discriminating evidence is the
+\emph{success-time tail}: re-running the full goal suite at canonical
+cap~600 ($2{,}500$ episodes) leaves the suite average at $0.813$
+(2032/2500, the same success count as cap~300; the identity is aggregate,
+not episode-level), and only $35/2032$ successes needed more than
+300~steps ($1.4$\,pp of episodes; P99 $=374$, max $=567$ of 600). The
+directly observed censoring tail bounds the cap effect at
+${\lesssim}1.4$\,pp --- an order of magnitude below the $10.7$\,pp goal
+gap --- and the gap is now measured \emph{at the canonical cap itself}:
+$0.813$ vs.\ published $0.92$, task-level $t$ $p{=}0.026$, cluster-robust
+CI $[0.722, 0.904]$ excluding $0.92$. The policy is
+\emph{stuck-while-trying}, not slow-but-eventually-correct, replicating
+the earlier \texttt{libero\_10} task-0 cap probe ($+0.4$\,pp at cap 600)
+at $10\times$ the task coverage. Spatial/object (cap 280) remain the only
+unprobed caps, hence the $\ddagger$ in Table~\ref{tab:suite-gap}.
+
+\paragraph{Task heterogeneity, and how representative task 0 was.}
+Within-suite per-task rates spread $0.41$--$0.84$ --- the strongest
+argument against ever reporting single-task numbers as suite proxies, and
+the reason the suite table above averages over tasks. Graded against the
+suite averages, v1's task-0 envelopes were individually honest but
+directionally unrepresentative in \emph{both} directions: task~0
+\emph{overstated} the \texttt{libero\_10} gap ($-45.8$\,pp on task~0 vs.\
+$-21.7$\,pp suite-level; task 0 is essentially the hardest LIBERO-10
+task) and \emph{understated} the spatial/goal gaps (task 0 ranks 2nd of
+10 in both) --- precisely the failure mode the v1 claim audit predicted
+when it confined those cells to envelope phrasing. The single largest
+outlier, \texttt{libero\_spatial} task~5 at $0.036$ (9/250), does not
+explain the spatial gap: excluding it, the suite average is $0.711$
+(1599/2250), still $-18.9$\,pp below published.
+
+\paragraph{Where the failures go: a parquet-joined taxonomy of the
+outlier cells.}
+A per-episode labeling pass on the five outlier cells (spatial task~5 and
+the four hardest \texttt{libero\_10} tasks; $n{=}12$ failures per cell,
+selected by a deterministic seed-round-robin rule, labels joined on
+\texttt{(policy, env, seed, episode\_index)} against the parquet) shows
+the failure mass is \emph{execution}, not time pressure: spatial-t5
+fails at the contact-rich ends of an otherwise-complete pick-and-place
+routine (place-off-target 7/12, grasp-never-secured 4/12), and the four
+\texttt{libero\_10} cells --- all two-object composites --- stall
+disproportionately on a small/low-profile second object (pudding box
+10/12 in t6, cream-cheese box 8/12 in t7). All 60 labeled failures end at
+the cap with the gripper at or hovering over a task-relevant object ---
+``stuck-while-trying,'' frame by frame. Counts are observational; at
+$n{=}12$ per cell no rate claims are made beyond the raw counts. Source:
+\texttt{docs/assets/failure-taxonomy-labels-v11.csv}.
+
+\paragraph{Internal replication: the v1 cells reproduce a month later.}
+The four bare-suite task-0 envs are the same (policy, env, seed-set,
+criterion) cells v1 measured in 2026-05; v1.1 re-measured them from
+scratch across a month of wall time, harness commits, and sweep restarts.
+All four deltas land within $\pm2.4$\,pp with fully overlapping Wilson
+CIs (spatial $0.776\to0.800$, object $0.528\to0.524$, goal
+$0.928\to0.924$, \texttt{libero\_10} $0.252\to0.244$) --- the strongest
+internal-replication evidence the bench has that the eval contract is
+stable over time.
 
 \paragraph{Methodology caveats (v1.0.1 audit).}
 \label{sec:results-audit}
 A static audit surfaced three mismatches that constrain comparative
 claims without invalidating any measurement. (1)~\emph{Task scope:} every
-SmolVLA cell is \texttt{task\_id=0}, so paper-vs-measured deltas are
-single-task envelopes, not replications. (2)~\emph{ACT normalization bug}
-(self-caught, PR~\#51): covered above and in Table~\ref{tab:act-ablation};
-the $0.016\to0.824$ recovery is entirely the norm fix, temporal ensembling
-a wash. (3)~\emph{LIBERO step caps:} v1 inherited lerobot caps shorter than
-canonical LIBERO's 600~\cite{liu2023libero}; a cap=600 probe on
-\texttt{libero\_10} reads 0.256~[0.206, 0.314] vs.\ 0.252 (within
-half-width, policy- not cap-bottlenecked), other suites pending v1.1. No
-patch rewrites a parquet row. Alongside label-free failure signals
-(episode-length and cap-hit distributions, plus every failed-episode MP4)
-we hand-label a small set of failed rollouts into the canonical six-mode
-taxonomy (Figure~\ref{fig:failure-taxonomy}); a parquet-joined,
-randomly-sampled per-policy taxonomy is deferred to v1.1.
-XVLA ran on LIBERO but is deferred from v1 over an unresolved
-Hub-artifact wiring bug (\texttt{docs/DEFERRED\_POLICIES.md}).
+v1 SmolVLA cell is \texttt{task\_id=0}, so v1 paper-vs-measured deltas
+are single-task envelopes, not replications --- the scope gap the v1.1
+10-task sweep closed (\S\ref{sec:suite-audit}). (2)~\emph{ACT
+normalization bug} (self-caught, PR~\#51): covered above and in
+Table~\ref{tab:act-ablation}. (3)~\emph{LIBERO step caps:} v1 inherited
+lerobot caps shorter than canonical LIBERO's
+600~\cite{liu2023libero}; the confound has since been probed and bounded
+for goal (${\lesssim}1.4$\,pp) and \texttt{libero\_10} task~0
+($+0.4$\,pp), and remains open only for spatial/object
+(\S\ref{sec:suite-audit}). No patch rewrites a parquet row. Alongside
+label-free failure signals (episode-length distributions, plus every
+failed-episode MP4) we hand-label failed rollouts into the canonical
+six-mode taxonomy: a small curated v1 pass
+(Figure~\ref{fig:failure-taxonomy}) and the parquet-joined,
+deterministically-sampled v1.1 pass over the outlier cells
+(\S\ref{sec:suite-audit}). XVLA ran on LIBERO but is deferred from v1
+over an unresolved Hub-artifact wiring bug
+(\texttt{docs/DEFERRED\_POLICIES.md}).
 
 \begin{figure}[t]
   \centering
@@ -758,8 +868,10 @@ Hub-artifact wiring bug (\texttt{docs/DEFERRED\_POLICIES.md}).
   PushT mis-orientation, a LIBERO-10 long-horizon stall), gripper slip (2;
   ACT never secures a stable grasp), drift (1; random never contacts the
   object); the remaining three modes have zero labeled rollouts here and are
-  shown as empty bars rather than dropped. Curated, non-random set, not a
-  per-policy distribution; XVLA excluded (wiring bug, not a policy mode).
+  shown as empty bars rather than dropped. Curated, non-random v1 set, not
+  a per-policy distribution; XVLA excluded (wiring bug, not a policy mode).
+  The larger v1.1 pass (62 episodes, deterministic round-robin sampling,
+  parquet-joined) is summarized in \S\ref{sec:suite-audit}.
   Source: \texttt{docs/assets/failure-taxonomy-labels.csv}.}
   \label{fig:failure-taxonomy}
 \end{figure}
@@ -777,14 +889,20 @@ strengthened-but-qualified result the contract was purpose-built to
 produce (\S\ref{sec:l3}). The self-audit claim is narrow and defensible: a
 neutral seed/Wilson-CI/MDE contract surfaced a normalization bug that
 pinned ACT$\times$aloha at $0.016$ (below the random floor), a clean
-$2{\times}2$ ablation attributed the full $0.016\to0.824$ recovery to the
+$2{\times}2$ ablation attributed the recovery to the
 fix (Table~\ref{tab:act-ablation}) --- an error a loss curve hides and only
 a closed-loop CI exposes --- and a guard test (\S\ref{sec:guard})
-code-enforces that the rung above keeps its caveats. The supporting spine
+code-enforces that the rung above keeps its caveats. Pointed outward, the
+same machinery turned v1's single-task envelopes into the four-suite
+protocol-level discrepancy of \S\ref{sec:suite-audit} --- and graded its
+own v1 claims against the fuller measurement, validating the envelope
+caveats it had pre-registered. The instrument is also demonstrably
+stable: the four v1 LIBERO cells re-measured from scratch a month later
+reproduce within $\pm2.4$\,pp with fully overlapping CIs
+(\S\ref{sec:suite-audit}). The supporting spine
 is a set of honest negatives that earn the audit its credibility: every
-L0--L2 row is bit-replayable and Wilson/bootstrap CIs agree within one
-half-width; fine-tuning a near-ceiling policy moves it within noise
-($+0.040$, overlapping CIs, $h{=}0.11$) while an attempted SmolVLA LoRA
+L0--L2 row is bit-replayable; the L1 fine-tune shift is inconclusive at
+this $N$ ($\Delta{=}{+}0.040$, $h{=}0.11$) while an attempted SmolVLA LoRA
 fine-tune collapses rather than lifts, so neither L1 track is inflated into
 a win; and a competent classical controller gets halfway to the goal on
 average but clears the strict bar on ${\sim}1\%$ of episodes
@@ -851,11 +969,14 @@ seed count whose Wilson CI clears chance, with the planner's compute cost
     contract reads a near-ceiling continued-FT as the non-result it is. A
     multi-cell L1 sweep with a larger demo budget and a from-scratch
     baseline is needed to say anything stronger.
-    \item \textbf{SmolVLA single-task scope.} Every SmolVLA cell is
-    \texttt{task\_id=0} only; the paper~\cite{shukor2025smolvla} averages
-    10~tasks $\times$ 10~trials. Our SmolVLA numbers are single-task
-    envelopes, not suite replications, and the cross-paradigm comparison
-    should not lean on them.
+    \item \textbf{Residual protocol differences in the suite comparison.}
+    The four-suite gap (\S\ref{sec:suite-audit}) is a protocol-level
+    discrepancy, not a model claim: our 5~seeds $\times$ 50~episodes
+    vs.\ the paper's~\cite{shukor2025smolvla} 10~trials per task
+    (initial-state distributions may differ), spatial/object step caps
+    unprobed against canonical 600 (one-directional confound: can only
+    widen our gap), and $n{=}100$ published self-reports with no per-task
+    breakdown, so no task-paired test is possible.
     \item \textbf{Sparse matrix, multi-comparison, and episode budget.}
     Cross-policy comparisons are valid only within shared envs; the
     L0/L1/L2 rungs sit on \emph{different} envs (PushT, aloha), so they are
@@ -867,8 +988,8 @@ seed count whose Wilson CI clears chance, with the planner's compute cost
     \item \textbf{Harness bugs and protocol-vs-paper.} Our own
     normalization bug (PR~\#51) shows a harness can be the dominant error
     source; the LIBERO cap mismatches make those cells protocol-vs-paper,
-    not replication failures. Cross-policy paired tests defer to v1.1 when
-    XVLA returns.
+    not replication failures. Cross-policy paired tests defer to a future
+    release when XVLA returns.
 \end{itemize}
 
 \paragraph{Future work.}
@@ -879,7 +1000,8 @@ $\to$ reach $\to$ contact $\to$ deformable, with a MetaWorld anchor), at a
 seed count whose Wilson CIs clear chance. Broaden L1 to a multi-cell,
 larger-budget fine-tuning sweep with a from-scratch baseline so the rung
 can support a positive claim, and diagnose the SmolVLA LoRA collapse.
-Close the audit caveats (cap=600 LIBERO reruns); onboard the $\pi_0$
+Close the last open cap caveat (a canonical-cap probe for
+spatial/object, cap 280); onboard the $\pi_0$
 family via quantized/streaming load; and re-run on hardware for the
 sim-to-real gap.
 
