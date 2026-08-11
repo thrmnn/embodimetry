@@ -1,0 +1,41 @@
+# Targeted post-#51 re-run of the last pre-#51 pretrained rows.
+# Dispatched by scripts/rerun_post51_cells.py (prepare -> run_sweep -> finalize).
+#
+# Scope (see docs/CODE_SHA_INTEGRITY_AUDIT.md and the #51 fix, 7361d962):
+#   * diffusion_policy x pusht, seeds 0-4 x 25 episodes (the auto-downscoped
+#     cell) -- the ONLY pretrained rows in results/sweep-full/results.parquet
+#     still carrying pre-#51 code_shas (38ae2cbf / a581b971 / ae6002b7).
+#   * random x libero_spatial, seeds 0-3 x 50 episodes -- the pre-#51 portion
+#     (d9cdb28a) of a (policy, env) pair whose seed 4 already ran at 7361d962.
+#     Seed 4 is kept as-is; run_sweep's resume skips it (50/50 rows present).
+#
+# The cartesian product also yields diffusion_policy x libero_spatial
+# (skipped: not in env_compat) and random x pusht (skipped: already complete
+# in the parquet). Protocol matches the original v1 sweep: v1_legacy
+# criterion, record_video on, same caps.
+
+policies:
+- diffusion_policy
+- random
+
+envs:
+- libero_spatial
+- pusht
+
+seeds: [0, 1, 2, 3, 4]
+
+episodes_per_seed: 50
+
+results_path: results/sweep-full/results.parquet
+videos_dir: results/sweep-full/videos
+record_video: true
+device: cuda
+criterion: v1_legacy
+
+cell_timeout_s: 14400  # 4h soft cap per cell, same as sweep_full
+max_parallel: 1
+
+overrides:
+  diffusion_policy:
+    pusht:
+      n_episodes: 25  # original auto-downscoped shape (calibration-2026-05-12)
