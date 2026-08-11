@@ -1,4 +1,4 @@
-% embodimetry --- 4-5 page arXiv writeup (cs.RO primary, cs.LG secondary).
+% embodimetry --- ~9-page arXiv writeup (cs.RO primary, cs.LG secondary).
 % Capability-Ladder Audit framing: L0 pretrained / L1 fine-tune / L2 classical
 % / L3 world-model planner on ONE seed+Wilson-CI+MDE contract. The LEAD
 % contribution is the auditable instrument + the self-caught normalization
@@ -121,7 +121,8 @@ $0.816$~[0.739, 0.874]. \textbf{L1} (continued fine-tuning of an
 already-converged ACT on Aloha-transfer-cube) moves $0.824$~[0.772, 0.866]
 to $0.864$~[0.816, 0.901] --- a $+0.040$ shift whose CIs \emph{overlap}
 (Cohen's $h{=}0.11$, below the $N{=}250$ MDE), reported as within noise; an
-attempted SmolVLA LoRA fine-tune collapses ($0.252\to{\sim}0$). \textbf{L2}
+attempted SmolVLA LoRA fine-tune collapses ($0.252\to0/50$ on a seed-0
+probe). \textbf{L2}
 (a competent scripted PushT controller) clears the strict bar on only
 $0.012$~[0.004, 0.035] of episodes despite mean rollout coverage near
 $0.50$. The contributions we stand behind are the contract, the
@@ -273,7 +274,9 @@ caveat in Section~\ref{sec:results-audit}). Success is the per-env
 \texttt{SUCCESS\_REWARD} threshold; the episode succeeds iff its
 final-step reward meets or exceeds it. PR~\#90 adds a selectable
 \texttt{--canonical} criterion (paper termination rule, 600-step LIBERO
-cap); v1 ships the lerobot-default rule and v1.1 reruns affected cells.
+cap); v1 ships the \texttt{v1\_legacy} (final-reward-threshold)
+criterion --- not lerobot's canonical sticky-success reduction; lerobot
+defaults supplied only the step caps --- and v1.1 reruns affected cells.
 
 \paragraph{Seeding contract.}
 Per cell, three RNGs are seeded with
@@ -300,7 +303,7 @@ signed-rank test~\cite{wilcoxon1945individual} (reducing to
 McNemar~\cite{mcnemar1947note} for binary outcomes), plus Cohen's
 $h{=}2\arcsin\!\sqrt{p_1}-2\arcsin\!\sqrt{p_2}$~\cite{cohen1988statistical}
 ($|h|{<}0.2$ small). Multiple within-env ranking claims are controlled by
-Holm--Bonferroni~\cite{bonferroni1936teoria} at $\alpha{=}0.05$.
+Holm--Bonferroni~\cite{holm1979simple} at $\alpha{=}0.05$.
 
 \paragraph{Minimum detectable effect.}
 At $N{=}250$ the Wilson 95\% half-width at worst case $\hat{p}{=}0.5$ is
@@ -326,8 +329,9 @@ GPU (8\,GB VRAM). Given a per-policy mean step latency $\overline{t}$
         \overline{t} / 1000} \right\rfloor\right).
 \end{equation}
 Seed count is fixed at five; only $n_\text{ep}$ shrinks, so a
-down-scoped cell lands at $N\in\{50,100\}$ with a wider CI flagged in
-the caption. Two v1 cells were down-scoped. If the per-cell
+down-scoped cell lands at $N{<}250$ with a wider CI flagged in
+the caption. Two v1 cells were down-scoped, both to
+$n_\text{ep}{=}25$ ($N{=}125$). If the per-cell
 minimum ($N{=}50$) still exceeds budget, the policy is dropped from v1,
 not silently truncated.
 
@@ -495,12 +499,16 @@ is the expected and honest outcome of continued fine-tuning a policy
 already near its ceiling on its own training distribution; the negative
 result is the finding, and it is kept on the leaderboard's axis rather
 than dropped. We do not silently drop the second fine-tune track either:
-an attempted SmolVLA LoRA fine-tune \emph{collapsed} the policy
-($0.252\to{\sim}0$ on \texttt{libero\_10}\todo{confirm exact post-LoRA
-$\hat{p}$ and $N$ from the fine-tune track summary; not committed to this
-tree}) rather than lifting it --- a negative we attribute to a small demo
-budget against a large adapter and an unfavorable reward structure,
-reported as a failed lift, not omitted.
+an attempted SmolVLA LoRA fine-tune \emph{collapsed} the policy on
+\texttt{libero\_10} ($0.252\to0/50$ on seed~0 at the best-effort config,
+lr~$10^{-4}$, 3000~steps, LoRA $r{=}16$; $0/100$ pooled across the four
+probe configs attempted;
+\texttt{results/ladder/smolvla\_libero10\_l1.summary.json}) rather than
+lifting it. These are seed-0 probes below the $5{\times}50$ contract, not
+a full contract cell: the full re-measure was aborted because a 0\%
+policy runs every episode to the 520-step cap. The collapse is a negative
+we attribute to a small demo budget against a large adapter and an
+unfavorable reward structure, reported as a failed lift, not omitted.
 
 \paragraph{L2 --- a competent controller, and the last 50\% of precision.}
 The scripted PushT state-feedback controller is genuinely competent ---
@@ -613,14 +621,16 @@ SmolVLA   & libero\_spat.  & 250 & 0.776 & [0.720, 0.823] \\
 SmolVLA   & libero\_obj.   & 250 & 0.528 & [0.466, 0.589] \\
 SmolVLA   & libero\_10     & 250 & \textbf{0.252} & [0.202, 0.309] \\
 random    & aloha\_xfer    & 250 & 0.052 & [0.031, 0.087] \\
-random/no-op & other envs  & 2750 & 0.000 & [0.000, 0.002] \\
+random/no-op & other envs  & 2750 & 0.000 & [0.000, 0.001] \\
 \bottomrule
 \end{tabular}
 \caption{v1 per-cell success rate with Wilson 95\% CI, $N{=}5\cdot
 n_\text{ep}$ binary outcomes per cell. $^\dagger$auto-downscoped
 diffusion$\times$pusht ($n_\text{ep}{=}25$, $N{=}125$;
 \S\ref{sec:downscope}). Uniform-random clears floor only on
-\texttt{aloha\_transfer\_cube}, so the floor is per-cell. MDE band at
+\texttt{aloha\_transfer\_cube}, so the floor is per-cell; the pooled
+zero-success row is descriptive (per-cell $0/250$ Wilson upper
+$0.015$). MDE band at
 $N{=}250$, $\hat{p}{=}0.5$ is $0.123$; 22~runnable cells; XVLA deferred.}
 \label{tab:leaderboard}
 \end{table}
@@ -708,10 +718,10 @@ ACT rerun, via \texttt{src/embodimetry/figures.py:replication\_scatter}.}
 \end{figure}
 
 \paragraph{Leaderboard context and baseline sanity.}
-For context, SmolVLA's pooled rate across the four LIBERO suites is
-0.621~[0.591, 0.651] under our protocol (\texttt{task\_id=0}, env-default
-caps), with a sharp per-suite gradient (0.928 \texttt{goal} down to 0.252
-\texttt{libero\_10}); these are single-task envelopes, not suite
+For context, SmolVLA's per-suite rates under our protocol
+(\texttt{task\_id=0}, env-default caps) span a sharp gradient (0.928
+\texttt{goal} down to 0.252 \texttt{libero\_10}); these are single-task
+envelopes, not suite
 replications of the paper's 10-task averages~\cite{shukor2025smolvla}
 (\S\ref{sec:results-audit}). The floor baselines confirm the bar is real:
 no-op succeeds zero times across all six envs ($N{=}1500$, Wilson upper
@@ -831,7 +841,8 @@ seed count whose Wilson CI clears chance, with the planner's compute cost
     \item \textbf{Single-GPU compute ceiling.} The entire audit runs on
     one 8\,GB RTX~4060 laptop. This caps the ladder beyond L3: SmolVLA
     full fine-tune does not fit, so L1 is a single ACT cell plus an
-    attempted SmolVLA LoRA track that collapsed ($0.252\to{\sim}0$),
+    attempted SmolVLA LoRA track that collapsed ($0.252\to0/50$ on a
+    seed-0 probe; $0/100$ pooled across probe configs),
     reported as a failed lift rather than dropped.
     \item \textbf{L1 is one cell, and the lift is within noise.} The
     fine-tuning rung is ACT$\times$aloha alone, and its $+0.040$ shift has
