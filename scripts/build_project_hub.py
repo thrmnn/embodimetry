@@ -125,6 +125,7 @@ def render_docs() -> dict[str, str]:
         "architecture": REPO / "docs/ARCHITECTURE.md",
         "design": REPO / "docs/DESIGN.md",
         "sweep-v11-results": REPO / "docs/SWEEP_V11_LIBERO_RESULTS.md",
+        "code-sha-audit": REPO / "docs/CODE_SHA_INTEGRITY_AUDIT.md",
         "changelog": REPO / "CHANGELOG.md",
     }
     rendered = {
@@ -205,6 +206,15 @@ def render_paper_dag() -> tuple[str, dict[str, str]]:
         )
     )
     return hk.section("Paper DAG (academic-paper-workflow)", cards, anchor="paper-dag"), statuses
+
+
+def _pdf_mtime() -> str:
+    # main.pdf is gitignored (arXiv builds from source), so nothing else
+    # surfaces staleness — the mtime label is the only visible signal.
+    pdf = REPO / "paper/main.pdf"
+    if not pdf.exists():
+        return "missing"
+    return datetime.fromtimestamp(pdf.stat().st_mtime, UTC).strftime("%Y-%m-%d")
 
 
 def _ship_score() -> str:
@@ -848,7 +858,7 @@ def main() -> None:
             "Methodology, results, limitations. arXiv ID still TBD.",
             "../paper/main.pdf",
             kind="doc",
-            meta="paper/main.pdf",
+            meta=f"paper/main.pdf — built {_pdf_mtime()}",
         ),
     ]
 
@@ -899,6 +909,13 @@ def main() -> None:
             "Publish runbook",
             "One-command-per-step v1 Hub publish sequence, owner-gated steps marked.",
             docs.get("publish-runbook", "#"),
+            kind="doc",
+        ),
+        hk.card(
+            "Code-SHA integrity audit",
+            "Why the 13 mismatched code_sha values in the v1 results are a "
+            "false positive — evidence trail behind the publish decision.",
+            docs.get("code-sha-audit", "#"),
             kind="doc",
         ),
         hk.card(
