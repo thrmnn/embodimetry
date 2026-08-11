@@ -1,52 +1,54 @@
 # Cockpit deployment
 
-Current serving (2026-08-10): laptop builds `_hub/_stage/` and rsyncs to
+Current serving (2026-08-11): laptop builds `_hub/_stage/` and rsyncs to
 `hetzner:/srv/cockpit/current/`; nginx (`nginx-cockpit.conf`) serves it on
-`127.0.0.1:8080`; `tailscale serve --bg --https=8443 http://127.0.0.1:8080`
-fronts it at `https://ubuntu-8gb-hel1-1.tail489c2e.ts.net:8443/_hub/`,
-tailnet-only. Push automation: `cockpit-push.{service,timer}` (laptop, systemd
-user units). Never run `tailscale serve reset` on the VPS — the other serve
-mounts (443→BRISAverse, 8737→mirante, 8747→varanda) are live apps.
+`127.0.0.1:8080`; a Tailscale sidecar node fronts it at
+`https://embodimetry.tail489c2e.ts.net/_hub/` (canonical), with the legacy
+host mount `https://ubuntu-8gb-hel1-1.tail489c2e.ts.net:8443/_hub/` still up
+during transition — both tailnet-only. Push automation:
+`cockpit-push.{service,timer}` (laptop, systemd user units). Never run
+`tailscale serve reset` on the VPS — the other serve mounts (443→BRISAverse,
+8737→mirante, 8747→varanda) are live apps.
 
-## Deferred: Tailscale sidecar node (own hostname for the PWA)
+## Tailscale sidecar node (own hostname for the PWA) — LIVE
 
-**Why (documented 2026-08-10, not yet built).** The VPS hostname hosts four
-PWAs on different ports (443 BRISAverse, 8737 mirante, 8747 varanda, 8443
-cockpit). Ports make them distinct origins per spec, but tailnet-private PWAs
-can't be minted as WebAPKs (Google's minting service can't fetch a private
-manifest), so Android Chrome falls back to shortcut installs whose
-installed-app matching is host-keyed in practice — installing the cockpit
-collides with varanda. A distinct *hostname* fixes the identity under every
-matching scheme and moves the cockpit to default port 443.
+**Why.** The VPS hostname hosts four PWAs on different ports (443 BRISAverse,
+8737 mirante, 8747 varanda, 8443 cockpit). Ports make them distinct origins
+per spec, but tailnet-private PWAs can't be minted as WebAPKs (Google's
+minting service can't fetch a private manifest), so Android Chrome falls back
+to shortcut installs whose installed-app matching is host-keyed in practice —
+installing the cockpit collided with varanda. A distinct *hostname* fixes the
+identity under every matching scheme and moves the cockpit to default
+port 443.
 
-**Plan.**
+**Deployed.** The `ts-embodimetry` docker sidecar (userspace networking,
+`--network=host`, state in the `ts-embodimetry-state` volume) joins the
+tailnet as node `embodimetry` and runs
+`tailscale serve --bg --https=443 http://127.0.0.1:8080`. Same nginx root,
+same push pipeline; manifest `id` is origin-relative so it needed no edit.
+Verify any time:
 
-1. Théo: Tailscale admin console → Settings → Keys → *Generate auth key*
-   (single-use is fine). Also disable key expiry for the new node afterwards.
-2. VPS — sidecar joins the tailnet as its own node named `embodimetry`,
-   sharing the host network so it can reach nginx on loopback; userspace
-   networking avoids any tun/tailscaled conflict with the host daemon:
+```sh
+curl -so /dev/null -w '%{http_code}' https://embodimetry.tail489c2e.ts.net/_hub/
+# expect: 200
+```
 
-   ```sh
-   docker run -d --name ts-embodimetry --restart unless-stopped \
-     --network=host \
-     -e TS_AUTHKEY=<key> -e TS_HOSTNAME=embodimetry -e TS_USERSPACE=1 \
-     -e TS_STATE_DIR=/var/lib/tailscale \
-     -v ts-embodimetry-state:/var/lib/tailscale \
-     tailscale/tailscale
-   docker exec ts-embodimetry tailscale serve --bg --https=443 http://127.0.0.1:8080
-   ```
+**Key expiry** is disabled on the online nodes, so neither the sidecar nor
+the VPS drops off the tailnet on key rotation day.
 
-3. Verify `https://embodimetry.tail489c2e.ts.net/_hub/` → 200 with the same
-   headers as the 8443 mount, then re-run the installability audit (headless
-   Chromium CDP `Page.getInstallabilityErrors`, see the session notes /
-   `git log 67bada3` for the snippet) and an offline-reload test.
-4. Nothing else changes: same nginx root, same push pipeline, manifest `id`
-   is origin-relative so it needs no edit. Update the URL in memory, the
-   fleet report, and the tablet install.
-5. Keep the 8443 mount up during transition (`tailscale serve --https=8443
-   off` to retire it later). Rollback: `docker rm -f ts-embodimetry` — the
-   8443 mount is untouched.
+**Laptop availability caveat.** A Windows logon task starts WSL (and thus the
+push units) on the MSI laptop, but it is interactive-only: an unattended
+reboot leaves WSL — and the cockpit push pipeline — down until someone logs
+in. The VPS keeps serving the last-pushed build regardless; only freshness
+suffers.
+
+**Retire the legacy mount** once the tablet install is repointed
+(rollback for the sidecar itself: `docker rm -f ts-embodimetry` — the 8443
+mount is untouched):
+
+```sh
+tailscale serve --https=8443 off
+```
 
 **Related, separate:** mirante/varanda/BRISAverse all ship manifests with no
 `"id"` and scope `/` — they will collide with *each other* the same way;
