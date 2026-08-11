@@ -264,7 +264,12 @@ final-step reward meets or exceeds it. PR~\#90 adds a selectable
 \texttt{--canonical} criterion (paper termination rule, 600-step LIBERO
 cap); v1 ships the \texttt{v1\_legacy} (final-reward-threshold)
 criterion --- not lerobot's canonical sticky-success reduction; lerobot
-defaults supplied only the step caps. The v1.1 follow-up sweep re-ran the
+defaults supplied only the step caps. (\emph{Sticky} semantics, used by
+the ladder cells: an episode succeeds if the condition held at \emph{any}
+step --- \texttt{sticky\_is\_success} reduces \texttt{any(is\_success)},
+\texttt{sticky\_reward\_eq} reduces
+\texttt{any(reward\,${=}$\,threshold)}; each table states the criterion
+its cells ran.) The v1.1 follow-up sweep re-ran the
 affected scope: all 10 tasks of all four LIBERO suites
 ($40$~envs $\times$ 5~seeds $\times$ 50~episodes) plus a full
 canonical-cap (600-step) probe of the goal suite
