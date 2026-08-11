@@ -667,20 +667,23 @@ measured in a separate $N{=}250$ run; the two agree within CI. Source:
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.52\linewidth]{figures/paper/replication_scatter.pdf}
-\caption{Paper-reported vs.\ measured success rate per cell, Wilson 95\%
-error bars; the $y{=}x$ diagonal is perfect replication. Cells within the
-$N{=}250$ MDE band ($\pm0.123$) are greyed (``agrees with paper''); others
-colored by policy. ACT~$\times$~\texttt{aloha\_transfer\_cube} plots at its
+\includegraphics[width=0.62\linewidth]{figures/paper/replication_scatter.pdf}
+\caption{Paper-reported vs.\ measured success rate per cell; the $y{=}x$
+diagonal is perfect replication. Single-cell ($N{=}250$) points carry
+Wilson 95\% error bars and grey out when inside the $N{=}250$ MDE band
+($\pm0.123$, ``agrees with paper''); no measured cell qualifies.
+ACT~$\times$~\texttt{aloha\_transfer\_cube} plots at its
 norm-\emph{fixed} $0.824$, with the pre-fix $0.016$ harness-bug point
-(\S\ref{sec:results-audit}) annotated and connected. SmolVLA~$\times$~LIBERO
-points carry a ``(partial: 1/10 tasks)'' tag: the v1 sweep ran
-\texttt{task\_id=0} only, vs.\ the paper's 10-task suite averages, so those
-v1 gaps are not apples-to-apples --- the v1.1 suite-averaged comparison is
-Table~\ref{tab:suite-gap}. Source: the canonical
-\texttt{results/sweep-full/results.parquet} (ACT cell already spliced to
-the corrected rerun), via
-\texttt{src/embodimetry/figures.py:replication\_scatter}.}
+(\S\ref{sec:results-audit}) annotated and connected. The four SmolVLA
+points (\texttt{spatial}/\texttt{object}/\texttt{goal}/\texttt{libero\_10})
+are the v1.1 10-task suite averages of Table~\ref{tab:suite-gap}
+($0.643/0.684/0.813/0.493$), with cluster-robust 95\% $t$-CIs over the 10
+per-task rates (task as sampling unit, \S\ref{sec:methods}); the small
+grey dots behind each mean are those per-task rates --- the within-suite
+heterogeneity that rules out episode-iid intervals at suite level.
+Source: \texttt{results/sweep-full/results.parquet} (ACT cell spliced to
+the corrected rerun) and \texttt{results/sweep-v11-libero/results.parquet},
+via \texttt{src/embodimetry/figures.py:replication\_scatter}.}
 \label{fig:replication}
 \end{figure}
 
@@ -909,26 +912,30 @@ for goal (${\lesssim}1.4$\,pp) and \texttt{libero\_10} task~0
 label-free failure signals (episode-length distributions, plus every
 failed-episode MP4) we hand-label failed rollouts into the canonical
 six-mode taxonomy: a small curated v1 pass
-(Figure~\ref{fig:failure-taxonomy}) and the parquet-joined,
+(\texttt{docs/assets/failure-taxonomy-labels.csv}) and the parquet-joined,
 deterministically-sampled v1.1 pass over the outlier cells
-(\S\ref{sec:suite-audit}). XVLA ran on LIBERO but is deferred from v1
+(Figure~\ref{fig:failure-taxonomy}; \S\ref{sec:suite-audit}). XVLA ran on
+LIBERO but is deferred from v1
 over an unresolved Hub-artifact wiring bug
 (\texttt{docs/DEFERRED\_POLICIES.md}).
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.62\linewidth]{figures/paper/failure_taxonomy.pdf}
-  \caption{Failure modes of $N{=}6$ hand-labeled failed rollouts, assigned
-  by visual inspection into the canonical six-mode scheme
-  (\S\ref{sec:methods}; \texttt{docs/FAILURE\_TAXONOMY.md}): timeout (3;
-  PushT mis-orientation, a LIBERO-10 long-horizon stall), gripper slip (2;
-  ACT never secures a stable grasp), drift (1; random never contacts the
-  object); the remaining three modes have zero labeled rollouts here and are
-  shown as empty bars rather than dropped. Curated, non-random v1 set, not
-  a per-policy distribution; XVLA excluded (wiring bug, not a policy mode).
-  The larger v1.1 pass (62 episodes, deterministic round-robin sampling,
-  parquet-joined) is summarized in \S\ref{sec:suite-audit}.
-  Source: \texttt{docs/assets/failure-taxonomy-labels.csv}.}
+  \includegraphics[width=0.62\linewidth]{figures/paper/failure_taxonomy_v11.pdf}
+  \caption{The v1.1 failure taxonomy on the five outlier cells
+  (\texttt{spatial\_t5} and the four hardest \texttt{libero\_10} tasks):
+  counts of hand-labeled failed episodes per canonical mode
+  (\S\ref{sec:methods}; \texttt{docs/FAILURE\_TAXONOMY.md}), $n{=}12$
+  failures per cell, deterministic seed-round-robin sampling, labels
+  joined on \texttt{(policy, env, seed, episode\_index)} against the
+  per-episode parquet. Modes with zero labeled episodes are shown as
+  explicit zero cells rather than dropped. Counts are observational: at
+  $n{=}12$ per cell no within- or cross-cell rate claim is supported ---
+  the cross-cell reading (execution failure at contact-rich ends, stalls
+  on small second objects) is \S\ref{sec:suite-audit}'s. Single labeler,
+  no agreement statistic, same caveat as the v1 pass. Source:
+  \texttt{docs/assets/failure-taxonomy-labels-v11.csv} via
+  \texttt{src/embodimetry/figures.py:failure\_taxonomy\_v11}.}
   \label{fig:failure-taxonomy}
 \end{figure}
 

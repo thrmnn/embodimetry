@@ -27,11 +27,31 @@ contradicted by it. Its "probe" arm (0.764) changes *two* variables at once
 (normalization fix + paper inference settings), so it can't isolate either
 one; its own title text says "inference settings are the load-bearing
 variable," which the correctly-isolated 2×2 ablation shows is false
-(normalization is 100% of the recovery). The 4 rendered output files
-(`paper/figures/{paper,deck,web}/act_probe_bar.*`) have been deleted — the
-underlying `act_probe_bar()` function and its tests in
-`src/embodimetry/figures.py`/`tests/test_figures.py` are untouched (it's a
-legitimate library function, just not part of this submission's figure set).
+(the recovery is attributable to the normalization fix). The 4 rendered
+output files (`paper/figures/{paper,deck,web}/act_probe_bar.*`) were
+deleted in the first pass; the 2026-08-11 v1.1 figure upgrade then removed
+the `act_probe_bar()` function itself from `src/embodimetry/figures.py`
+(and its tests), with a regression test
+(`test_act_probe_bar_is_retired`) pinning it out of the `FIGURES`
+registry so `make paper-figures` can never regenerate the
+paper-contradicting asset.
+
+## v1.1 upgrade (2026-08-11)
+
+- `replication_scatter` now takes the v1.1 parquet
+  (`--v11-results`, default `results/sweep-v11-libero/results.parquet`):
+  SmolVLA suites plot as 10-task suite averages with cluster-robust 95%
+  t-CIs over the per-task rates (`stats.cluster_mean_t_ci`, task as
+  sampling unit) plus per-task dots; labels are placed by a
+  renderer-measured collision-avoiding ladder.
+- `failure_taxonomy_v11` (new, registered in `FIGURES`): 5 outlier cells
+  × canonical six-mode counts from
+  `docs/assets/failure-taxonomy-labels-v11.csv`, zero cells shown
+  explicitly. Supersedes the curated v1 bar chart in the paper;
+  `docs/assets/make_failure_taxonomy_fig.py` no longer writes into
+  `paper/figures/`.
+- `forest_plot` marks bare-suite LIBERO rows "(task 0)".
+- `act_norm_ablation_2x2` recolored RdYlGn → viridis (CVD-safe).
 
 ## Notes (not figures)
 
