@@ -34,7 +34,7 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
             echo "::notice::space/app.py not present; nothing to smoke-test"
           fi
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -91,7 +91,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
